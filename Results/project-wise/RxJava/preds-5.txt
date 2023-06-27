@@ -1,0 +1,715 @@
+Looks it can be implemented by a simple class `Pair`, for example: ``` Java public <U, R> Observable<R> mergeMap(final Func1<? super T, ? extends Observable<? extends U>> collectionSelector, final Func2<? super T, ? super U, ? extends R> resultSelector) { return flatMap(new Func1<T, Observable<Pair<T, U>>>() { @Override public Observable<Pair<T, U>> call(final T t) { return collectionSelector.call(t).map(new Func1<U, Pair<T, U>>() { @Override public Pair<T, U> call(U u) { return new Pair<T, U>(t, u); } }); } }).map(new Func1<Pair<T, U>, R>() { @Override public R call(Pair<T, U> pair) { return resultSelector.call(pair._1, pair._2); } }); } private static class Pair<T1, T2> { T1 _1; T2 _2; Pair(T1 _1, T2 _2) { this._1 = _1; this._2 = _2; } } ```
+Prefer an anonymous Func1, for example, ``` java public <R> Observable<R> mergeMapIterable(final Func1<? super T, ? extends Iterable<? extends R>> collectionSelector) { return flatMap(new Func1<T, Observable<? extends R>>() { @Override public Observable<? extends R> call(T t1) { return Observable.from(collectionSelector.call(t1)); } }); } public <U, R> Observable<R> mergeMapIterable( final Func1<? super T, ? extends Iterable<? extends U>> collectionSelector, Func2<? super T, ? super U, ? extends R> resultSelector) { return mergeMap(new Func1<T, Observable<? extends U>>() { @Override public Observable<? extends U> call(T t1) { return Observable.from(collectionSelector.call(t1)); } }, resultSelector); } ```
+It the following implementation better? ``` java public <R> Observable<R> mergeMap( final Func1<? super T, ? extends Observable<? extends R>> onNext, final Func1<? super Throwable, ? extends Observable<? extends R>> onError, final Func0<? extends Observable<? extends R>> onCompleted) { return materialize().flatMap( new Func1<Notification<T>, Observable<? extends R>>() { @Override public Observable<? extends R> call(Notification<T> t1) { if (t1.isOnNext()) { return onNext.call(t1.getValue()); } if (t1.isOnError()) { return onError.call(t1.getThrowable()); } return onCompleted.call(); } }); } ```
+> nesting several layers of Observables, Observers and Subscriptions. The entire library is based on composition. If we were seeking to avoid that we wouldn't be using a functional style so unless there is a strong performance reason (that isn't a bug with one of the operators themselves) I don't see that as a reason to add a helper operator.
+The problem with this is that `CompletableOnSubscribe` is practucally useless; you'll have to call `Completable.create()` with it to get meaningful opererations. The whole method should be the same as `to` in 2.x. The `Observable.extend` was pushed hard back then disergarding my reservations. Of course if you can give a compelling case why reduce the options for the conversion, I'm open minded.
+The `run()` and `call()` methods complicate the signature for me. I deleted the methods and stopped implementing `Action0` and `Runnable` and it still works for me, and is more clear now. I'd prefer not to mix those in with this class as it confuses what is being run where. The `tryDrainAsync` method already allows for async scheduling.
+There is a race here. If `run()` gets here and `onNext` is fired, throttling will be disposed and the `onNext` value gets emitted. Here then the cached value gets emitted as well and now there are two tasks delayed for the subsequent interactions.
+the `emitFromRun` may still be running at this point and you have concurrent `onNext`/`onComplete` invocation.
+What do you think about this accepting `Notification` instead of `Action0`? The reason is that we now have 2 wrappers ... the `Notification` and `Action0` around a type `T` and 2 object allocations for each `onNext`. The use of `Action0` is definitely more generic, but as we've seen by your `CompositeSubscription` changes, we're at the point where we're moving away from generic to achieve performance and memory gains, and this class will be involved in very high throughput scenarios.
+The `increment` is done here, but shouldn't it be done in `enqueue`? It seems dangerous that checking `tryDrain` increases the value as someone could `enqueue` and then call `tryDrain` twice, or `enqueue` and not call `tryDrain` or call `tryDrain` and not `enqueue`.
+Completable from capital letter
+Looks it can be implemented by a simple class `Pair`, for example: ``` Java public <U, R> Observable<R> mergeMap(final Func1<? super T, ? extends Observable<? extends U>> collectionSelector, final Func2<? super T, ? super U, ? extends R> resultSelector) { return flatMap(new Func1<T, Observable<Pair<T, U>>>() { @Override public Observable<Pair<T, U>> call(final T t) { return collectionSelector.call(t).map(new Func1<U, Pair<T, U>>() { @Override public Pair<T, U> call(U u) { return new Pair<T, U>(t, u); } }); } }).map(new Func1<Pair<T, U>, R>() { @Override public R call(Pair<T, U> pair) { return resultSelector.call(pair._1, pair._2); } }); } private static class Pair<T1, T2> { T1 _1; T2 _2; Pair(T1 _1, T2 _2) { this._1 = _1; this._2 = _2; } } ```
+Prefer an anonymous Func1, for example, ``` java public <R> Observable<R> mergeMapIterable(final Func1<? super T, ? extends Iterable<? extends R>> collectionSelector) { return flatMap(new Func1<T, Observable<? extends R>>() { @Override public Observable<? extends R> call(T t1) { return Observable.from(collectionSelector.call(t1)); } }); } public <U, R> Observable<R> mergeMapIterable( final Func1<? super T, ? extends Iterable<? extends U>> collectionSelector, Func2<? super T, ? super U, ? extends R> resultSelector) { return mergeMap(new Func1<T, Observable<? extends U>>() { @Override public Observable<? extends U> call(T t1) { return Observable.from(collectionSelector.call(t1)); } }, resultSelector); } ```
+Unfortunately these overloaded method signatures have the same arity and will cause problems with Groovy/Clojure/JRuby etc as they can't determine the difference between `Func0` vs `Func1` at runtime. We should either eliminate unnecessary overloads, change signatures or have more descriptive names instead of overloads.
+Great, that solves it then.
+We should avoid covariant return types (drop `? extends`).
+This is also an opportunity to fix the signatures, saves 1 PR.
+you can just return from inside these cases and avoid the local var / null initializer problem.
+I still find the line break between `else` and `if` really weird... although you don't even need the `else` after `return`.
+Ahhhh damn, I think you've mentioned that problem before What if JMH would be event/callback based so we could benchmark async code like RxJava in a reactive manner? ie: ```java @Benchmark public void flowable(BenchmarkObserver benchmarkObserver) { flowable.subscribe(this, Functions.emptyConsumer(), new Action() { @Override public void run() throws Exception { benchmarkObserver.onComplete(); } }); } ```
+As @akarnokd said, you need to override `setProducer` here, such as ``` Java @Override public void setProducer(final Producer producer) { child.setProducer(new Producer() { @Override public void request(long n) { producer.request(n); } }); } ``` So that `child` can be set to the new Producer.
+Sorry, a typo here. The return value should be parent.
+It should be `child.add(...)`.
+offtopic: I'm wondering if we should drop `SubscriptionHelper.isCancelled()`
+Most of the time `onNext` would emit without contention if the consumer is fast. Does lock elision remove the performance impediment of a `synchronized` on every single `onNext` attempt? Just thinking through the fact that this is a bunch of machinery for something that will typically be put in for dropping data when backpressure happens but should otherwise add negligible overhead.
+@akarnokd do you really see much sense in a separate class for arrays? You can provide an override where passed array will be wrapped into `ArrayList` and then passed to the `CompletableOnSubscribeConcatIterable`. Less code â less bugs :)
+Ok, got it.
+Well, that not how unit testing works :)
+Let's rename this to `value`? Will improve readability of the code!
+Thanks for this, David
+"should is allowed" doesn't seem to be grammatically correct
+As an aside, it's weird that this is a factory and all the others are accessors. Is `TestScheduler`'s constructor `public`? If so we should just remove this static method that implies there's somehow a shared scheduler for tests.
+Traditional how? That it's in 1.x? I don't see why that should stop us from removing it. Doing something like this is wrong: ``` java timer(1, SECONDS, Schedulers.test()) ``` yet it's how you'd use every other static method in this class.
+This will result in new threads being spawned each time as it doesn't correctly capture the `Inner` the first time through. Note how the current implementation captures the `innerScheduler` for all subsequent passes: https://github.com/Netflix/RxJava/blob/master/rxjava-core/src/main/java/rx/operators/OperationObserveOn.java#L96 One bug in the current implementation is that the first time through it ONLY captures the `innerScheduler` and then requires another schedule event before doing any work. The first time it schedules it should start draining, and capture the `innerScheduler` for the next time through.
+It would be great, if this is to be migrated to 2.x, that user-supplied functions are called in try-catch. Perhaps not here but in call().
+Please avoid unrolling `*` imports.
+Please restore the original file if there is no actual (code) change.
+Thanks for this, David
+@akarnokd do you really see much sense in a separate class for arrays? You can provide an override where passed array will be wrapped into `ArrayList` and then passed to the `CompletableOnSubscribeConcatIterable`. Less code â less bugs :)
+Accessing `timerInProgress` happens more often so `extends AtomicInteger` is better. Have the `AtomicReference` as instance field instead.
+nit: nested `if`s could be collapsed with `&&`
+If `nextIteration` has terminated, the queue may still hold requested values so it might be worth considering calling `clear()` before quitting.
+If `isUnsubscribed != 0` then the CAS in `unsubscribe` will fail and nothing happens. If you wanted to delay the unsubscription to the time when nextIteration is not running, then you need a separate indicator, i.e., unsubscribeRequested.
+This is called from inside the lock being held which means that replaying all historical values to a new Observer will block all existing Observers and new values from proceeding.
+We do not want to lock for `onNext` calls. That is against Rx Design Guideline 6.8: ``` 6.8. Avoid serializing operators As all Rx operators are bound to guideline 6.7, operators can safely assume that their inputs are serialized. Adding too much synchronization would clutter the code and can lead to performance degradation. If an observable sequence is not following the Rx contract (see chapter 0), it is up to the developer writing the end-user application to fix the observable sequence by calling the Synchronize operator at the first place the developer gets a hold of the observable sequence. This way the scope of additional synchronization is limited to where it is needed. ```
+What problems was this causing? This is not generally something we check for.
+We do not want to lock for `onNext` calls. That is against Rx Design Guideline 6.8: ``` 6.8. Avoid serializing operators As all Rx operators are bound to guideline 6.7, operators can safely assume that their inputs are serialized. Adding too much synchronization would clutter the code and can lead to performance degradation. If an observable sequence is not following the Rx contract (see chapter 0), it is up to the developer writing the end-user application to fix the observable sequence by calling the Synchronize operator at the first place the developer gets a hold of the observable sequence. This way the scope of additional synchronization is limited to where it is needed. ```
+This covariance stuff is insane.
+https://github.com/ReactiveX/RxJava/blob/1.x/CONTRIBUTING.md > When submitting code, please make every effort to follow existing conventions and style in order to keep the code as readable as possible.
+I don't grok this method yet as it is rather complicated so I'm going to have to come back to this another time ...
+Looks like this should be Nullable
+The argument should be non-null. It's just a safeguard to make sure a null is recorded as NPE.
+This should be `@NonNull`.
+The argument should be `@NonNull`.
+The argument should be `@NonNull`.
+ok, np :)
+Yes, but ![mug-meme-okay](https://cloud.githubusercontent.com/assets/967132/9472197/73ca121c-4b5c-11e5-99f7-5efa20d175be.jpg)
+Saves bytes. Collapse two object headers into one.
+This is not public API
+Sure, but exposes API. int vs enums 2.
+Also, `PoolWorker` is an odd name for something like `getEventLoop` to return.
+Let's rename this to `value`? Will improve readability of the code!
+This looks good. Basically a JavaFx version of 'unsubscribeOn'. This is better because it allows executing immediately if already in the right thread.
+You should use `inner` here I guess.
+The `run()` and `call()` methods complicate the signature for me. I deleted the methods and stopped implementing `Action0` and `Runnable` and it still works for me, and is more clear now. I'd prefer not to mix those in with this class as it confuses what is being run where. The `tryDrainAsync` method already allows for async scheduling.
+For what it's worth, I would give a +1 for any solution that does not split up value and unit into two separate parameters (as Java does by default), as they are clearly logically coupled. I would give another +1 for making whatever solution is settled for consistent across the code base. Beyond that, I don't really feel strong about one solution or another.
+Airlift has a good duration/timespan abstraction if I were to poach one from an existing project today. On Tue, Nov 26, 2013 at 10:28 AM, akarnokd notifications@github.com wrote: > In rxjava-core/src/main/java/rx/util/TimeSpan.java: > > > +package rx.util; > > + > > +import java.util.concurrent.TimeUnit; > > + > > +/** > > - \* Represents a time value and time unit. > > - \* <p> > > - \* Rx.NET note: System.TimeSpan has a fixed unit of measure of 100 nanoseconds > > - \* per value; the Java way is to specify the TimeUnit along with the time value. > > - \* <p> > > - \* Usage: > > - \* <pre> > > - \* TimeSpan oneSecond = TimeSpan.of(1, TimeUnit.SECONDS); > > - \* </pre> > > - */ > > +public final class TimeSpan implements Comparable<TimeSpan> { > > We can return rx.util.TimeInterval<TimeUnit> so no new class needs to be > introduced, but since TimeInterval is specified as having a millisecond > value, it would confuse things. > > One option is always there: "when in doubt, leave it out". So there won't > be any timed overload, and if particular clients require one, they can > write their own time generator and zip() it with generate() > > â > Reply to this email directly or view it on GitHubhttps://github.com/Netflix/RxJava/pull/509/files#r7934024 > .
+I think changing `Func1<TState, TimeSpan> timeSelector` to two parameters `Func1<TState, Long> timeSelector, TimeUnit unit` is better. And as there is no DateTimeOffset in Java, we do not need `generateAbsoluteTime`.
+Okay, thanks for the validation.
+Let's rename this to `value`? Will improve readability of the code!
+Does this conflict with Groovy and Clojure because of type erasure? I'm concerned that 2 overloads that take functions will collide.
+Thinking about it ... probably need to play with the code a little more to get a feel for it.
+It would be great, if this is to be migrated to 2.x, that user-supplied functions are called in try-catch. Perhaps not here but in call().
+If `isUnsubscribed != 0` then the CAS in `unsubscribe` will fail and nothing happens. If you wanted to delay the unsubscription to the time when nextIteration is not running, then you need a separate indicator, i.e., unsubscribeRequested.
+If `nextIteration` has terminated, the queue may still hold requested values so it might be worth considering calling `clear()` before quitting.
+Thanks for this, David
+Accessing `timerInProgress` happens more often so `extends AtomicInteger` is better. Have the `AtomicReference` as instance field instead.
+There is a race here. If `run()` gets here and `onNext` is fired, throttling will be disposed and the `onNext` value gets emitted. Here then the cached value gets emitted as well and now there are two tasks delayed for the subsequent interactions.
+you can just return from inside these cases and avoid the local var / null initializer problem.
+Ahhhh damn, I think you've mentioned that problem before What if JMH would be event/callback based so we could benchmark async code like RxJava in a reactive manner? ie: ```java @Benchmark public void flowable(BenchmarkObserver benchmarkObserver) { flowable.subscribe(this, Functions.emptyConsumer(), new Action() { @Override public void run() throws Exception { benchmarkObserver.onComplete(); } }); } ```
+you can just return from inside these cases and avoid the local var / null initializer problem.
+Is this wrap+indent intentional? took me a second to figure out what was going on
+Accessing `timerInProgress` happens more often so `extends AtomicInteger` is better. Have the `AtomicReference` as instance field instead.
+There is a race here. If `run()` gets here and `onNext` is fired, throttling will be disposed and the `onNext` value gets emitted. Here then the cached value gets emitted as well and now there are two tasks delayed for the subsequent interactions.
+This could race with the emission of `run()`.
+maybe `no matter how many Subscribers`
+I suggest using an `Action0` here.
+I guess the bird has already flown with this one but the operator `take` refers to `onNext` events and we are more or less using it for all event types (take till terminates or the other thing terminates). I'm not suggesting a change perhaps a naming review for 3.x.
+wow, sure, my bad, sorry
+The pattern is typically that the one without a `Scheduler` calls the one that takes a `Scheduler` and passes the default `Schedulers.computation()`, as opposed to calling a static factory method on the `Operator` itself. The pattern is also to use either `create` or `lift` inside `Observable`, not invoke a static factory method. Why is this being implemented in a different pattern? Of course it still works, but conventions are something we are striving to keep consistent in the library.
+In the previous version, we didn't delay the onCompleted event.
+Sorry, a typo here. The return value should be parent.
+It should be `child.add(...)`.
+You should use `inner` here I guess.
+As @akarnokd said, you need to override `setProducer` here, such as ``` Java @Override public void setProducer(final Producer producer) { child.setProducer(new Producer() { @Override public void request(long n) { producer.request(n); } }); } ``` So that `child` can be set to the new Producer.
+Wow, that's an interesting issue. Thanks for the explanation!
+Could you add the returned `Subscription` to `innerSubscription`? `innerSubscription` also needs to be a `CompositeSubscription`
+`NewThreadScheduler` uses `executor.shutdown()` which allows already submitted tasks to run but prevents new tasks being scheduled. I think this is the wrong behavior there and I should have used `executor.shutdownNow()` instead; a fix is underway. Since the Handler scheduler can't be stopped and thus stopping all tasks, you need to keep track of the worker's submitted tasks.
+Sorry, I should have typed `EventLoopsScheduler.EventLoopWorker`
+The `run()` and `call()` methods complicate the signature for me. I deleted the methods and stopped implementing `Action0` and `Runnable` and it still works for me, and is more clear now. I'd prefer not to mix those in with this class as it confuses what is being run where. The `tryDrainAsync` method already allows for async scheduling.
+Ahhhh damn, I think you've mentioned that problem before What if JMH would be event/callback based so we could benchmark async code like RxJava in a reactive manner? ie: ```java @Benchmark public void flowable(BenchmarkObserver benchmarkObserver) { flowable.subscribe(this, Functions.emptyConsumer(), new Action() { @Override public void run() throws Exception { benchmarkObserver.onComplete(); } }); } ```
+// It shouldn't affect the comparison though since loop is present in both Flowable and Observable benchmarks
+Thanks for this, David
+Yup, exactly, deserves a `throw` in my opinion, to prevent leaking that `null` into user's code. Also ![1454550686518](https://cloud.githubusercontent.com/assets/967132/12830813/453683d8-cba2-11e5-97f8-b820117907e1.jpg)
+Accessing `timerInProgress` happens more often so `extends AtomicInteger` is better. Have the `AtomicReference` as instance field instead.
+ok, np :)
+@akarnokd do you really see much sense in a separate class for arrays? You can provide an override where passed array will be wrapped into `ArrayList` and then passed to the `CompletableOnSubscribeConcatIterable`. Less code â less bugs :)
+Thanks for this, David
+Yes, but ![mug-meme-okay](https://cloud.githubusercontent.com/assets/967132/9472197/73ca121c-4b5c-11e5-99f7-5efa20d175be.jpg)
+This is not public API
+You need `Action1<? super T>` here.
+Action1 should be generic: `Action1<? super T> onDrop`
+This should start out as experimental unless the RxJava contributors want to fast-track this.
+I suggest using an `Action0` here.
+This should return a `Maybe<T>` because the Flowable can be empty.
+It's better to mark parentSubscription final
+You should have a local `n` here which can be decremented by each subscriber independently. The current version shares the `n` for all subscribers, which is a very common bug.
+BackpressureUtils didn't exist at that point, so I am considering how to consolidate this type of logic as we keep repeating this type of non-trivial code and it is easy to get wrong. I'm okay with merging ... we really should spend some time figuring out the core patterns so we can encode the state machine, similar to what BackpressureUtils and AbstractOnSubscribe have started formalizing.
+Sorry, a typo here. The return value should be parent.
+This eagerly shuts down the chain and does not wait for the delayed values.
+In the previous version, we didn't delay the onCompleted event.
+I believe that on most JVM implementations, the sleep is useless.
+I believe this will inject non-determinism ... notifications will be capable of interleaving and being out of order. I think we need to combine this with `ScheduledObserver` which maintains a queue and event loop for handling each notification sequentially on the given scheduler.
+You should use `inner` here I guess.
+// It shouldn't affect the comparison though since loop is present in both Flowable and Observable benchmarks
+The pattern is typically that the one without a `Scheduler` calls the one that takes a `Scheduler` and passes the default `Schedulers.computation()`, as opposed to calling a static factory method on the `Operator` itself. The pattern is also to use either `create` or `lift` inside `Observable`, not invoke a static factory method. Why is this being implemented in a different pattern? Of course it still works, but conventions are something we are striving to keep consistent in the library.
+some folks have run into trouble getting things to build if the "alt" attribute is missing from these img tags
+I suggest using an `Action0` here.
+Please add the appropriate experimental tags and annotations: `@since 2.1.4 - experimental`
+I still miss the overload `observeOn(Scheduler, boolean delayError, int bufferSize)`
+Yup, exactly, deserves a `throw` in my opinion, to prevent leaking that `null` into user's code. Also ![1454550686518](https://cloud.githubusercontent.com/assets/967132/12830813/453683d8-cba2-11e5-97f8-b820117907e1.jpg)
+If `isUnsubscribed != 0` then the CAS in `unsubscribe` will fail and nothing happens. If you wanted to delay the unsubscription to the time when nextIteration is not running, then you need a separate indicator, i.e., unsubscribeRequested.
+nit: nested `if`s could be collapsed with `&&`
+What about safeSubscribe ? Sent from my iPhone > On 8 Sep 2016, at 1:57 pm, David Karnok notifications@github.com wrote: > > In src/test/java/io/reactivex/tck/FlowableTck.java: > > > + > > - final AtomicThrowable error; > > + > > - Subscription s; > > + > > - public TckSubscriber(Subscriber<? super T> actual) { > > - this.actual = actual; > > - this.error = new AtomicThrowable(); > > - } > > + > > + > > - @Override > > - public void request(long n) { > > - if (n <= 0) { > > - s.cancel(); > > - onError(new IllegalArgumentException("Â§3.9 violated: positive request amount required but it was " + n)); > > Yes and no. You see, Akka-Streams is not native Reactive-Streams but they have a wrapper that exposes it as Reactive-Streams source which passes the TCK (that was mostly influenced by Akka-Streams implementation strategies anyway). > > The spec itself has "bugs" and over-restrictive language in some cases. @smaldini occasionally tries to battle this out with the TCK maintainers but everything is moving really slow over there. So we decided it is not worth following the spec to the letter in this tiny aspect and suffer the massive performance penalty but provide an operator that when needed, ensures this behavior. I'm totally willing to provide Flowable.tck() for anyone who is worried the cross-library composition may not work properly because Akka-Streams occasionally requests -1 (I know Reactor and RxJava doesn't do that because I wrote both essentially). > > â > You are receiving this because you were mentioned. > Reply to this email directly, view it on GitHub, or mute the thread.
+Whatever has changed since I did my testing has this unit test now working and my manual test only spits out this: ``` next: [two, three] next: [five] completed ``` So it looks like it's all good and not worth me spending any more time on. I will merge this.
+I just merged this ... but I'm always hesitant when changing something as core as `Subscriber`. Are we ready to support this new method forever. Is it the right signature for all the use cases? I think it's right, but I've regretted public API decisions before :-) /cc @zsxwing @abersnaze for more eyes and thought on this.
+It would be great, if this is to be migrated to 2.x, that user-supplied functions are called in try-catch. Perhaps not here but in call().
+I'm not certain this requirement is enough because if a source doesn't deliver the requested amount, it will keep the client hanging which may not request a new batch. There is also the problem if the first observable delivers less than requested, the missing amount is not replenished/considered by the second Observable and thus the client may starve. This is why `concat` uses the `SubscriptionArbiter` so that if an Observable didn't deliver enough, the next is requested for the missed amount. Similar measures might be required with this `AsyncOnSubscribe`.
+I'm not sure if this class could get used by multiple concurrent subscribers (?) but if it does then I would expect to see an atomic compareAndSet here rather than just !=null.
+nit: nested `if`s could be collapsed with `&&`
+This looks like it was accidentally left behind after doing some debugging.
+Whatever has changed since I did my testing has this unit test now working and my manual test only spits out this: ``` next: [two, three] next: [five] completed ``` So it looks like it's all good and not worth me spending any more time on. I will merge this.
+If `isUnsubscribed != 0` then the CAS in `unsubscribe` will fail and nothing happens. If you wanted to delay the unsubscription to the time when nextIteration is not running, then you need a separate indicator, i.e., unsubscribeRequested.
+If `nextIteration` has terminated, the queue may still hold requested values so it might be worth considering calling `clear()` before quitting.
+It would be great, if this is to be migrated to 2.x, that user-supplied functions are called in try-catch. Perhaps not here but in call().
+No. It does the same thing as Iterator minus the remove() method. I think when the Collections API was introduced in 1.2, they needed a way to iterate and remove items inplace. They couldn't add remove() to Enumeration because that would have broken everyone's code, therefore, they introduced a new interface.
+Why are we creating a new `Enumerable` factory type? This will still be a SAM that collides with others. My example assumed the method would just take a `java.util.Enumeration`.
+This should be ``` return new Subscriber<T>(child); ``` to chain the unsubscription properly.
+In the previous version, we didn't delay the onCompleted event.
+The `increment` is done here, but shouldn't it be done in `enqueue`? It seems dangerous that checking `tryDrain` increases the value as someone could `enqueue` and then call `tryDrain` twice, or `enqueue` and not call `tryDrain` or call `tryDrain` and not `enqueue`.
+It's consistent with the other methods. Â¯\_(ã)_/Â¯
+I'm not sure it is ever good for this to be a global default. Haven't we learned that it causes nasty issues in places like event loops? It seems only appropriate for separate threads, like the IO or NewThread schedulers.
+Well, that not how unit testing works :)
+I find this API very awkward since it's available on every type but should only be used on `Single<Notification<T>>`. I don't have a better suggestion though. Except defining it yourself and using a Kotlin extension function.
+Sorry, a typo here. The return value should be parent.
+nit: an operator
+ok, np :)
+teraminal -> terminal
+@akarnokd do you really see much sense in a separate class for arrays? You can provide an override where passed array will be wrapped into `ArrayList` and then passed to the `CompletableOnSubscribeConcatIterable`. Less code â less bugs :)
+This is not public API
+Is this wrap+indent intentional? took me a second to figure out what was going on
+Good info, thanks. I don't have a strong opinion on the addition of the operator.
+What about safeSubscribe ? Sent from my iPhone > On 8 Sep 2016, at 1:57 pm, David Karnok notifications@github.com wrote: > > In src/test/java/io/reactivex/tck/FlowableTck.java: > > > + > > - final AtomicThrowable error; > > + > > - Subscription s; > > + > > - public TckSubscriber(Subscriber<? super T> actual) { > > - this.actual = actual; > > - this.error = new AtomicThrowable(); > > - } > > + > > + > > - @Override > > - public void request(long n) { > > - if (n <= 0) { > > - s.cancel(); > > - onError(new IllegalArgumentException("Â§3.9 violated: positive request amount required but it was " + n)); > > Yes and no. You see, Akka-Streams is not native Reactive-Streams but they have a wrapper that exposes it as Reactive-Streams source which passes the TCK (that was mostly influenced by Akka-Streams implementation strategies anyway). > > The spec itself has "bugs" and over-restrictive language in some cases. @smaldini occasionally tries to battle this out with the TCK maintainers but everything is moving really slow over there. So we decided it is not worth following the spec to the letter in this tiny aspect and suffer the massive performance penalty but provide an operator that when needed, ensures this behavior. I'm totally willing to provide Flowable.tck() for anyone who is worried the cross-library composition may not work properly because Akka-Streams occasionally requests -1 (I know Reactor and RxJava doesn't do that because I wrote both essentially). > > â > You are receiving this because you were mentioned. > Reply to this email directly, view it on GitHub, or mute the thread.
+Not really necessary, `worker.dispose()` will dispose any outstanding timer action.
+Accessing `timerInProgress` happens more often so `extends AtomicInteger` is better. Have the `AtomicReference` as instance field instead.
+ok, np :)
+@akarnokd do you really see much sense in a separate class for arrays? You can provide an override where passed array will be wrapped into `ArrayList` and then passed to the `CompletableOnSubscribeConcatIterable`. Less code â less bugs :)
+Thanks for this, David
+Yes, but ![mug-meme-okay](https://cloud.githubusercontent.com/assets/967132/9472197/73ca121c-4b5c-11e5-99f7-5efa20d175be.jpg)
+This is not public API
+Would be nice to check binary compatibility as part of CI, there are some checker tools that we can include into the build process. Probably, it deserves a separate issue.
+Actually, there is no need to add more type parameters but just do an unchecked cast or raw type cast: ``` java @SuppressWarnings("unchecked") //... return (Observable)lift(OperatorIgnoreElements.<T>instance()); ``` Note that `instance()` does this re-cast as well since the operator is stateless.
+These changes should be in a separate test method. Leave the `testOnBackpressureDropSynchronous` as is and introduce `testOnBackpressureDropWithActionSynchronous`.
+That's kind of why I'm thinking we should not be doing interrupts by default, for the same "delicate" reasons we've run into.
+Looks like this should be in `secondJustError()` and vice versa
+No need to talk to a mocked observer, TestObserver.assertEmpty() already verifies these.
+nit: here we rely just on completion signal, which as an implementation bug may be emitted by `delaySubscription` operator. I mean, right now there is obviously no bug, but in future if operator will be re-implemented, it might appear Thus I'd recommend to add verifiable logic to the upstream, like `Completable.fromAction { if (!atomicBoolean.compareAndSet(false, true)) throw IllegalStateException() }` and verify against that too: ``` to.assertResult() assertTrue(atomicBoolean.get()) ```
+`to.assertResult();` will check for the no-error condition.
+No need to talk to a mocked observer, TestObserver.assertEmpty() already verifies these.
+Ok I see, thanks for the detailed explanation.
+It feels weird to use `null` as such a strong signal where it's forbidden in most (all?) of the API. Not only do I prefer the readability that `Notification`'s methods provide, but it would allow the re-use of side-effecting operations (such as logging) across all stream types since they all would have the same signature.
+Please add `@Experimental`
+Completable from capital letter
+Please add the appropriate experimental tags and annotations: `@since 2.1.4 - experimental`
+wow, sure, my bad, sorry
+Is this wrap+indent intentional? took me a second to figure out what was going on
+This could race with the emission of `run()`.
+Not really necessary, `worker.dispose()` will dispose any outstanding timer action.
+There is a race here. If `run()` gets here and `onNext` is fired, throttling will be disposed and the `onNext` value gets emitted. Here then the cached value gets emitted as well and now there are two tasks delayed for the subsequent interactions.
+the `emitFromRun` may still be running at this point and you have concurrent `onNext`/`onComplete` invocation.
+If this gets changed [TestSubscriber](https://github.com/ReactiveX/RxJava/blob/ff282b9647d0accc0cb55780c9bdb97f4ed03053/src/main/java/io/reactivex/subscribers/TestSubscriber.java#L316) should be changed too for consistency
+It should read `d is null`.
+We want to avoid that in case in some odd JVM language the parameter name change is a breaking change.
+This is inconsistent as it names the type and not the parameter.
+`d is null` is totally fine with me.
+In the previous version, we didn't delay the onCompleted event.
+Let's rename this to `value`? Will improve readability of the code!
+Sorry, a typo here. The return value should be parent.
+I believe this will inject non-determinism ... notifications will be capable of interleaving and being out of order. I think we need to combine this with `ScheduledObserver` which maintains a queue and event loop for handling each notification sequentially on the given scheduler.
+You should use `inner` here I guess.
+Got it, thanks for the explanation.
+We don't need to delay the error ... just emit it and skip everything else. We confirmed this behavior in `observeOn`: https://github.com/ReactiveX/RxJava/issues/1680
+> any point in optimizing the emission further and I think a smaller overhead would just drop more values. The scenario I'm considering is where this operator is put in place to handle occasional bursts where generally the consumer is fast enough, but occasionally it is slow. This is a common use of `onBackpressureDrop` for us in our stream processor. We would use this in the same way.
+Most of the time `onNext` would emit without contention if the consumer is fast. Does lock elision remove the performance impediment of a `synchronized` on every single `onNext` attempt? Just thinking through the fact that this is a bunch of machinery for something that will typically be put in for dropping data when backpressure happens but should otherwise add negligible overhead.
+Thanks for clarifying :+1:
+L79: worker is added to subscriber.
+Now that I think about it, L57 is not necessary because the entire worker is added to the child on L42.
+L50: worker is added to the child.
+L199: the worker is added to the child.
+L47: the `s.add` ensures that pending tasks on the worker are cancelled.
+It feels weird to use `null` as such a strong signal where it's forbidden in most (all?) of the API. Not only do I prefer the readability that `Notification`'s methods provide, but it would allow the re-use of side-effecting operations (such as logging) across all stream types since they all would have the same signature.
+I suggest using an `Action0` here.
+remove "completes"? It's a Single :)
+I guess the bird has already flown with this one but the operator `take` refers to `onNext` events and we are more or less using it for all event types (take till terminates or the other thing terminates). I'm not suggesting a change perhaps a naming review for 3.x.
+Completable from capital letter
+It would be great, if this is to be migrated to 2.x, that user-supplied functions are called in try-catch. Perhaps not here but in call().
+If `isUnsubscribed != 0` then the CAS in `unsubscribe` will fail and nothing happens. If you wanted to delay the unsubscription to the time when nextIteration is not running, then you need a separate indicator, i.e., unsubscribeRequested.
+If `nextIteration` has terminated, the queue may still hold requested values so it might be worth considering calling `clear()` before quitting.
+I'm not sure about the thread-safety of accessing `subscriptions`. If doOnTerminate happen to run on a different thread, `subscriptions` may get corrupted and even if backed by CHM, the remove on line 458 may happen just before the add on line 464 and `subscriptions` now leaks the reference. What would be better is to make sure `subscriptions` always holds that needs to be removed by adding the innerSubscription before calling t.subscribe() which also means you need to pre-wrap `buffer` so that subscribe returns the same instance. This way, the wrapped buffer instance is added before the call to subscribe and will be guaranteed to be removed when `doOnTerminate` is executed.
+I'm not sure if this class could get used by multiple concurrent subscribers (?) but if it does then I would expect to see an atomic compareAndSet here rather than just !=null.
+What are these for? We shouldn't be encouraging people to serialize these instances.
+nit: npe is possible here, though state overall won't be ok, but npe is still seems possibe
+got it, ok ð
+What about safeSubscribe ? Sent from my iPhone > On 8 Sep 2016, at 1:57 pm, David Karnok notifications@github.com wrote: > > In src/test/java/io/reactivex/tck/FlowableTck.java: > > > + > > - final AtomicThrowable error; > > + > > - Subscription s; > > + > > - public TckSubscriber(Subscriber<? super T> actual) { > > - this.actual = actual; > > - this.error = new AtomicThrowable(); > > - } > > + > > + > > - @Override > > - public void request(long n) { > > - if (n <= 0) { > > - s.cancel(); > > - onError(new IllegalArgumentException("Â§3.9 violated: positive request amount required but it was " + n)); > > Yes and no. You see, Akka-Streams is not native Reactive-Streams but they have a wrapper that exposes it as Reactive-Streams source which passes the TCK (that was mostly influenced by Akka-Streams implementation strategies anyway). > > The spec itself has "bugs" and over-restrictive language in some cases. @smaldini occasionally tries to battle this out with the TCK maintainers but everything is moving really slow over there. So we decided it is not worth following the spec to the letter in this tiny aspect and suffer the massive performance penalty but provide an operator that when needed, ensures this behavior. I'm totally willing to provide Flowable.tck() for anyone who is worried the cross-library composition may not work properly because Akka-Streams occasionally requests -1 (I know Reactor and RxJava doesn't do that because I wrote both essentially). > > â > You are receiving this because you were mentioned. > Reply to this email directly, view it on GitHub, or mute the thread.
+There is a race here. If `run()` gets here and `onNext` is fired, throttling will be disposed and the `onNext` value gets emitted. Here then the cached value gets emitted as well and now there are two tasks delayed for the subsequent interactions.
+Are you tracking this, or should a new issue be created? I've merged this PR.
+We are holding the lock while connecting/subscribing.
+In the previous version, we didn't delay the onCompleted event.
+This eagerly shuts down the chain and does not wait for the delayed values.
+Sorry, right, I was confused by the child and _child looking similar.
+This is unnecessary.
+Never mind. I just found `SafeSubscriber` will do it.
+I think we shouldn't call the error handler if the error can be delivered or replaced on the normal path.
+On my PR, I had copied `awaitForComplete` into into `BlockingSingle`. This is obviously cleaner :p
+Please also check/handle if the function returns a null Single.
+On my PR, I had copied `awaitForComplete` into into `BlockingSingle`. This is obviously cleaner :p
+I think we shouldn't call the error handler if the error can be delivered or replaced on the normal path.
+Never mind. I just found `SafeSubscriber` will do it.
+This is unnecessary.
+Let's rename this to `value`? Will improve readability of the code!
+some folks have run into trouble getting things to build if the "alt" attribute is missing from these img tags
+This covariance stuff is insane.
+The pattern is typically that the one without a `Scheduler` calls the one that takes a `Scheduler` and passes the default `Schedulers.computation()`, as opposed to calling a static factory method on the `Operator` itself. The pattern is also to use either `create` or `lift` inside `Observable`, not invoke a static factory method. Why is this being implemented in a different pattern? Of course it still works, but conventions are something we are striving to keep consistent in the library.
+I suggest using an `Action0` here.
+Great, that solves it then.
+Now it's twice. > If the completable emits an error...
+nit: doesn't need `final`
+Returns a Flowable
+wow, sure, my bad, sorry
+I guess the bird has already flown with this one but the operator `take` refers to `onNext` events and we are more or less using it for all event types (take till terminates or the other thing terminates). I'm not suggesting a change perhaps a naming review for 3.x.
+As @akarnokd said, you need to override `setProducer` here, such as ``` Java @Override public void setProducer(final Producer producer) { child.setProducer(new Producer() { @Override public void request(long n) { producer.request(n); } }); } ``` So that `child` can be set to the new Producer.
+It should be `child.add(...)`.
+Sorry, a typo here. The return value should be parent.
+Not really necessary, `worker.dispose()` will dispose any outstanding timer action.
+the `emitFromRun` may still be running at this point and you have concurrent `onNext`/`onComplete` invocation.
+I'm not too keen on these variance changes unless you can show that there is an inference problem with lambdas under 8 without them.
+Are you using the latest IntelliJ? A possible workaround could be that you put in `return (Single<R>)...` and then suppress the invalid cast.
+If this error prevents you from working further on RxJava then do the changes.
+Could be a bug with IntelliJ as javac and Eclipse was fine with the original.
+This fails to compile due to clashing with a method having the same signature. It should be called `checkDoubleOnSubscribeSingleToFlowable` for example.
+A `this.unsubscribe()` is missing here.
+This should be ``` return new Subscriber<T>(child); ``` to chain the unsubscription properly.
+You should use `inner` here I guess.
+You should have a local `n` here which can be decremented by each subscriber independently. The current version shares the `n` for all subscribers, which is a very common bug.
+Sorry, a typo here. The return value should be parent.
+`verify(object)` is the same as `verify(object, times(1))`.
+There is no particular reason to make this in-order.
+I think `isA` comes from the upgrade to Mockito 2.1.
+Maybe change to `AtomicLong`? Took me awhile to get it :thought_balloon:
+Ok I see, thanks for the detailed explanation.
+Not really necessary, `worker.dispose()` will dispose any outstanding timer action.
+the `emitFromRun` may still be running at this point and you have concurrent `onNext`/`onComplete` invocation.
+Same problem as with `onComplete`, `emitFromRun` may be still going on.
+Accessing `timerInProgress` happens more often so `extends AtomicInteger` is better. Have the `AtomicReference` as instance field instead.
+This could race with the emission of `run()`.
+This should be ``` return new Subscriber<T>(child); ``` to chain the unsubscription properly.
+A `this.unsubscribe()` is missing here.
+You should have a local `n` here which can be decremented by each subscriber independently. The current version shares the `n` for all subscribers, which is a very common bug.
+You should use `inner` here I guess.
+Is this line necessary? As I understand subscriber chains, this is what should happen: subscriber.unsubscribe -> cs.unsubscribe -> o.unsubscribe
+If `nextIteration` has terminated, the queue may still hold requested values so it might be worth considering calling `clear()` before quitting.
+If `isUnsubscribed != 0` then the CAS in `unsubscribe` will fail and nothing happens. If you wanted to delay the unsubscription to the time when nextIteration is not running, then you need a separate indicator, i.e., unsubscribeRequested.
+I'm not sure about the thread-safety of accessing `subscriptions`. If doOnTerminate happen to run on a different thread, `subscriptions` may get corrupted and even if backed by CHM, the remove on line 458 may happen just before the add on line 464 and `subscriptions` now leaks the reference. What would be better is to make sure `subscriptions` always holds that needs to be removed by adding the innerSubscription before calling t.subscribe() which also means you need to pre-wrap `buffer` so that subscribe returns the same instance. This way, the wrapped buffer instance is added before the call to subscribe and will be guaranteed to be removed when `doOnTerminate` is executed.
+I'm not sure if this class could get used by multiple concurrent subscribers (?) but if it does then I would expect to see an atomic compareAndSet here rather than just !=null.
+It would be great, if this is to be migrated to 2.x, that user-supplied functions are called in try-catch. Perhaps not here but in call().
+That's kind of why I'm thinking we should not be doing interrupts by default, for the same "delicate" reasons we've run into.
+The `increment` is done here, but shouldn't it be done in `enqueue`? It seems dangerous that checking `tryDrain` increases the value as someone could `enqueue` and then call `tryDrain` twice, or `enqueue` and not call `tryDrain` or call `tryDrain` and not `enqueue`.
+This will result in new threads being spawned each time as it doesn't correctly capture the `Inner` the first time through. Note how the current implementation captures the `innerScheduler` for all subsequent passes: https://github.com/Netflix/RxJava/blob/master/rxjava-core/src/main/java/rx/operators/OperationObserveOn.java#L96 One bug in the current implementation is that the first time through it ONLY captures the `innerScheduler` and then requires another schedule event before doing any work. The first time it schedules it should start draining, and capture the `innerScheduler` for the next time through.
+The `run()` and `call()` methods complicate the signature for me. I deleted the methods and stopped implementing `Action0` and `Runnable` and it still works for me, and is more clear now. I'd prefer not to mix those in with this class as it confuses what is being run where. The `tryDrainAsync` method already allows for async scheduling.
+As @akarnokd said, you need to override `setProducer` here, such as ``` Java @Override public void setProducer(final Producer producer) { child.setProducer(new Producer() { @Override public void request(long n) { producer.request(n); } }); } ``` So that `child` can be set to the new Producer.
+This covariance stuff is insane.
+some folks have run into trouble getting things to build if the "alt" attribute is missing from these img tags
+The naming convention here is different than `last` and `takeLast` so wondering if we should change to match. The `last` operator is blocking so on `BlockingObservable`. This `first` operator seems to be similar to `single` and blocking `last`. Thus I wonder if we should have `takeFirst` instead of `first`? This is different than Rx.Net but would clean up the same difference in convention that it has.
+Cool. I'm behind the times :)
+It doesn't extend from Observable any longer.
+If `nextIteration` has terminated, the queue may still hold requested values so it might be worth considering calling `clear()` before quitting.
+If `isUnsubscribed != 0` then the CAS in `unsubscribe` will fail and nothing happens. If you wanted to delay the unsubscription to the time when nextIteration is not running, then you need a separate indicator, i.e., unsubscribeRequested.
+I'm not sure about the thread-safety of accessing `subscriptions`. If doOnTerminate happen to run on a different thread, `subscriptions` may get corrupted and even if backed by CHM, the remove on line 458 may happen just before the add on line 464 and `subscriptions` now leaks the reference. What would be better is to make sure `subscriptions` always holds that needs to be removed by adding the innerSubscription before calling t.subscribe() which also means you need to pre-wrap `buffer` so that subscribe returns the same instance. This way, the wrapped buffer instance is added before the call to subscribe and will be guaranteed to be removed when `doOnTerminate` is executed.
+I'm not sure if this class could get used by multiple concurrent subscribers (?) but if it does then I would expect to see an atomic compareAndSet here rather than just !=null.
+It would be great, if this is to be migrated to 2.x, that user-supplied functions are called in try-catch. Perhaps not here but in call().
+> a parameter that specifies the ring buffer size That's not an option. The point of how this all works is that a developer has no idea if backpressure will be needed or the size of what they're consuming. > Required for correctness I understand that. The point I was making is that we should be looking for a correct approach that doesn't impact perf, and object allocation overhead is what killed merge originally.
+Thanks for clarifying :+1:
+There is a race here. If `run()` gets here and `onNext` is fired, throttling will be disposed and the `onNext` value gets emitted. Here then the cached value gets emitted as well and now there are two tasks delayed for the subsequent interactions.
+Not really necessary, `worker.dispose()` will dispose any outstanding timer action.
+Is this wrap+indent intentional? took me a second to figure out what was going on
+Such changes in our own source is a good indication there will be generics issues for the users of the library.
+An observable being empty is not exceptional and therefore shouldn't result in exceptions.
+This should return a `Maybe<T>` because the Flowable can be empty.
+Please add the appropriate experimental tags and annotations: `@since 2.1.4 - experimental`
+I still find the line break between `else` and `if` really weird... although you don't even need the `else` after `return`.
+Great, that solves it then.
+Unfortunately these overloaded method signatures have the same arity and will cause problems with Groovy/Clojure/JRuby etc as they can't determine the difference between `Func0` vs `Func1` at runtime. We should either eliminate unnecessary overloads, change signatures or have more descriptive names instead of overloads.
+Instead of sleeping for 1 unit, why not using an exponential backoff capped at 1 unit. This will ensure, fast await when the value is quickly ready, without wasting too much CPU resources. i.e. something like that: ``` long start = System.nanoTime(); long timeoutNano = unit.convert(timeout, TimeUnit.NANOSECONDS); long sleepPeriod = 1L; while (valueCount < expected && System.nanoTime() - start < timeoutNano) { TimeUnit.NANOSECONDS.sleep(sleepPeriod); sleepPeriod = Math.min(sleepPeriod * 2, TimeUnit.NANOSECONDS.convert(1L, unit)); } ```
+Another thing is that `sleep(1)` does not guarantee that it'll wake you up back in `1ms`, it may wake you later, so you need to explicitly check that expected timeout is not expired: `System.nanoTime() - start < timeoutNano`
+@JakeWharton well, it depends on use case, I guess somebody who wants to use `await(time)` on `TestSubscriber` either wants it to be: - "max timeout to fail the test instead of looping infinitely", like @Timeout in JUnit. so in that case value will be someting like `1, MINUTE` while actually data will arrive much faster. - "precise value to check some concurrency algorithm with expected timeouts" so in that case "success" long (relatively) after actual timeout can be considered as a bug. I'd be ok with something like this: ``` java while (true) { if (valueCount >= expected) { return true; } if (System.nanoTime() - start > timeoutNano) { return false; } Thread.sleep(1); } ``` So that only flakiness of last `sleep()` will be amortized. Current implementation increments `timeout` after each `sleep(1)` and may collect some relatively big error, like you had 150 `sleep(1)` but actually spent `200ms` which is ~25% error and seems possible in real life.
+This should go on the previous line after a space.
+This is unnecessary.
+Completable from capital letter
+This should start out as experimental unless the RxJava contributors want to fast-track this.
+I think we shouldn't call the error handler if the error can be delivered or replaced on the normal path.
+If the source is synchronous, we'll hold the lock for the entire time. This was already there, so not holding up the merge, but we should resolve this.
+If no obvious solution comes up, let's open an issue to track this for the future.
+Actually, there is no need to add more type parameters but just do an unchecked cast or raw type cast: ``` java @SuppressWarnings("unchecked") //... return (Observable)lift(OperatorIgnoreElements.<T>instance()); ``` Note that `instance()` does this re-cast as well since the operator is stateless.
+See #1353 for concern about the parameter name "time" (similar parameters in other operators are called "timespan", "timeout", "interval", "period", "intervalDuration", etc.; those parameters that have pretty much the same function should have the same name).
+Is this wrap+indent intentional? took me a second to figure out what was going on
+I did some experimenting and came up with [this rewrite](https://gist.github.com/akarnokd/9545150). For a single producer, it runs, on average, the same ops/sec as your version. For the two producer case, mine runs about 10% more ops per second; which is not much considering the the perf test is only for overhead. However, the memory usage reduction for the single producer case might be worth it.
+It has the MAX_DRAIN_ITERATION which trades the potential event delay (1) with effectively continuous draining (MAX_VALUE). I can't think of any adaptive adjustment method, only a parameterized serialize() operator.
+We don't need to delay the error ... just emit it and skip everything else. We confirmed this behavior in `observeOn`: https://github.com/ReactiveX/RxJava/issues/1680
+> any point in optimizing the emission further and I think a smaller overhead would just drop more values. The scenario I'm considering is where this operator is put in place to handle occasional bursts where generally the consumer is fast enough, but occasionally it is slow. This is a common use of `onBackpressureDrop` for us in our stream processor. We would use this in the same way.
+Most of the time `onNext` would emit without contention if the consumer is fast. Does lock elision remove the performance impediment of a `synchronized` on every single `onNext` attempt? Just thinking through the fact that this is a bunch of machinery for something that will typically be put in for dropping data when backpressure happens but should otherwise add negligible overhead.
+Out of curiosity, is there a place where null values _are_ allowed? The use of "generally" seems to imply such.
+`using`'s resource supplier can return null, we don't complain about null resources.
+Yeah, the spec mandates throwing on null input and I think the Processor TCK also expects it. I thought signalling NPE is more graceful with Subjects and FlowableProcessors and shuts down the streams as well whereas a thrown NPE may leave everybody hanging.
+you can just return from inside these cases and avoid the local var / null initializer problem.
+Prefer an anonymous Func1, for example, ``` java public <R> Observable<R> mergeMapIterable(final Func1<? super T, ? extends Iterable<? extends R>> collectionSelector) { return flatMap(new Func1<T, Observable<? extends R>>() { @Override public Observable<? extends R> call(T t1) { return Observable.from(collectionSelector.call(t1)); } }); } public <U, R> Observable<R> mergeMapIterable( final Func1<? super T, ? extends Iterable<? extends U>> collectionSelector, Func2<? super T, ? super U, ? extends R> resultSelector) { return mergeMap(new Func1<T, Observable<? extends U>>() { @Override public Observable<? extends U> call(T t1) { return Observable.from(collectionSelector.call(t1)); } }, resultSelector); } ```
+The `java.util.concurrent.Callable` would be a more friendly class instead.
+This approach will be useful sometimes but other times I will want an error on close to be suppressed. This is a common pattern for reading from an InputStream. Once we call close() we have finished our reading and just want to clean up and if the resource has already been closed or invalidated we don't really care. I'm unaware what behaviour results when unsubscribe itself throws an exception and can't write a test at the moment.
+So the net effect of UnsafeFunc0 is that it forces us to catch the declared Exception on resourceFactory.call() and think about what might happen. I'm not sure it's worth it.
+Is this wrap+indent intentional? took me a second to figure out what was going on
+It would be great, if this is to be migrated to 2.x, that user-supplied functions are called in try-catch. Perhaps not here but in call().
+Why can't it all just add directly to the `child` like this? ``` java // unblock call in case an asynchronous unsubscribe happens child.add(BooleanSubscription.create(new Action0() { @Override public void call() { onSubscribeLatch.countDown(); } })); child.add(scheduler.schedule(new Action1<Inner>() { @Override public void call(final Inner inner) { // we inject 'child' so it's the same subscription // so it works on synchronous Observables final Subscriber<T> innerSubscriber = new Subscriber<T>(child) { @Override public void onCompleted() { child.onCompleted(); } @Override public void onError(Throwable e) { child.onError(e); } @Override public void onNext(T t) { child.onNext(t); } @Override public void onSubscribe() { onSubscribeLatch.countDown(); } }; child.add(BooleanSubscription.create(new Action0() { @Override public void call() { inner.schedule(new Action1<Inner>() { @Override public void call(Inner t1) { innerSubscriber.unsubscribe(); } }); } })); o.subscribe(innerSubscriber); onSubscribeLatch.countDown(); ```
+Why do you use `MultipleAssignmentSubscription` here? It only gets assigned once, when `scheduler.schedule` is called. It seems the `Subscription` from `scheduler.schedule` can be added directly to the `CompositeSubscription`.
+Is this line necessary? As I understand subscriber chains, this is what should happen: subscriber.unsubscribe -> cs.unsubscribe -> o.unsubscribe
+You should use `inner` here I guess.
+A `this.unsubscribe()` is missing here.
+What is `ViewObservable`? Did that land in another PR? I would prefer to not have this call here. What we want to do instead is, if at all, check this in the `fromFragment` / `fromActivity` helpers (see discussion in #754 which asks to remove this assertion entirely)
+L45: the worker is added to the child.
+This should be ``` return new Subscriber<T>(child); ``` to chain the unsubscription properly.
+A `this.unsubscribe()` is missing here.
+This is called from inside the lock being held which means that replaying all historical values to a new Observer will block all existing Observers and new values from proceeding.
+Most of the time `onNext` would emit without contention if the consumer is fast. Does lock elision remove the performance impediment of a `synchronized` on every single `onNext` attempt? Just thinking through the fact that this is a bunch of machinery for something that will typically be put in for dropping data when backpressure happens but should otherwise add negligible overhead.
+> any point in optimizing the emission further and I think a smaller overhead would just drop more values. The scenario I'm considering is where this operator is put in place to handle occasional bursts where generally the consumer is fast enough, but occasionally it is slow. This is a common use of `onBackpressureDrop` for us in our stream processor. We would use this in the same way.
+We don't need to delay the error ... just emit it and skip everything else. We confirmed this behavior in `observeOn`: https://github.com/ReactiveX/RxJava/issues/1680
+I don't grok this method yet as it is rather complicated so I'm going to have to come back to this another time ...
+This magic number made me smile :)
+In a future rewrite we can optimize this because it could drain queues and request(n) and then immediately request(1) again.
+It has the MAX_DRAIN_ITERATION which trades the potential event delay (1) with effectively continuous draining (MAX_VALUE). I can't think of any adaptive adjustment method, only a parameterized serialize() operator.
+I did some experimenting and came up with [this rewrite](https://gist.github.com/akarnokd/9545150). For a single producer, it runs, on average, the same ops/sec as your version. For the two producer case, mine runs about 10% more ops per second; which is not much considering the the perf test is only for overhead. However, the memory usage reduction for the single producer case might be worth it.
+Ah, crap. The naming is just backwards here. Ignore me.
+Looks like in other instances of this PR you have them in the `e, ex` order
+I find this API very awkward since it's available on every type but should only be used on `Single<Notification<T>>`. I don't have a better suggestion though. Except defining it yourself and using a Kotlin extension function.
+Didn't know about `dematerialize`, then I guess we stick to that convention. Providing a mapper sounds good. Then maybe we could deprecate the current `dematerialize` in Observable.
+I guess the bird has already flown with this one but the operator `take` refers to `onNext` events and we are more or less using it for all event types (take till terminates or the other thing terminates). I'm not suggesting a change perhaps a naming review for 3.x.
+It feels weird to use `null` as such a strong signal where it's forbidden in most (all?) of the API. Not only do I prefer the readability that `Notification`'s methods provide, but it would allow the re-use of side-effecting operations (such as logging) across all stream types since they all would have the same signature.
+I suggest using an `Action0` here.
+I believe this will inject non-determinism ... notifications will be capable of interleaving and being out of order. I think we need to combine this with `ScheduledObserver` which maintains a queue and event loop for handling each notification sequentially on the given scheduler.
+In the previous version, we didn't delay the onCompleted event.
+BackpressureUtils didn't exist at that point, so I am considering how to consolidate this type of logic as we keep repeating this type of non-trivial code and it is easy to get wrong. I'm okay with merging ... we really should spend some time figuring out the core patterns so we can encode the state machine, similar to what BackpressureUtils and AbstractOnSubscribe have started formalizing.
+Accessing `timerInProgress` happens more often so `extends AtomicInteger` is better. Have the `AtomicReference` as instance field instead.
+I'm not certain this requirement is enough because if a source doesn't deliver the requested amount, it will keep the client hanging which may not request a new batch. There is also the problem if the first observable delivers less than requested, the missing amount is not replenished/considered by the second Observable and thus the client may starve. This is why `concat` uses the `SubscriptionArbiter` so that if an Observable didn't deliver enough, the next is requested for the missed amount. Similar measures might be required with this `AsyncOnSubscribe`.
+Ah right ...
+According to Rx contract, I think all operators should support the following observer. ``` java Observer<Integer> o = new Observer<Integer>() { private int count = 0; @Override public void onCompleted() { count++; } @Override public void onError(Throwable e) { count++; } @Override public void onNext(Integer args) { count++; } }; ```
+observer.onNext, onCompleted, onError can be called from different Observables, so I suppose we need to wrap it by a `SynchronizedObserver`.
+In the previous version, we didn't delay the onCompleted event.
+Accessing `timerInProgress` happens more often so `extends AtomicInteger` is better. Have the `AtomicReference` as instance field instead.
+When `onError` occurs it immediately emits and does not work any further work. We had this discussion a while back when debating `delay` I think. Rx Design Guideline 6.6 > 6.6. OnError messages should have abort semantics > > As normal control flow in .NET uses abort semantics for exceptions (the stack is unwound, current code path is interrupted), Rx mimics this behavior. To ensure this behavior, no messages should be sent out by an operator once one of it sources has an error message or an exception is thrown within the operator. ... > In this sample, a buffering operator will abandon the observable sequence as soon as the subscription to source encounters an error. The current buffer is not sent to any subscribers, maintain abort semantics.
+nit: nested `if`s could be collapsed with `&&`
+observer.onNext, onCompleted, onError can be called from different Observables, so I suppose we need to wrap it by a `SynchronizedObserver`.
+According to Rx contract, I think all operators should support the following observer. ``` java Observer<Integer> o = new Observer<Integer>() { private int count = 0; @Override public void onCompleted() { count++; } @Override public void onError(Throwable e) { count++; } @Override public void onNext(Integer args) { count++; } }; ```
+I'm not sure if this class could get used by multiple concurrent subscribers (?) but if it does then I would expect to see an atomic compareAndSet here rather than just !=null.
+This was missing a re-throw of the exception anyway!
+Please also check/handle if the function returns a null Single.
+These changes should be in a separate test method. Leave the `testOnBackpressureDropSynchronous` as is and introduce `testOnBackpressureDropWithActionSynchronous`.
+I'm not sure it is ever good for this to be a global default. Haven't we learned that it causes nasty issues in places like event loops? It seems only appropriate for separate threads, like the IO or NewThread schedulers.
+Ahhhh damn, I think you've mentioned that problem before What if JMH would be event/callback based so we could benchmark async code like RxJava in a reactive manner? ie: ```java @Benchmark public void flowable(BenchmarkObserver benchmarkObserver) { flowable.subscribe(this, Functions.emptyConsumer(), new Action() { @Override public void run() throws Exception { benchmarkObserver.onComplete(); } }); } ```
+Please don't unroll star imports.
+Please restore the original file if there is no actual (code) change.
+@akarnokd do you really see much sense in a separate class for arrays? You can provide an override where passed array will be wrapped into `ArrayList` and then passed to the `CompletableOnSubscribeConcatIterable`. Less code â less bugs :)
+Please avoid unrolling `*` imports.
+Thanks for this, David
+Yes, please modify the text as my suggestion.
+The best would be `ImmutableList::of` but we can't depend on external collections libraries. Perhaps we can have both by `list -> Collections.unmodifiableList(new ArrayList<>(list))`. This will make a copy of the list but also prevent it from being modified later in the pipeline. Unfortunately, we can't do much about the element mutability, which also affects `equals`.
+Completable from capital letter
+Returns a Flowable
+wow, sure, my bad, sorry
+I'd rather chose a common unit here instead of converting to nanos. ``` java TimeUnit common = initialDelayUnit.compareTo(periodUnit) < 0 ? initialDelayUnit : periodUnit; final long initial = common.convert(initialDelay, initialDelayUnit); final long period = common.convert(period, periodUnit); ```
+I believe this will inject non-determinism ... notifications will be capable of interleaving and being out of order. I think we need to combine this with `ScheduledObserver` which maintains a queue and event loop for handling each notification sequentially on the given scheduler.
+In the previous version, we didn't delay the onCompleted event.
+I find this API very awkward since it's available on every type but should only be used on `Single<Notification<T>>`. I don't have a better suggestion though. Except defining it yourself and using a Kotlin extension function.
+Didn't know about `dematerialize`, then I guess we stick to that convention. Providing a mapper sounds good. Then maybe we could deprecate the current `dematerialize` in Observable.
+I can sketch one: schedule periodically like this: `schedule(task, 0, 1, TimeUnit.DAYS).dispose()` and loop it. There is a non-zero probability the outer replaces the Disposable of the second delayed task with the completed task of the first (immediate) and the task keeps executing until the backing threadpool is shut down.
+``` Thread 1 Thread 2 -------- -------- d0 = schedule(task, 0, u); task.run(); d = schedule(task, delay, u); sd.replace(d); sd.replace(d0); sd.dispose(); <--- d is not disposed and will run the task after the delay ```
+`NewThreadScheduler` uses `executor.shutdown()` which allows already submitted tasks to run but prevents new tasks being scheduled. I think this is the wrong behavior there and I should have used `executor.shutdownNow()` instead; a fix is underway. Since the Handler scheduler can't be stopped and thus stopping all tasks, you need to keep track of the worker's submitted tasks.
+Sorry, I should have typed `EventLoopsScheduler.EventLoopWorker`
+Could you add the returned `Subscription` to `innerSubscription`? `innerSubscription` also needs to be a `CompositeSubscription`
+If the source is synchronous, we'll hold the lock for the entire time. This was already there, so not holding up the merge, but we should resolve this.
+If no obvious solution comes up, let's open an issue to track this for the future.
+Actually, there is no need to add more type parameters but just do an unchecked cast or raw type cast: ``` java @SuppressWarnings("unchecked") //... return (Observable)lift(OperatorIgnoreElements.<T>instance()); ``` Note that `instance()` does this re-cast as well since the operator is stateless.
+See #1353 for concern about the parameter name "time" (similar parameters in other operators are called "timespan", "timeout", "interval", "period", "intervalDuration", etc.; those parameters that have pretty much the same function should have the same name).
+Is this wrap+indent intentional? took me a second to figure out what was going on
+These don't match the naming convention using in `RxRingBuffer` with just the `rx` prefix: https://github.com/ReactiveX/RxJava/blob/1.x/src/main/java/rx/internal/util/RxRingBuffer.java#L267 We should probably stick with that convention since it is already set, so: `rx.scheduler.jdk6.purge-frequency-millis` `rx.scheduler.jdk6.purge-force`
+I'm not sure it is ever good for this to be a global default. Haven't we learned that it causes nasty issues in places like event loops? It seems only appropriate for separate threads, like the IO or NewThread schedulers.
+I guess the bird has already flown with this one but the operator `take` refers to `onNext` events and we are more or less using it for all event types (take till terminates or the other thing terminates). I'm not suggesting a change perhaps a naming review for 3.x.
+It feels weird to use `null` as such a strong signal where it's forbidden in most (all?) of the API. Not only do I prefer the readability that `Notification`'s methods provide, but it would allow the re-use of side-effecting operations (such as logging) across all stream types since they all would have the same signature.
+I just merged this ... but I'm always hesitant when changing something as core as `Subscriber`. Are we ready to support this new method forever. Is it the right signature for all the use cases? I think it's right, but I've regretted public API decisions before :-) /cc @zsxwing @abersnaze for more eyes and thought on this.
+This will result in new threads being spawned each time as it doesn't correctly capture the `Inner` the first time through. Note how the current implementation captures the `innerScheduler` for all subsequent passes: https://github.com/Netflix/RxJava/blob/master/rxjava-core/src/main/java/rx/operators/OperationObserveOn.java#L96 One bug in the current implementation is that the first time through it ONLY captures the `innerScheduler` and then requires another schedule event before doing any work. The first time it schedules it should start draining, and capture the `innerScheduler` for the next time through.
+The `run()` and `call()` methods complicate the signature for me. I deleted the methods and stopped implementing `Action0` and `Runnable` and it still works for me, and is more clear now. I'd prefer not to mix those in with this class as it confuses what is being run where. The `tryDrainAsync` method already allows for async scheduling.
+The `increment` is done here, but shouldn't it be done in `enqueue`? It seems dangerous that checking `tryDrain` increases the value as someone could `enqueue` and then call `tryDrain` twice, or `enqueue` and not call `tryDrain` or call `tryDrain` and not `enqueue`.
+What do you think about this accepting `Notification` instead of `Action0`? The reason is that we now have 2 wrappers ... the `Notification` and `Action0` around a type `T` and 2 object allocations for each `onNext`. The use of `Action0` is definitely more generic, but as we've seen by your `CompositeSubscription` changes, we're at the point where we're moving away from generic to achieve performance and memory gains, and this class will be involved in very high throughput scenarios.
+Whoops. I just merged it :-) I'll have to fix the build later.
+Whatever has changed since I did my testing has this unit test now working and my manual test only spits out this: ``` next: [two, three] next: [five] completed ``` So it looks like it's all good and not worth me spending any more time on. I will merge this.
+This looks like it was accidentally left behind after doing some debugging.
+If `isUnsubscribed != 0` then the CAS in `unsubscribe` will fail and nothing happens. If you wanted to delay the unsubscription to the time when nextIteration is not running, then you need a separate indicator, i.e., unsubscribeRequested.
+If `nextIteration` has terminated, the queue may still hold requested values so it might be worth considering calling `clear()` before quitting.
+It would be great, if this is to be migrated to 2.x, that user-supplied functions are called in try-catch. Perhaps not here but in call().
+There is no need for randomized capacity. If you want to verify multiple sizes, loop over a power-of-2 set.
+oh yes, please don't use `Random` in tests, they will be non-reproducible
+I suggest using an `Action0` here.
+Please add `observeOn(Scheduler, boolean delayError, int bufferSize)` overload as well.
+I still miss the overload `observeOn(Scheduler, boolean delayError, int bufferSize)`
+L47: the `s.add` ensures that pending tasks on the worker are cancelled.
+L43: the worker is added to the child.
+L45: the worker is added to the child.
+Wraps a TestScheduler which only lives during a test run so no loss here.
+L199: the worker is added to the child.
+How about just throwing `NullPointerException` here? If that causes other issue, could you add some useful exception message, such as, `Should not add null Throwable to CompositeException`? So that people can quickly figure out it's an application bug instead of an RxJava bug.
+I thought it was unintentional. Never mind. See this style for the first time :)
+This should be `@NonNull`.
+Aren't these backwards? Shouldn't it be `e, ex` since the message states something like "order they were received".
+Ah, crap. The naming is just backwards here. Ignore me.
+Good info, thanks. I don't have a strong opinion on the addition of the operator.
+What about safeSubscribe ? Sent from my iPhone > On 8 Sep 2016, at 1:57 pm, David Karnok notifications@github.com wrote: > > In src/test/java/io/reactivex/tck/FlowableTck.java: > > > + > > - final AtomicThrowable error; > > + > > - Subscription s; > > + > > - public TckSubscriber(Subscriber<? super T> actual) { > > - this.actual = actual; > > - this.error = new AtomicThrowable(); > > - } > > + > > + > > - @Override > > - public void request(long n) { > > - if (n <= 0) { > > - s.cancel(); > > - onError(new IllegalArgumentException("Â§3.9 violated: positive request amount required but it was " + n)); > > Yes and no. You see, Akka-Streams is not native Reactive-Streams but they have a wrapper that exposes it as Reactive-Streams source which passes the TCK (that was mostly influenced by Akka-Streams implementation strategies anyway). > > The spec itself has "bugs" and over-restrictive language in some cases. @smaldini occasionally tries to battle this out with the TCK maintainers but everything is moving really slow over there. So we decided it is not worth following the spec to the letter in this tiny aspect and suffer the massive performance penalty but provide an operator that when needed, ensures this behavior. I'm totally willing to provide Flowable.tck() for anyone who is worried the cross-library composition may not work properly because Akka-Streams occasionally requests -1 (I know Reactor and RxJava doesn't do that because I wrote both essentially). > > â > You are receiving this because you were mentioned. > Reply to this email directly, view it on GitHub, or mute the thread.
+Yup, exactly, deserves a `throw` in my opinion, to prevent leaking that `null` into user's code. Also ![1454550686518](https://cloud.githubusercontent.com/assets/967132/12830813/453683d8-cba2-11e5-97f8-b820117907e1.jpg)
+In the previous version, we didn't delay the onCompleted event.
+Accessing `timerInProgress` happens more often so `extends AtomicInteger` is better. Have the `AtomicReference` as instance field instead.
+Yup, exactly, deserves a `throw` in my opinion, to prevent leaking that `null` into user's code. Also ![1454550686518](https://cloud.githubusercontent.com/assets/967132/12830813/453683d8-cba2-11e5-97f8-b820117907e1.jpg)
+ok, np :)
+Let's rename this to `value`? Will improve readability of the code!
+In the previous version, we didn't delay the onCompleted event.
+This eagerly shuts down the chain and does not wait for the delayed values.
+next() samples the sequence, it's not supposed to buffer the entire sequence so it can't be used for forEach which must be applied to every onNext call in an Observable. It could be done with toIterable/toEnumerable, but I wouldn't want that since that would first buffer the entire thing in a list and then call forEach over it. forEach should be invoked as each element is emitted to onNext in without buffering.
+// It shouldn't affect the comparison though since loop is present in both Flowable and Observable benchmarks
+Ahhhh damn, I think you've mentioned that problem before What if JMH would be event/callback based so we could benchmark async code like RxJava in a reactive manner? ie: ```java @Benchmark public void flowable(BenchmarkObserver benchmarkObserver) { flowable.subscribe(this, Functions.emptyConsumer(), new Action() { @Override public void run() throws Exception { benchmarkObserver.onComplete(); } }); } ```
+These changes should be in a separate test method. Leave the `testOnBackpressureDropSynchronous` as is and introduce `testOnBackpressureDropWithActionSynchronous`.
+nit: probably worth to create constants with meaningful name to use them instead of `true/false`, something like: ``` java @Test public void withSubscribingTwice() { performTestUsingWithSubscribingTwice(DONT_DISPOSE_EAGERLY); } ```
+`d is null` is totally fine with me.
+We want to avoid that in case in some odd JVM language the parameter name change is a breaking change.
+This is inconsistent as it names the type and not the parameter.
+It should read `d is null`.
+It was inlined nicely, this now allocates 2 consumers.
+No. It does the same thing as Iterator minus the remove() method. I think when the Collections API was introduced in 1.2, they needed a way to iterate and remove items inplace. They couldn't add remove() to Enumeration because that would have broken everyone's code, therefore, they introduced a new interface.
+Why are we creating a new `Enumerable` factory type? This will still be a SAM that collides with others. My example assumed the method would just take a `java.util.Enumeration`.
+This should be ``` return new Subscriber<T>(child); ``` to chain the unsubscription properly.
+In the previous version, we didn't delay the onCompleted event.
+The `increment` is done here, but shouldn't it be done in `enqueue`? It seems dangerous that checking `tryDrain` increases the value as someone could `enqueue` and then call `tryDrain` twice, or `enqueue` and not call `tryDrain` or call `tryDrain` and not `enqueue`.
+yeah. Didn't notice that
+Need to notify the plugin instead of swallowing the non fatal exceptions.
+This change makes no sense. There is already a hook involved for `RxJavaPlugins.onError`, why add another one for when that hook crashes. Don't crash the `onError` hook - you are already in control of that.
+The repeatedly printed stacktrace is not relevant if you want to fail the test. The uncaught handlers are thread-local and you only need to get past the catch around the onError handler. They are invoked together on the same thread.
+I'd deliver to current thread uncaught exception handler similarly how this method worked before This change can also end up violating Reactive Streams in some cases
+Whoops. I just merged it :-) I'll have to fix the build later.
+This looks good. Basically a JavaFx version of 'unsubscribeOn'. This is better because it allows executing immediately if already in the right thread.
+This PR looks good. Once the build issue is resolved I will merge it. Thanks for contributing!
+You should use `inner` here I guess.
+If the source is synchronous, we'll hold the lock for the entire time. This was already there, so not holding up the merge, but we should resolve this.
+What is the cost of a failed CAS compared with a volatile read? I'm not arguing that testing isUnsubscribed() is cheap or expensive, just that it's not atomic. We could end up calling unsubscribe twice without the CAS check.
+`NewThreadScheduler` uses `executor.shutdown()` which allows already submitted tasks to run but prevents new tasks being scheduled. I think this is the wrong behavior there and I should have used `executor.shutdownNow()` instead; a fix is underway. Since the Handler scheduler can't be stopped and thus stopping all tasks, you need to keep track of the worker's submitted tasks.
+Sorry, I should have typed `EventLoopsScheduler.EventLoopWorker`
+Could you add the returned `Subscription` to `innerSubscription`? `innerSubscription` also needs to be a `CompositeSubscription`
+The `java.util.concurrent.Callable` would be a more friendly class instead.
+For what it's worth, I would give a +1 for any solution that does not split up value and unit into two separate parameters (as Java does by default), as they are clearly logically coupled. I would give another +1 for making whatever solution is settled for consistent across the code base. Beyond that, I don't really feel strong about one solution or another.
+Airlift has a good duration/timespan abstraction if I were to poach one from an existing project today. On Tue, Nov 26, 2013 at 10:28 AM, akarnokd notifications@github.com wrote: > In rxjava-core/src/main/java/rx/util/TimeSpan.java: > > > +package rx.util; > > + > > +import java.util.concurrent.TimeUnit; > > + > > +/** > > - \* Represents a time value and time unit. > > - \* <p> > > - \* Rx.NET note: System.TimeSpan has a fixed unit of measure of 100 nanoseconds > > - \* per value; the Java way is to specify the TimeUnit along with the time value. > > - \* <p> > > - \* Usage: > > - \* <pre> > > - \* TimeSpan oneSecond = TimeSpan.of(1, TimeUnit.SECONDS); > > - \* </pre> > > - */ > > +public final class TimeSpan implements Comparable<TimeSpan> { > > We can return rx.util.TimeInterval<TimeUnit> so no new class needs to be > introduced, but since TimeInterval is specified as having a millisecond > value, it would confuse things. > > One option is always there: "when in doubt, leave it out". So there won't > be any timed overload, and if particular clients require one, they can > write their own time generator and zip() it with generate() > > â > Reply to this email directly or view it on GitHubhttps://github.com/Netflix/RxJava/pull/509/files#r7934024 > .
+I think changing `Func1<TState, TimeSpan> timeSelector` to two parameters `Func1<TState, Long> timeSelector, TimeUnit unit` is better. And as there is no DateTimeOffset in Java, we do not need `generateAbsoluteTime`.
+Okay, thanks for the validation.
+Let's rename this to `value`? Will improve readability of the code!
+Why can't it all just add directly to the `child` like this? ``` java // unblock call in case an asynchronous unsubscribe happens child.add(BooleanSubscription.create(new Action0() { @Override public void call() { onSubscribeLatch.countDown(); } })); child.add(scheduler.schedule(new Action1<Inner>() { @Override public void call(final Inner inner) { // we inject 'child' so it's the same subscription // so it works on synchronous Observables final Subscriber<T> innerSubscriber = new Subscriber<T>(child) { @Override public void onCompleted() { child.onCompleted(); } @Override public void onError(Throwable e) { child.onError(e); } @Override public void onNext(T t) { child.onNext(t); } @Override public void onSubscribe() { onSubscribeLatch.countDown(); } }; child.add(BooleanSubscription.create(new Action0() { @Override public void call() { inner.schedule(new Action1<Inner>() { @Override public void call(Inner t1) { innerSubscriber.unsubscribe(); } }); } })); o.subscribe(innerSubscriber); onSubscribeLatch.countDown(); ```
+Why do you use `MultipleAssignmentSubscription` here? It only gets assigned once, when `scheduler.schedule` is called. It seems the `Subscription` from `scheduler.schedule` can be added directly to the `CompositeSubscription`.
+Is this line necessary? As I understand subscriber chains, this is what should happen: subscriber.unsubscribe -> cs.unsubscribe -> o.unsubscribe
+You should use `inner` here I guess.
+A `this.unsubscribe()` is missing here.
+Nullable annotation on package-private fields are unnecessary.
+On the Left-Right RW lock, they utilized the finalizer to cleanup the a tracking state: https://github.com/pramalhe/ConcurrencyFreaks/blob/master/Java/com/concurrencyfreaks/papers/LeftRight/LRScalableTreeSet.java#L97
+I think this entire map can be eliminated with a `WeakReference` subclass which holds the `T`. ``` java private static final class WeakTeaRef<T> extends WeakReference<Ref<T>> { final T value; WeakTeaRef(Ref<T> value) { super(value); this.value = value.t; } } ``` and then when polling: ``` java WeakTeaRef<T> ref; while ((ref = (WeakTeaRef<T>) refQueue.poll()) != null) { T t = ref.value; // ... } ``` We employ this technique a few places. https://github.com/square/picasso/blob/ebdfe5d994eb1afc41263346ca90eba51a9dfce6/picasso/src/main/java/com/squareup/picasso/Picasso.java#L555-L556 https://github.com/square/picasso/blob/ebdfe5d994eb1afc41263346ca90eba51a9dfce6/picasso/src/main/java/com/squareup/picasso/Action.java#L26-L33
+It will be an interface.
+This mandates `ConnectableFlowable`s to have a source but it is possible that one writes a connectable that emits on its own. Please introduce an intermediate type and leave the Connectables as they are.
+I'm not sure if this class could get used by multiple concurrent subscribers (?) but if it does then I would expect to see an atomic compareAndSet here rather than just !=null.
+I'm not sure about the thread-safety of accessing `subscriptions`. If doOnTerminate happen to run on a different thread, `subscriptions` may get corrupted and even if backed by CHM, the remove on line 458 may happen just before the add on line 464 and `subscriptions` now leaks the reference. What would be better is to make sure `subscriptions` always holds that needs to be removed by adding the innerSubscription before calling t.subscribe() which also means you need to pre-wrap `buffer` so that subscribe returns the same instance. This way, the wrapped buffer instance is added before the call to subscribe and will be guaranteed to be removed when `doOnTerminate` is executed.
+If `nextIteration` has terminated, the queue may still hold requested values so it might be worth considering calling `clear()` before quitting.
+If `isUnsubscribed != 0` then the CAS in `unsubscribe` will fail and nothing happens. If you wanted to delay the unsubscription to the time when nextIteration is not running, then you need a separate indicator, i.e., unsubscribeRequested.
+It would be great, if this is to be migrated to 2.x, that user-supplied functions are called in try-catch. Perhaps not here but in call().
+For what it's worth, I would give a +1 for any solution that does not split up value and unit into two separate parameters (as Java does by default), as they are clearly logically coupled. I would give another +1 for making whatever solution is settled for consistent across the code base. Beyond that, I don't really feel strong about one solution or another.
+Airlift has a good duration/timespan abstraction if I were to poach one from an existing project today. On Tue, Nov 26, 2013 at 10:28 AM, akarnokd notifications@github.com wrote: > In rxjava-core/src/main/java/rx/util/TimeSpan.java: > > > +package rx.util; > > + > > +import java.util.concurrent.TimeUnit; > > + > > +/** > > - \* Represents a time value and time unit. > > - \* <p> > > - \* Rx.NET note: System.TimeSpan has a fixed unit of measure of 100 nanoseconds > > - \* per value; the Java way is to specify the TimeUnit along with the time value. > > - \* <p> > > - \* Usage: > > - \* <pre> > > - \* TimeSpan oneSecond = TimeSpan.of(1, TimeUnit.SECONDS); > > - \* </pre> > > - */ > > +public final class TimeSpan implements Comparable<TimeSpan> { > > We can return rx.util.TimeInterval<TimeUnit> so no new class needs to be > introduced, but since TimeInterval is specified as having a millisecond > value, it would confuse things. > > One option is always there: "when in doubt, leave it out". So there won't > be any timed overload, and if particular clients require one, they can > write their own time generator and zip() it with generate() > > â > Reply to this email directly or view it on GitHubhttps://github.com/Netflix/RxJava/pull/509/files#r7934024 > .
+I think changing `Func1<TState, TimeSpan> timeSelector` to two parameters `Func1<TState, Long> timeSelector, TimeUnit unit` is better. And as there is no DateTimeOffset in Java, we do not need `generateAbsoluteTime`.
+Okay, thanks for the validation.
+Let's rename this to `value`? Will improve readability of the code!
+It doesn't extend from Observable any longer.
+Cool. I'm behind the times :)
+So `takeFirst`/`takeLast`/ or `first`/`last` ... or both aliased? Until we split off `BlockingObservable` `last` and `takeLast` meant different things, we could now have `last` exist on both but with different return types.
+The naming convention here is different than `last` and `takeLast` so wondering if we should change to match. The `last` operator is blocking so on `BlockingObservable`. This `first` operator seems to be similar to `single` and blocking `last`. Thus I wonder if we should have `takeFirst` instead of `first`? This is different than Rx.Net but would clean up the same difference in convention that it has.
+some folks have run into trouble getting things to build if the "alt" attribute is missing from these img tags
+Sorry, a typo here. The return value should be parent.
+It should be `child.add(...)`.
+As @akarnokd said, you need to override `setProducer` here, such as ``` Java @Override public void setProducer(final Producer producer) { child.setProducer(new Producer() { @Override public void request(long n) { producer.request(n); } }); } ``` So that `child` can be set to the new Producer.
+In the previous version, we didn't delay the onCompleted event.
+Let's rename this to `value`? Will improve readability of the code!
+I can sketch one: schedule periodically like this: `schedule(task, 0, 1, TimeUnit.DAYS).dispose()` and loop it. There is a non-zero probability the outer replaces the Disposable of the second delayed task with the completed task of the first (immediate) and the task keeps executing until the backing threadpool is shut down.
+``` Thread 1 Thread 2 -------- -------- d0 = schedule(task, 0, u); task.run(); d = schedule(task, delay, u); sd.replace(d); sd.replace(d0); sd.dispose(); <--- d is not disposed and will run the task after the delay ```
+`NewThreadScheduler` uses `executor.shutdown()` which allows already submitted tasks to run but prevents new tasks being scheduled. I think this is the wrong behavior there and I should have used `executor.shutdownNow()` instead; a fix is underway. Since the Handler scheduler can't be stopped and thus stopping all tasks, you need to keep track of the worker's submitted tasks.
+Sorry, I should have typed `EventLoopsScheduler.EventLoopWorker`
+Could you add the returned `Subscription` to `innerSubscription`? `innerSubscription` also needs to be a `CompositeSubscription`
+Does this conflict with Groovy and Clojure because of type erasure? I'm concerned that 2 overloads that take functions will collide.
+Thinking about it ... probably need to play with the code a little more to get a feel for it.
+It would be great, if this is to be migrated to 2.x, that user-supplied functions are called in try-catch. Perhaps not here but in call().
+If `isUnsubscribed != 0` then the CAS in `unsubscribe` will fail and nothing happens. If you wanted to delay the unsubscription to the time when nextIteration is not running, then you need a separate indicator, i.e., unsubscribeRequested.
+If `nextIteration` has terminated, the queue may still hold requested values so it might be worth considering calling `clear()` before quitting.
+L79: worker is added to subscriber.
+L199: the worker is added to the child.
+I can't remember.
+L47: the `s.add` ensures that pending tasks on the worker are cancelled.
+L50: worker is added to the child.
+s/Android/Samsung/ ð Let's not lump all of Android in with the likes of the insane OS developers at Samsung who modify Java system packages needlessly without rhyme or reason.
+I just merged this ... but I'm always hesitant when changing something as core as `Subscriber`. Are we ready to support this new method forever. Is it the right signature for all the use cases? I think it's right, but I've regretted public API decisions before :-) /cc @zsxwing @abersnaze for more eyes and thought on this.
+I'm not certain this requirement is enough because if a source doesn't deliver the requested amount, it will keep the client hanging which may not request a new batch. There is also the problem if the first observable delivers less than requested, the missing amount is not replenished/considered by the second Observable and thus the client may starve. This is why `concat` uses the `SubscriptionArbiter` so that if an Observable didn't deliver enough, the next is requested for the missed amount. Similar measures might be required with this `AsyncOnSubscribe`.
+It would be great, if this is to be migrated to 2.x, that user-supplied functions are called in try-catch. Perhaps not here but in call().
+What about safeSubscribe ? Sent from my iPhone > On 8 Sep 2016, at 1:57 pm, David Karnok notifications@github.com wrote: > > In src/test/java/io/reactivex/tck/FlowableTck.java: > > > + > > - final AtomicThrowable error; > > + > > - Subscription s; > > + > > - public TckSubscriber(Subscriber<? super T> actual) { > > - this.actual = actual; > > - this.error = new AtomicThrowable(); > > - } > > + > > + > > - @Override > > - public void request(long n) { > > - if (n <= 0) { > > - s.cancel(); > > - onError(new IllegalArgumentException("Â§3.9 violated: positive request amount required but it was " + n)); > > Yes and no. You see, Akka-Streams is not native Reactive-Streams but they have a wrapper that exposes it as Reactive-Streams source which passes the TCK (that was mostly influenced by Akka-Streams implementation strategies anyway). > > The spec itself has "bugs" and over-restrictive language in some cases. @smaldini occasionally tries to battle this out with the TCK maintainers but everything is moving really slow over there. So we decided it is not worth following the spec to the letter in this tiny aspect and suffer the massive performance penalty but provide an operator that when needed, ensures this behavior. I'm totally willing to provide Flowable.tck() for anyone who is worried the cross-library composition may not work properly because Akka-Streams occasionally requests -1 (I know Reactor and RxJava doesn't do that because I wrote both essentially). > > â > You are receiving this because you were mentioned. > Reply to this email directly, view it on GitHub, or mute the thread.
+The benefit of having the null check in the caller is that there is no allocation happening in case the action is null.
+Wow, that's an interesting issue. Thanks for the explanation!
+Sorry, I should have typed `EventLoopsScheduler.EventLoopWorker`
+`NewThreadScheduler` uses `executor.shutdown()` which allows already submitted tasks to run but prevents new tasks being scheduled. I think this is the wrong behavior there and I should have used `executor.shutdownNow()` instead; a fix is underway. Since the Handler scheduler can't be stopped and thus stopping all tasks, you need to keep track of the worker's submitted tasks.
+Could you add the returned `Subscription` to `innerSubscription`? `innerSubscription` also needs to be a `CompositeSubscription`
+There is no need for randomized capacity. If you want to verify multiple sizes, loop over a power-of-2 set.
+I don't grok this method yet as it is rather complicated so I'm going to have to come back to this another time ...
+looks like this condition is only actual for `resubscribeBeforeTimeout` test
+What about safeSubscribe ? Sent from my iPhone > On 8 Sep 2016, at 1:57 pm, David Karnok notifications@github.com wrote: > > In src/test/java/io/reactivex/tck/FlowableTck.java: > > > + > > - final AtomicThrowable error; > > + > > - Subscription s; > > + > > - public TckSubscriber(Subscriber<? super T> actual) { > > - this.actual = actual; > > - this.error = new AtomicThrowable(); > > - } > > + > > + > > - @Override > > - public void request(long n) { > > - if (n <= 0) { > > - s.cancel(); > > - onError(new IllegalArgumentException("Â§3.9 violated: positive request amount required but it was " + n)); > > Yes and no. You see, Akka-Streams is not native Reactive-Streams but they have a wrapper that exposes it as Reactive-Streams source which passes the TCK (that was mostly influenced by Akka-Streams implementation strategies anyway). > > The spec itself has "bugs" and over-restrictive language in some cases. @smaldini occasionally tries to battle this out with the TCK maintainers but everything is moving really slow over there. So we decided it is not worth following the spec to the letter in this tiny aspect and suffer the massive performance penalty but provide an operator that when needed, ensures this behavior. I'm totally willing to provide Flowable.tck() for anyone who is worried the cross-library composition may not work properly because Akka-Streams occasionally requests -1 (I know Reactor and RxJava doesn't do that because I wrote both essentially). > > â > You are receiving this because you were mentioned. > Reply to this email directly, view it on GitHub, or mute the thread.
+Good info, thanks. I don't have a strong opinion on the addition of the operator.
+On my PR, I had copied `awaitForComplete` into into `BlockingSingle`. This is obviously cleaner :p
+Let's rename this to `value`? Will improve readability of the code!
+I believe this will inject non-determinism ... notifications will be capable of interleaving and being out of order. I think we need to combine this with `ScheduledObserver` which maintains a queue and event loop for handling each notification sequentially on the given scheduler.
+What do you think about this accepting `Notification` instead of `Action0`? The reason is that we now have 2 wrappers ... the `Notification` and `Action0` around a type `T` and 2 object allocations for each `onNext`. The use of `Action0` is definitely more generic, but as we've seen by your `CompositeSubscription` changes, we're at the point where we're moving away from generic to achieve performance and memory gains, and this class will be involved in very high throughput scenarios.
+This should be ``` return new Subscriber<T>(child); ``` to chain the unsubscription properly.
+Please don't unroll star imports.
+Please restore the original file if there is no actual (code) change.
+Please avoid unrolling `*` imports.
+@akarnokd do you really see much sense in a separate class for arrays? You can provide an override where passed array will be wrapped into `ArrayList` and then passed to the `CompletableOnSubscribeConcatIterable`. Less code â less bugs :)
+you can just return from inside these cases and avoid the local var / null initializer problem.
+This calls `from` but it should be `wrap`.
+You should use `inner` here I guess.
+Is this line necessary? As I understand subscriber chains, this is what should happen: subscriber.unsubscribe -> cs.unsubscribe -> o.unsubscribe
+We do not want to lock for `onNext` calls. That is against Rx Design Guideline 6.8: ``` 6.8. Avoid serializing operators As all Rx operators are bound to guideline 6.7, operators can safely assume that their inputs are serialized. Adding too much synchronization would clutter the code and can lead to performance degradation. If an observable sequence is not following the Rx contract (see chapter 0), it is up to the developer writing the end-user application to fix the observable sequence by calling the Synchronize operator at the first place the developer gets a hold of the observable sequence. This way the scope of additional synchronization is limited to where it is needed. ```
+If the source is synchronous, we'll hold the lock for the entire time. This was already there, so not holding up the merge, but we should resolve this.
+A `CompositeSubscription` per `onNext` when scheduling with `observeOn`. We need to eliminate this.
+This is repeating what `SafeObserver` does. A `Notification` doesn't need to do anything different and thus we shouldn't be replicating that logic.
+That's kind of why I'm thinking we should not be doing interrupts by default, for the same "delicate" reasons we've run into.
+this class could be changed to be a singleton.
+According to Rx contract, I think all operators should support the following observer. ``` java Observer<Integer> o = new Observer<Integer>() { private int count = 0; @Override public void onCompleted() { count++; } @Override public void onError(Throwable e) { count++; } @Override public void onNext(Integer args) { count++; } }; ```
+This is called from inside the lock being held which means that replaying all historical values to a new Observer will block all existing Observers and new values from proceeding.
+It would be great, if this is to be migrated to 2.x, that user-supplied functions are called in try-catch. Perhaps not here but in call().
+We do not want to lock for `onNext` calls. That is against Rx Design Guideline 6.8: ``` 6.8. Avoid serializing operators As all Rx operators are bound to guideline 6.7, operators can safely assume that their inputs are serialized. Adding too much synchronization would clutter the code and can lead to performance degradation. If an observable sequence is not following the Rx contract (see chapter 0), it is up to the developer writing the end-user application to fix the observable sequence by calling the Synchronize operator at the first place the developer gets a hold of the observable sequence. This way the scope of additional synchronization is limited to where it is needed. ```
+nit: nested `if`s could be collapsed with `&&`
+If `isUnsubscribed != 0` then the CAS in `unsubscribe` will fail and nothing happens. If you wanted to delay the unsubscription to the time when nextIteration is not running, then you need a separate indicator, i.e., unsubscribeRequested.
+Good info, thanks. I don't have a strong opinion on the addition of the operator.
+What about safeSubscribe ? Sent from my iPhone > On 8 Sep 2016, at 1:57 pm, David Karnok notifications@github.com wrote: > > In src/test/java/io/reactivex/tck/FlowableTck.java: > > > + > > - final AtomicThrowable error; > > + > > - Subscription s; > > + > > - public TckSubscriber(Subscriber<? super T> actual) { > > - this.actual = actual; > > - this.error = new AtomicThrowable(); > > - } > > + > > + > > - @Override > > - public void request(long n) { > > - if (n <= 0) { > > - s.cancel(); > > - onError(new IllegalArgumentException("Â§3.9 violated: positive request amount required but it was " + n)); > > Yes and no. You see, Akka-Streams is not native Reactive-Streams but they have a wrapper that exposes it as Reactive-Streams source which passes the TCK (that was mostly influenced by Akka-Streams implementation strategies anyway). > > The spec itself has "bugs" and over-restrictive language in some cases. @smaldini occasionally tries to battle this out with the TCK maintainers but everything is moving really slow over there. So we decided it is not worth following the spec to the letter in this tiny aspect and suffer the massive performance penalty but provide an operator that when needed, ensures this behavior. I'm totally willing to provide Flowable.tck() for anyone who is worried the cross-library composition may not work properly because Akka-Streams occasionally requests -1 (I know Reactor and RxJava doesn't do that because I wrote both essentially). > > â > You are receiving this because you were mentioned. > Reply to this email directly, view it on GitHub, or mute the thread.
+Yup, exactly, deserves a `throw` in my opinion, to prevent leaking that `null` into user's code. Also ![1454550686518](https://cloud.githubusercontent.com/assets/967132/12830813/453683d8-cba2-11e5-97f8-b820117907e1.jpg)
+In the previous version, we didn't delay the onCompleted event.
+Accessing `timerInProgress` happens more often so `extends AtomicInteger` is better. Have the `AtomicReference` as instance field instead.
+Merged repeat with trampoline in https://github.com/Netflix/RxJava/pull/828
+You should use `inner` here I guess.
+Is this line necessary? As I understand subscriber chains, this is what should happen: subscriber.unsubscribe -> cs.unsubscribe -> o.unsubscribe
+Sorry, a typo here. The return value should be parent.
+In the previous version, we didn't delay the onCompleted event.
+Such changes in our own source is a good indication there will be generics issues for the users of the library.
+Please restore the original state. The less change to existing and practically unrelated code regarding the PR the better.
+This should return a `Maybe<T>` because the Flowable can be empty.
+This should return a `Maybe<T>` because the Flowable can be empty.
+An observable being empty is not exceptional and therefore shouldn't result in exceptions.
+Needs a `@since`
+Didn't know about `dematerialize`, then I guess we stick to that convention. Providing a mapper sounds good. Then maybe we could deprecate the current `dematerialize` in Observable.
+I find this API very awkward since it's available on every type but should only be used on `Single<Notification<T>>`. I don't have a better suggestion though. Except defining it yourself and using a Kotlin extension function.
+I'm not certain this requirement is enough because if a source doesn't deliver the requested amount, it will keep the client hanging which may not request a new batch. There is also the problem if the first observable delivers less than requested, the missing amount is not replenished/considered by the second Observable and thus the client may starve. This is why `concat` uses the `SubscriptionArbiter` so that if an Observable didn't deliver enough, the next is requested for the missed amount. Similar measures might be required with this `AsyncOnSubscribe`.
+This looks like it was accidentally left behind after doing some debugging.
+Are you using the latest IntelliJ? A possible workaround could be that you put in `return (Single<R>)...` and then suppress the invalid cast.
+If this error prevents you from working further on RxJava then do the changes.
+Could be a bug with IntelliJ as javac and Eclipse was fine with the original.
+Actually, there is no need to add more type parameters but just do an unchecked cast or raw type cast: ``` java @SuppressWarnings("unchecked") //... return (Observable)lift(OperatorIgnoreElements.<T>instance()); ``` Note that `instance()` does this re-cast as well since the operator is stateless.
+So the net effect of UnsafeFunc0 is that it forces us to catch the declared Exception on resourceFactory.call() and think about what might happen. I'm not sure it's worth it.
+I thought it was unintentional. Never mind. See this style for the first time :)
+How about just throwing `NullPointerException` here? If that causes other issue, could you add some useful exception message, such as, `Should not add null Throwable to CompositeException`? So that people can quickly figure out it's an application bug instead of an RxJava bug.
+You could actually test this by setting `System.err` to something that records, but it would be a bit much.
+til: `AtomicInteger` doesn't have `substractAndGet()`
+observer.onNext, onCompleted, onError can be called from different Observables, so I suppose we need to wrap it by a `SynchronizedObserver`.
+This calls `from` but it should be `wrap`.
+You should use `inner` here I guess.
+Is this line necessary? As I understand subscriber chains, this is what should happen: subscriber.unsubscribe -> cs.unsubscribe -> o.unsubscribe
+We do not want to lock for `onNext` calls. That is against Rx Design Guideline 6.8: ``` 6.8. Avoid serializing operators As all Rx operators are bound to guideline 6.7, operators can safely assume that their inputs are serialized. Adding too much synchronization would clutter the code and can lead to performance degradation. If an observable sequence is not following the Rx contract (see chapter 0), it is up to the developer writing the end-user application to fix the observable sequence by calling the Synchronize operator at the first place the developer gets a hold of the observable sequence. This way the scope of additional synchronization is limited to where it is needed. ```
+If the source is synchronous, we'll hold the lock for the entire time. This was already there, so not holding up the merge, but we should resolve this.
+"should is allowed" doesn't seem to be grammatically correct
+Accessing `timerInProgress` happens more often so `extends AtomicInteger` is better. Have the `AtomicReference` as instance field instead.
+I'm not sure it is ever good for this to be a global default. Haven't we learned that it causes nasty issues in places like event loops? It seems only appropriate for separate threads, like the IO or NewThread schedulers.
+ok, potentially reduces allocations for the user, thanks
+I'm not certain this requirement is enough because if a source doesn't deliver the requested amount, it will keep the client hanging which may not request a new batch. There is also the problem if the first observable delivers less than requested, the missing amount is not replenished/considered by the second Observable and thus the client may starve. This is why `concat` uses the `SubscriptionArbiter` so that if an Observable didn't deliver enough, the next is requested for the missed amount. Similar measures might be required with this `AsyncOnSubscribe`.
+Never mind. I just found `SafeSubscriber` will do it.
+I think we shouldn't call the error handler if the error can be delivered or replaced on the normal path.
+This is unnecessary.
+On my PR, I had copied `awaitForComplete` into into `BlockingSingle`. This is obviously cleaner :p
+Please also check/handle if the function returns a null Single.
+L79: worker is added to subscriber.
+L47: the `s.add` ensures that pending tasks on the worker are cancelled.
+L50: worker is added to the child.
+L43: the worker is added to the child.
+L45: the worker is added to the child.
+It feels weird to use `null` as such a strong signal where it's forbidden in most (all?) of the API. Not only do I prefer the readability that `Notification`'s methods provide, but it would allow the re-use of side-effecting operations (such as logging) across all stream types since they all would have the same signature.
+I suggest using an `Action0` here.
+remove "completes"? It's a Single :)
+I guess the bird has already flown with this one but the operator `take` refers to `onNext` events and we are more or less using it for all event types (take till terminates or the other thing terminates). I'm not suggesting a change perhaps a naming review for 3.x.
+Completable from capital letter
+No. It does the same thing as Iterator minus the remove() method. I think when the Collections API was introduced in 1.2, they needed a way to iterate and remove items inplace. They couldn't add remove() to Enumeration because that would have broken everyone's code, therefore, they introduced a new interface.
+Why are we creating a new `Enumerable` factory type? This will still be a SAM that collides with others. My example assumed the method would just take a `java.util.Enumeration`.
+This should be ``` return new Subscriber<T>(child); ``` to chain the unsubscription properly.
+In the previous version, we didn't delay the onCompleted event.
+The `increment` is done here, but shouldn't it be done in `enqueue`? It seems dangerous that checking `tryDrain` increases the value as someone could `enqueue` and then call `tryDrain` twice, or `enqueue` and not call `tryDrain` or call `tryDrain` and not `enqueue`.
+This should go on the previous line after a space.
+Please add the appropriate experimental tags and annotations: `@since 2.1.4 - experimental`
+Completable from capital letter
+This should start out as experimental unless the RxJava contributors want to fast-track this.
+I guess the bird has already flown with this one but the operator `take` refers to `onNext` events and we are more or less using it for all event types (take till terminates or the other thing terminates). I'm not suggesting a change perhaps a naming review for 3.x.
+Okay, thanks for the validation.
+For what it's worth, I would give a +1 for any solution that does not split up value and unit into two separate parameters (as Java does by default), as they are clearly logically coupled. I would give another +1 for making whatever solution is settled for consistent across the code base. Beyond that, I don't really feel strong about one solution or another.
+Airlift has a good duration/timespan abstraction if I were to poach one from an existing project today. On Tue, Nov 26, 2013 at 10:28 AM, akarnokd notifications@github.com wrote: > In rxjava-core/src/main/java/rx/util/TimeSpan.java: > > > +package rx.util; > > + > > +import java.util.concurrent.TimeUnit; > > + > > +/** > > - \* Represents a time value and time unit. > > - \* <p> > > - \* Rx.NET note: System.TimeSpan has a fixed unit of measure of 100 nanoseconds > > - \* per value; the Java way is to specify the TimeUnit along with the time value. > > - \* <p> > > - \* Usage: > > - \* <pre> > > - \* TimeSpan oneSecond = TimeSpan.of(1, TimeUnit.SECONDS); > > - \* </pre> > > - */ > > +public final class TimeSpan implements Comparable<TimeSpan> { > > We can return rx.util.TimeInterval<TimeUnit> so no new class needs to be > introduced, but since TimeInterval is specified as having a millisecond > value, it would confuse things. > > One option is always there: "when in doubt, leave it out". So there won't > be any timed overload, and if particular clients require one, they can > write their own time generator and zip() it with generate() > > â > Reply to this email directly or view it on GitHubhttps://github.com/Netflix/RxJava/pull/509/files#r7934024 > .
+I think changing `Func1<TState, TimeSpan> timeSelector` to two parameters `Func1<TState, Long> timeSelector, TimeUnit unit` is better. And as there is no DateTimeOffset in Java, we do not need `generateAbsoluteTime`.
+Well, that not how unit testing works :)
+Great, that solves it then.
+Unfortunately these overloaded method signatures have the same arity and will cause problems with Groovy/Clojure/JRuby etc as they can't determine the difference between `Func0` vs `Func1` at runtime. We should either eliminate unnecessary overloads, change signatures or have more descriptive names instead of overloads.
+Instead of sleeping for 1 unit, why not using an exponential backoff capped at 1 unit. This will ensure, fast await when the value is quickly ready, without wasting too much CPU resources. i.e. something like that: ``` long start = System.nanoTime(); long timeoutNano = unit.convert(timeout, TimeUnit.NANOSECONDS); long sleepPeriod = 1L; while (valueCount < expected && System.nanoTime() - start < timeoutNano) { TimeUnit.NANOSECONDS.sleep(sleepPeriod); sleepPeriod = Math.min(sleepPeriod * 2, TimeUnit.NANOSECONDS.convert(1L, unit)); } ```
+Another thing is that `sleep(1)` does not guarantee that it'll wake you up back in `1ms`, it may wake you later, so you need to explicitly check that expected timeout is not expired: `System.nanoTime() - start < timeoutNano`
+@JakeWharton well, it depends on use case, I guess somebody who wants to use `await(time)` on `TestSubscriber` either wants it to be: - "max timeout to fail the test instead of looping infinitely", like @Timeout in JUnit. so in that case value will be someting like `1, MINUTE` while actually data will arrive much faster. - "precise value to check some concurrency algorithm with expected timeouts" so in that case "success" long (relatively) after actual timeout can be considered as a bug. I'd be ok with something like this: ``` java while (true) { if (valueCount >= expected) { return true; } if (System.nanoTime() - start > timeoutNano) { return false; } Thread.sleep(1); } ``` So that only flakiness of last `sleep()` will be amortized. Current implementation increments `timeout` after each `sleep(1)` and may collect some relatively big error, like you had 150 `sleep(1)` but actually spent `200ms` which is ~25% error and seems possible in real life.
+This approach will be useful sometimes but other times I will want an error on close to be suppressed. This is a common pattern for reading from an InputStream. Once we call close() we have finished our reading and just want to clean up and if the resource has already been closed or invalidated we don't really care. I'm unaware what behaviour results when unsubscribe itself throws an exception and can't write a test at the moment.
+We don't need to delay the error ... just emit it and skip everything else. We confirmed this behavior in `observeOn`: https://github.com/ReactiveX/RxJava/issues/1680
+This is called from inside the lock being held which means that replaying all historical values to a new Observer will block all existing Observers and new values from proceeding.
+The `java.util.concurrent.Callable` would be a more friendly class instead.
+So the net effect of UnsafeFunc0 is that it forces us to catch the declared Exception on resourceFactory.call() and think about what might happen. I'm not sure it's worth it.
+@akarnokd in the future if its possible to do so could you not rearrange the methods? It makes it so much easier to to read the changes to `request` side by side instead of seeing one section of code missing entirely only to reappear (modified) later on. Thank you, it's a suggestion to help expedite the PR review process.
+Written while holding a lock and read without lock.
+Sorry, a typo here. The return value should be parent.
+It should be `child.add(...)`.
+We don't need to delay the error ... just emit it and skip everything else. We confirmed this behavior in `observeOn`: https://github.com/ReactiveX/RxJava/issues/1680
+Wow, that's an interesting issue. Thanks for the explanation!
+There is a race here. If `run()` gets here and `onNext` is fired, throttling will be disposed and the `onNext` value gets emitted. Here then the cached value gets emitted as well and now there are two tasks delayed for the subsequent interactions.
+Not really necessary, `worker.dispose()` will dispose any outstanding timer action.
+I don't grok this method yet as it is rather complicated so I'm going to have to come back to this another time ...
+Same problem as with `onComplete`, `emitFromRun` may be still going on.
+Another thing is that `sleep(1)` does not guarantee that it'll wake you up back in `1ms`, it may wake you later, so you need to explicitly check that expected timeout is not expired: `System.nanoTime() - start < timeoutNano`
+@JakeWharton well, it depends on use case, I guess somebody who wants to use `await(time)` on `TestSubscriber` either wants it to be: - "max timeout to fail the test instead of looping infinitely", like @Timeout in JUnit. so in that case value will be someting like `1, MINUTE` while actually data will arrive much faster. - "precise value to check some concurrency algorithm with expected timeouts" so in that case "success" long (relatively) after actual timeout can be considered as a bug. I'd be ok with something like this: ``` java while (true) { if (valueCount >= expected) { return true; } if (System.nanoTime() - start > timeoutNano) { return false; } Thread.sleep(1); } ``` So that only flakiness of last `sleep()` will be amortized. Current implementation increments `timeout` after each `sleep(1)` and may collect some relatively big error, like you had 150 `sleep(1)` but actually spent `200ms` which is ~25% error and seems possible in real life.
+Instead of sleeping for 1 unit, why not using an exponential backoff capped at 1 unit. This will ensure, fast await when the value is quickly ready, without wasting too much CPU resources. i.e. something like that: ``` long start = System.nanoTime(); long timeoutNano = unit.convert(timeout, TimeUnit.NANOSECONDS); long sleepPeriod = 1L; while (valueCount < expected && System.nanoTime() - start < timeoutNano) { TimeUnit.NANOSECONDS.sleep(sleepPeriod); sleepPeriod = Math.min(sleepPeriod * 2, TimeUnit.NANOSECONDS.convert(1L, unit)); } ```
+I don't grok this method yet as it is rather complicated so I'm going to have to come back to this another time ...
+I'm not sure if this class could get used by multiple concurrent subscribers (?) but if it does then I would expect to see an atomic compareAndSet here rather than just !=null.
+I believe this will inject non-determinism ... notifications will be capable of interleaving and being out of order. I think we need to combine this with `ScheduledObserver` which maintains a queue and event loop for handling each notification sequentially on the given scheduler.
+Airlift has a good duration/timespan abstraction if I were to poach one from an existing project today. On Tue, Nov 26, 2013 at 10:28 AM, akarnokd notifications@github.com wrote: > In rxjava-core/src/main/java/rx/util/TimeSpan.java: > > > +package rx.util; > > + > > +import java.util.concurrent.TimeUnit; > > + > > +/** > > - \* Represents a time value and time unit. > > - \* <p> > > - \* Rx.NET note: System.TimeSpan has a fixed unit of measure of 100 nanoseconds > > - \* per value; the Java way is to specify the TimeUnit along with the time value. > > - \* <p> > > - \* Usage: > > - \* <pre> > > - \* TimeSpan oneSecond = TimeSpan.of(1, TimeUnit.SECONDS); > > - \* </pre> > > - */ > > +public final class TimeSpan implements Comparable<TimeSpan> { > > We can return rx.util.TimeInterval<TimeUnit> so no new class needs to be > introduced, but since TimeInterval is specified as having a millisecond > value, it would confuse things. > > One option is always there: "when in doubt, leave it out". So there won't > be any timed overload, and if particular clients require one, they can > write their own time generator and zip() it with generate() > > â > Reply to this email directly or view it on GitHubhttps://github.com/Netflix/RxJava/pull/509/files#r7934024 > .
+I think changing `Func1<TState, TimeSpan> timeSelector` to two parameters `Func1<TState, Long> timeSelector, TimeUnit unit` is better. And as there is no DateTimeOffset in Java, we do not need `generateAbsoluteTime`.
+For what it's worth, I would give a +1 for any solution that does not split up value and unit into two separate parameters (as Java does by default), as they are clearly logically coupled. I would give another +1 for making whatever solution is settled for consistent across the code base. Beyond that, I don't really feel strong about one solution or another.
+Let's rename this to `value`? Will improve readability of the code!
+If `isUnsubscribed != 0` then the CAS in `unsubscribe` will fail and nothing happens. If you wanted to delay the unsubscription to the time when nextIteration is not running, then you need a separate indicator, i.e., unsubscribeRequested.
+If `nextIteration` has terminated, the queue may still hold requested values so it might be worth considering calling `clear()` before quitting.
+I'm not sure if this class could get used by multiple concurrent subscribers (?) but if it does then I would expect to see an atomic compareAndSet here rather than just !=null.
+I'm not sure about the thread-safety of accessing `subscriptions`. If doOnTerminate happen to run on a different thread, `subscriptions` may get corrupted and even if backed by CHM, the remove on line 458 may happen just before the add on line 464 and `subscriptions` now leaks the reference. What would be better is to make sure `subscriptions` always holds that needs to be removed by adding the innerSubscription before calling t.subscribe() which also means you need to pre-wrap `buffer` so that subscribe returns the same instance. This way, the wrapped buffer instance is added before the call to subscribe and will be guaranteed to be removed when `doOnTerminate` is executed.
+This magic number made me smile :)
+I suggest using an `Action0` here.
+Please add the appropriate experimental tags and annotations: `@since 2.1.4 - experimental`
+Please add `@Experimental`
+I guess the bird has already flown with this one but the operator `take` refers to `onNext` events and we are more or less using it for all event types (take till terminates or the other thing terminates). I'm not suggesting a change perhaps a naming review for 3.x.
+some folks have run into trouble getting things to build if the "alt" attribute is missing from these img tags
+Please don't unroll star imports.
+Please restore the original file if there is no actual (code) change.
+ok, np :)
+Thanks for this, David
+you can just return from inside these cases and avoid the local var / null initializer problem.
+This should be `@NonNull`.
+This should be `@NonNull`.
+I thought it was unintentional. Never mind. See this style for the first time :)
+How about just throwing `NullPointerException` here? If that causes other issue, could you add some useful exception message, such as, `Should not add null Throwable to CompositeException`? So that people can quickly figure out it's an application bug instead of an RxJava bug.
+I'm not sure it is ever good for this to be a global default. Haven't we learned that it causes nasty issues in places like event loops? It seems only appropriate for separate threads, like the IO or NewThread schedulers.
+ok, np :)
+nit: an operator
+teraminal -> terminal
+@akarnokd do you really see much sense in a separate class for arrays? You can provide an override where passed array will be wrapped into `ArrayList` and then passed to the `CompletableOnSubscribeConcatIterable`. Less code â less bugs :)
+Saves bytes. Collapse two object headers into one.
+ok, np :)
+Airlift has a good duration/timespan abstraction if I were to poach one from an existing project today. On Tue, Nov 26, 2013 at 10:28 AM, akarnokd notifications@github.com wrote: > In rxjava-core/src/main/java/rx/util/TimeSpan.java: > > > +package rx.util; > > + > > +import java.util.concurrent.TimeUnit; > > + > > +/** > > - \* Represents a time value and time unit. > > - \* <p> > > - \* Rx.NET note: System.TimeSpan has a fixed unit of measure of 100 nanoseconds > > - \* per value; the Java way is to specify the TimeUnit along with the time value. > > - \* <p> > > - \* Usage: > > - \* <pre> > > - \* TimeSpan oneSecond = TimeSpan.of(1, TimeUnit.SECONDS); > > - \* </pre> > > - */ > > +public final class TimeSpan implements Comparable<TimeSpan> { > > We can return rx.util.TimeInterval<TimeUnit> so no new class needs to be > introduced, but since TimeInterval is specified as having a millisecond > value, it would confuse things. > > One option is always there: "when in doubt, leave it out". So there won't > be any timed overload, and if particular clients require one, they can > write their own time generator and zip() it with generate() > > â > Reply to this email directly or view it on GitHubhttps://github.com/Netflix/RxJava/pull/509/files#r7934024 > .
+So the net effect of UnsafeFunc0 is that it forces us to catch the declared Exception on resourceFactory.call() and think about what might happen. I'm not sure it's worth it.
+Didn't know about `dematerialize`, then I guess we stick to that convention. Providing a mapper sounds good. Then maybe we could deprecate the current `dematerialize` in Observable.
+I find this API very awkward since it's available on every type but should only be used on `Single<Notification<T>>`. I don't have a better suggestion though. Except defining it yourself and using a Kotlin extension function.
+If `isUnsubscribed != 0` then the CAS in `unsubscribe` will fail and nothing happens. If you wanted to delay the unsubscription to the time when nextIteration is not running, then you need a separate indicator, i.e., unsubscribeRequested.
+If `nextIteration` has terminated, the queue may still hold requested values so it might be worth considering calling `clear()` before quitting.
+It would be great, if this is to be migrated to 2.x, that user-supplied functions are called in try-catch. Perhaps not here but in call().
+I'm not sure about the thread-safety of accessing `subscriptions`. If doOnTerminate happen to run on a different thread, `subscriptions` may get corrupted and even if backed by CHM, the remove on line 458 may happen just before the add on line 464 and `subscriptions` now leaks the reference. What would be better is to make sure `subscriptions` always holds that needs to be removed by adding the innerSubscription before calling t.subscribe() which also means you need to pre-wrap `buffer` so that subscribe returns the same instance. This way, the wrapped buffer instance is added before the call to subscribe and will be guaranteed to be removed when `doOnTerminate` is executed.
+I'm not sure if this class could get used by multiple concurrent subscribers (?) but if it does then I would expect to see an atomic compareAndSet here rather than just !=null.
+Please add `@Experimental`
+Please add the appropriate experimental tags and annotations: `@since 2.1.4 - experimental`
+I guess the bird has already flown with this one but the operator `take` refers to `onNext` events and we are more or less using it for all event types (take till terminates or the other thing terminates). I'm not suggesting a change perhaps a naming review for 3.x.
+wow, sure, my bad, sorry
+I suggest using an `Action0` here.
+If no obvious solution comes up, let's open an issue to track this for the future.
+If the source is synchronous, we'll hold the lock for the entire time. This was already there, so not holding up the merge, but we should resolve this.
+It would be great, if this is to be migrated to 2.x, that user-supplied functions are called in try-catch. Perhaps not here but in call().
+If `isUnsubscribed != 0` then the CAS in `unsubscribe` will fail and nothing happens. If you wanted to delay the unsubscription to the time when nextIteration is not running, then you need a separate indicator, i.e., unsubscribeRequested.
+If `nextIteration` has terminated, the queue may still hold requested values so it might be worth considering calling `clear()` before quitting.

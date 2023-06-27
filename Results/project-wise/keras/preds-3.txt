@@ -1,0 +1,1557 @@
+Bit of redundancy: this sets `input` twice (here and in the next few lines).
+This should be tensor3 instead of matrix.
+`input_spec` contains constraints that future inputs should respect. This statement would set the length of the first input as a length constraint, but unless the network is unrolled there should be no constraint on length. This is in part what the previous TODO was referring to.
+Then you wouldn't be able to easily serialize it.
+Please put the new parameters on a new line
+You are setting this to True but don't seem to be using the learning phase in the code.
+Yeah but most (if not all) layers are not placeholder, right? Beside Input, I don't know any layer which could be placeholder.
+Why would something without '_is_placeholder' is a placeholder? (The except part)
+No `+` needed for string concatenation at the end
+Need to fill in this section
+Use list markers
+Shapes mentioned in the docstring are generally 2D; should be 3D
+0.05 is a better interval. 50ms is definitely perceptible.
+Docstring should have a `Returns` section and a `Raises` section.
+Using code markers around code keywords (.e.g `_predict_loop`).
+You can use parentheses to structure code into several lines.
+Actually, maybe it would be higher performance to have a switch: `if eta > 3600` / `if eta > 60` So that we only compute what we need.
+Don't format a string two lines, do it in one pass. Also, there is seemingly no need for the `% 7`...
+You shouldn't need to pop these args here. Rather, you should remove them from kwargs before calling the layer (which is fine since they are transferred to the input list)
+Clarify the error message; a "Keras tensor" is the output of a Keras layer
+Nit: first line of docstring (one-line summary) should fit in one line and end with a period.
+This should be max.
+Same: don't mention specific axes
+cropping, not padding
+Make this method private and add a docstring explaining its purpose.
+Typo: space after `uuid,`
+This should be tensor3 instead of matrix.
+You could standardize the weights in `input_validation`, return a dict, then turn the dict into a list afterwards. That way you still have the dict around for `evaluate`, but weight standardization is being done in just one place.
+Put `int):` on the same line for readability.
+PEP8: quote character should be `'` for consistency. Add spaces after `,`. Replace `weights` with `sample_weights` for explicitness.
+Please explain the need for this new method
+Is there a reason why `training` defaults to `False`? If this is primarily meant to be called by the training library, having no default value and forcing the caller to be explicit seems preferred.
+Default to False, not None
+When a mask is provided, it means that the input has time steps. However the input might not necessarily be `(samples, timesteps, dims)`, it should more generally be considered to be `(samples, timesteps, **)` (e.g. sequences of pictures).
+I don't know enough keras, but what is the dtype of the mask? int64? If the mask is of type int8, there won't be upcast. I think I would use a mask of the same dtype as the input, so floatX when it is created. This could lower transfer depending of the rest of the models.
+float32 + int32 will upcast following c casting rules. This is normal. not all int32 fit exactly in a float32. So not doing the upcast have problems in some corner case. Theano casting rules is very close to c casting rules. int8 and int16 won't cause this upcast. The current GPU back-end only support float32, so this can cause is some corner case extra transfer. Making the mask int16 would be better then int32, as the upcast could happen elsewhere where that int32 mask is used. On Thu, Jan 7, 2016 at 3:24 PM, Ozan ÃaÄlayan notifications@github.com wrote: > In keras/models.py > https://github.com/fchollet/keras/pull/1419#discussion_r49121301: > > > @@ -81,6 +81,8 @@ def weighted(y_true, y_pred, weights, mask=None): > > # score_array has ndim >= 2 > > score_array = fn(y_true, y_pred) > > if mask is not None: > > - # Cast the mask to floatX to avoid float64 upcasting in theano > > - mask = K.cast(mask, K.floatx()) > > Well I'm not an expert of keras nor theano. I also sent an email to > theano-users list today but didn't receive anything yet: On my system a > multiplication of float32 and int32 in theano results in creation of a > float64 tensor. Here the mask is int32 and the score_array is float32. > > Are casts causing transfer between host and device? > > â > Reply to this email directly or view it on GitHub > https://github.com/fchollet/keras/pull/1419/files#r49121301.
+"on how masking is handled by the wrapped layer"
+Need at least rank 3
+I am cool with such a docstring style, it's neat and informative. But then it would need to be matched everywhere else in the repo.
+Why not turn this into a warning? Seems preferable, if only to avoid breaking existing code that might do this.
+This is already validated in the constructor, no need.
+It doesn't really make sense to me, because random transformations are important to have at test time as well (because they modify the statistics of the data). Best evals are from multiple random transforms, with results merged via power averaging.
+Make this method private and add a docstring explaining its purpose.
+Typo: space after `uuid,`
+Space after #
+This won't do anything (need to be a global)
+Let's add a TODO for this one
+Per the failing docstring test, this docstring needs a `Raises` section mentioning the ValueError: https://travis-ci.org/fchollet/keras/jobs/282558708
+Additionally, raise a `ValueError` with a helpful message in case an unexpected key is found in the dict. This is important because people may have typos in their dict argument and they would never notice.
+At this point it would be fine to have `np_kernel = kernel.eval()`
+Should be `[InputSpec(ndim=5)]` not 4 for `Cropping3D`
+Incorrect / confusing. Please fix.
+No return section in such cases.
+This is somewhat problematic because this will be ignored in most Keras functions. But that's a separate problem I suppose, which we will fix in a different PR.
+It isn't a queue of data? I didn't mean 100 threads. Perhaps I'm not understanding something
+@Dref360 I can throw a specific exception for the case a data element should be just skipped.
+Should there be a timeout option? It might be wise to also have `proportion_full_before_start` parameter so the queue isn't kept empty. This can help improve throughput.
+This should definitely be a function, taking two arguments.
+This won't do anything (need to be a global)
+CTC decode isn't finished yet. Let's add it to the docs only when finished.
+No `+` needed for string concatenation at the end
+No need for `+` at the end. But needs a space after `.`.
+Better to use `_keras_history`
+num_train_samples != steps_per_epoch, though. A step is a batch, not a single sample.
+Prefer `if steps_per_epoch is not None`
+The requirement for `validation_steps` should be based on the type of `validation_data`. We should allow Numpy validation data even if fitting from data tensors (e.g. same way that `fit_generator` allows both Numpy validation data and generator validation data).
+Reshaping is appropriate in this case, but only in this case.
+Better to check whether the layer's call method accepts the `training` and `mask` arguments.
+This mechanism will only work for a few layers, and will fail in the general case. The proper behavior when batch size matters is to slice the input mask and run slices through `self.layer.compute_mask`, then concatenate. No reshaping.
+does this assume all the images have the same shape? If so, varying image dimensions should be handled, and some kind of target dimensions could be utilized to apply padding to the images so they are all the same size. reference code: https://github.com/aurora95/Keras-FCN/blob/370eb767df86f364d93eff9068a3edb0b194a18b/utils/SegDataGenerator.py#L221 https://github.com/nicolov/segmentation_keras/blob/master/utils/image_reader.py#L79
+enumerate is not needed here. i is not used
+Do not need the enumerate here. i is not used.
+That sounds good. There may be confusion with the concept of `op` in TF though (e.g. a dot product). But maybe not a big deal.
+I also don't think the confusion with TF ops is a big deal. As long as the docstring makes it very clear what is being counted. One more note: I don't think op counting is a common enough use case that it should be displayed in `model.summary()`.
+I vote `count_ops` since it is more consistent with `count_params`
+Only the `tf.eye` supports the non-square. Currently, all the three `K.eye`s don't support that, thus I proposed #12534.
+`K.eye` should already follow this same behavior (at least it does in TF). So no padding necessary.
+I think we could refactor this to call `K.eye` instead. The advantage of `K.eye` is that for TF it will not store the numpy array returned by `np.eye` in the TF graph (so the graph will be smaller).
+Throughout this file, `"` is mixed up with `'`. Only use `'`, for consistency.
+You don't need BN for such a shallow network, `Conv2D` and `MaxPooling2D` should suffice
+This is TensorFlow specific. Instead you can use `K.int_shape(x)`
+This is the TF backend, so don't rely on `_keras_shape`, instead use `tuple(kernel.get_shape().as_list())` (always available).
+These should be `ValueError`
+I don't understand why; `tf.nn.separable_conv2d` does support strides.
+`new_shape_temp` will be deleted automatically after the return statement. There is no need to delete it explicitly.
+Oups, sorry, my bad. You are right! Please proceed with the temporary variable.
+Can you make multiple statements for this one too? Thanks!
+`predict` and `evaluate` with data tensors should have unit tests as well.
+Use `train_dataset` and `val_dataset` as the names
+Specify an epoch number
+This is a significant regression which breaks a lot of my code too.
+I feel like it would actually be clearer and more economical to separate the two cases entirely: one input vs. multiple inputs.
+I fear this is a brittle mechanism. It will work in simple cases but will fail in advanced cases.
+This is a new layer so no API conversion decorator is necessary.
+Use `'` for strings for consistency with the rest of the file.
+Blank line required before the next section
+`predict` and `evaluate` with data tensors should have unit tests as well.
+No need to capitalize Input or Tensor
+num_train_samples != steps_per_epoch, though. A step is a batch, not a single sample.
+As a user, what can I do, knowing that I can now feed a Layer to the `metrics` arguments? Can I feed any Layer? (No, but some will try)
+There is a problem here. `_feed_input_names` is the list of model *inputs*, but `ins` refers to list of the Keras function input placeholders. Typically, ins = model_inputs + model_outputs + sample_weights. Your setup will still work, but the conversion doesn't get applied to targets.
+How is there any difference between this and `on_epoch_end`? In practice, both are called in succession, with nothing in between.
+The CNTK errors on Travis CI seem to come from this line. `self.bias[0]` results in a `(1, 3 * self.units)` 2-D tensor in CNTK.
+I understand your points. Thank you for the explanation.
+Nitpick, but the line would be more readable if `padding` was a list instead of a tuple (many parens here).
+Add imports to make the script compatible with py2/3: ```python from __future__ import absolute_import from __future__ import division from __future__ import print_function ```
+You don't need BN for such a shallow network, `Conv2D` and `MaxPooling2D` should suffice
+This is TensorFlow specific. Instead you can use `K.int_shape(x)`
+Fix indent. Use `pylint` as linter.
+Also prefer using more detailed names -- e.g. `ConvNeXtBlock`.
+It would be more in line with the keras style guide to remove these abbreviations: dw_conv_1 -> depthwise_conv_1
+You should not be importing `keras` here. You can use `K.placeholder` to create a placeholder.
+You should provide empty shape like you did in next line. You can find the reason in the cntk backend code: ```python def placeholder( # ... if not shape: if ndim: shape = tuple([None for _ in range(ndim)]) # shape is None and not iterable. cntk_shape = [dynamic_dimension if s is None else s for s in shape] ```
+In addition to type, I think you should also check the value after clipping by placeholder variable.
+```suggestion if k == KC: ```
+Just noticed that this line doesnt test anything if backend is CNTK. So one last nit pick.. Put the backend check outside the loop so that it makes more sense: ```python def test_stack(self): tensor_list = [np.random.randn(5, 4, 6, 10) for _ in range(5)] stack_axis = 3 results = [] if K.backend() == 'cntk': check_two_tensor_operation('stack', (5, 4, 6, 10), (5, 4, 6, 10), WITH_NP, axis=stack_axis, concat_args=True) else: for k in WITH_NP: tensor_list_var = [k.variable(tensor) for tensor in tensor_list] out = k.eval(k.stack(tensor_list_var, axis=stack_axis)) results.append(out) assert_list_pairwise(results) ```
+Please keep the random tests where they were. Unit tests should be small and target as few things as possible for better error reporting and debugging.
+Yes, it would make better sense in `build`.
+I think `if self.dropout > 0 or self.recurrent_dropout > 0` is more clear.
+`input_spec` contains constraints that future inputs should respect. This statement would set the length of the first input as a length constraint, but unless the network is unrolled there should be no constraint on length. This is in part what the previous TODO was referring to.
+To show how to handle the output shape, let's not add keepdims
+` x1 = Dense(32)(input_1)` is enough for an example.
+It should be return [tuple(shape1), tuple(shape2[:-1])]
+@tiferet the API change in `sparse_categorical_crossentropy` is not something we can merge, sorry. Such an argument should be called `axis` and should default to `-1` (`K.image_data_format()` is a layer-level configuration argument and should not affect the default behavior of backend methods).
+For now, after adding `axis` in the crossentropy losses, you will have to use a different loss function when doing pixelwise classification (image segmentation) in NCHW: ```python if K.data_format() == 'channels_first': loss = lambda y_true, y_pred: K.sparse_categorical_crossentropy(y_true, y_pred, axis=1) else: loss = K.sparse_categorical_crossentropy model.compile(optimizer=optimizer, loss=loss) ```
+`T.nnet.softmax` creates less ops and will be more efficient (also simpler).
+Break into `if/else` blocks, for readability
+This is just `{0}`
+`_check_array_lengths` was arguably a better name
+No need for final space
+No need for final space
+Spaces at the end of lines
+Also I think the line does too much, breaking it into several lines would be preferable.
+Not a useful example. Instead please have examples dealing with larger input shapes (e.g. 3D, 4D).
+The notation seems unusual (`y`, `_y`, `__y`). Please find something more descriptive and conventional
+I don't see how it makes the behavior any different. You are still feeding the *_generator functions with a generator that creates batches. The decomposition of the batch preparation process to (1) items drawn from a sequence and (2) a batch creation from a list of items, is a stronger abstraction, because: (a) It allows the user to do stronger shuffling (instead of using fixed batches throughout the training), also making layers like BatchNormalization more effective. (b) It allows the user to handle dataset elements that are not suitable for training by simply skipping over them. (c) It completely contains the current approach (of having the Dataset items be fixed batches), since in that case just set the `create_batch` function be the identity function.
+To be clear, the idea (to my understanding) is that `OrderedEnqueuer` will be the class that knows about `batch_size`. The generator that `fit_generator` receives is constructed in `DatasetEnqueuer.get()`. This generator pops `batch_size` items from the queue and then calls `self.dataset.create_batch(lst_items)` to obtain the actual batch.
+Items should be extracted by batch, removing them individually will have poor performance. I wouldn't be surprised if it turned out to empirically be a factor of 100 slower. fit_generator already generates batches now and it works, plus batch_size is not a parameter so I advise sticking to that. As for `Dataset`, that should be reserved for a class that manages Datasets properly, so `DataSequence` would be a more appropriate name. However, with what I mentioned above Dataset should still be removed.
+The ValueError should be listed in the docstring. The error message should specify what was passed, and the list of values expected instead.
+Also style: use `target_height` / `target_width`, no point in removing two characters.
+Use `'` as quote char for consistency
+Why not just pass the target directory? This is all your need to perform this task.
+Use `directory` for consistency
+This will warns a tremendous amount times, isn't it? I would just do a check before returning.
+I would consider abstracting `conv2d` into a single interface that could use `conv`, `deconv`, `atrous_conv`. Otherwise there is a lot of redundancy across these 3.
+I would consider using a function signature like: ``` python def conv2d(x, kernel, strides=(1, 1), border_mode='valid', dim_ordering='th', image_shape=None, filter_shape=None, output_shape=None, transpose=False, atrous=False, atrous_rate=1): ```
+Processing of `np_kernel` should be removed from this function
+Link on a single line, otherwise it won't work (we don't enforce line length)
+In general your docstrings have an indentation problem, the lines after the first one should be indented by 1 level (4 spaces).
+I don't understand why we would want to deprecate md5, or have a preference for one algo or another. It's cool to support more than one hash function, but md5 works just fine for this purpose. We're just building a basic cache invalidation mechanism.
+The `bn%d` looks unnecessary.
+For enabling on Theano, please modify `epsilon=1.01e-5` (simple trick).
+I mean `RuntimeError`.
+This default value will break loading old model files.
+Space between arguments (PEP8).
+Please put the new parameters on a new line
+Please rename to `preprocessing_function`. Please improve the docstring by specifying: "The function should take one argument: a batch of images (Numpy tensor with rank 4), and should output a Numpy tensor with the same shape."
+This function does not have a properly formatted dosctring (see other dosctrings for reference)
+Make this method private and add a docstring explaining its purpose.
+`if unknown is not None`
+Since this function is only called once, consider in-lining it (not saying you *should* do it, but consider whether it would improve the code if you did it -- maybe it would).
+This will break with TF, and it would be more efficient to use `go_backwards` since it avoid the back and forth with `permute_dimensions`.
+No return section in such cases.
+This should be "Returns", not "Return" (same for every occurrence in this file).
+This is somewhat problematic because this will be ignored in most Keras functions. But that's a separate problem I suppose, which we will fix in a different PR.
+Typo: output. It should be clarified that it needs to be a valid Theano expression.
+Same remark as before regarding `output_shape`.
+I believe this is incorrect implementation. In the original paper `a` and `b` are defined as follows: ```tex a = (q + {\alpha'}^2 q (1 - q))^{-1/2} b = -a ((1 - q) \alpha') ``` where `q` is keep probability. But here drop probability `rate` is used instead.
+I would consider abstracting `conv2d` into a single interface that could use `conv`, `deconv`, `atrous_conv`. Otherwise there is a lot of redundancy across these 3.
+I would consider using a function signature like: ``` python def conv2d(x, kernel, strides=(1, 1), border_mode='valid', dim_ordering='th', image_shape=None, filter_shape=None, output_shape=None, transpose=False, atrous=False, atrous_rate=1): ```
+Processing of `np_kernel` should be removed from this function
+There could be multiple model outputs
+"output names to Numpy arrays"; "`y` can be"
+Same, can be a list
+Incorrect / confusing. Please fix.
+This is somewhat problematic because this will be ignored in most Keras functions. But that's a separate problem I suppose, which we will fix in a different PR.
+"of a symbolic tensor" (it doesn't have to be a keras one)
+Incorrect / confusing. Please fix.
+Better to use `_keras_history`
+No `+` needed for string concatenation at the end
+Should we rely have to rely on `np.dot`? Besides the fact that it's expensive, it's also a black box. The logic should be inferable from reading the code.
+`_set_keras_shape_for_reduction` would arguably be a better name. This can be reused for any reduction op (sum, etc).
+@farizrahman4u Undefined variable `K`
+I don't get why you are introducing this unused argument.
+Note that layers that don't have weights are not taken into account in the topological ordering, so adding or removing layers is fine as long as they don't have weights.
+`compile=True` is a more user-friendly API.
+PEP8 error. Use a PEP8 linter.
+Should we rely have to rely on `np.dot`? Besides the fact that it's expensive, it's also a black box. The logic should be inferable from reading the code.
+This should be max.
+Move to the line below in order to keep each line under 80 char.
+Use `train_dataset` and `val_dataset` as the names
+There are no 1D layers that use this dim ordering. I would recommend removing support for it entirely for 'th' dim ordering here (see e.g. Conv1D).
+Indeed, or you can just increment the input seed for each new process.
+In that case the first seed can be used to generate separate seeds for each sub process before the fork
+add param to provide a seed at init time
+"This allows for"
+"Number of epochs to wait for before..."
+`try` with an `assert` is not the way to test inequality between two integers...
+grammar "Please consider using"
+`data_utils` is no longer meant as a public namespace, use `utils`
+`data_utils` is no longer meant as a public namespace, use `utils`
+Previous version was more readable imo.
+If you're using the default RMSprop parameters, you might as well pass it as a string to `compile()`.
+`# Returns `
+I thought since `callbacks.Tensorboard` didn't need `validation_data` anymore (and no other callback seems to use it), we could safely remove it; but I guess this would break users' custom callbacks. +1 for keeping it, then.
+This message needs to be removed, as `validation_data` is no longer passed to the callback.
+`validation_data` is still available in callbacks: It is set [here](https://github.com/keras-team/keras/blob/58fd1f0589d33aeb33c4129cfedfb7737495efc0/keras/engine/training_generator.py#L124).
+You could do that with Matplotlib, to avoid a new dependency
+Add these 3 classes to `utils/__init__.py` so they can be imported from `utils` by users (internally it doesn't matter)
+This should be kept (for namespace consistency: you want to be able to import `inception_v3.decode_predictions`).
+Oups, sorry, my bad. You are right! Please proceed with the temporary variable.
+Can you make multiple statements for this one too? Thanks!
+`new_shape_temp` will be deleted automatically after the return statement. There is no need to delete it explicitly.
+Actually, what we do right now is, when running travis, we compare: * theano against numpy * tensorflow against numpy * cntk against numpy those are three different jobs. If one backend is wrong, the corresponding job will fail. If the numpy backend is wrong, the three jobs will fail. Running some kind of correctness computation is really difficult to do right, because you would need to use random input values to ensure correctness in a majority of cases. But then if you take random values as input, it's very likely that you won't use a paper and a pencil to compute the expected output. You'll likely use numpy. So I think this is our best bet to avoid shallow tests. After all this, I didn't dig much into the rnn implementation in the numpy backend, so I can't guarantee that it supports your use case. And if it does not, it would surely fall outside the scope of this PR, and we're better off with your implementation of the tests for sure. After a bit of digging into the git blame, I found that the numpy RNN implemtation was done there: #9557 Maybe @taehoonlee can tell us more about it? Otherwise I'm fine with the tests that you made if it means changing a lot of code to adapt it to my request. I don't intend to make you do too much extra work since you're already helping a lot with your frequent PRs and discussions :)
+Nit: use `num_` for counters, for consistency
+Does it really have to be this complex? This is just a unit test. why not: ```python def rnn_fn(x, h): return x, [x, K.concatenate([x, x], axis=-1)] ```
+We can either make everything `int`, or make the two different behaviors possible without backend-specific code, for instance by casting to `K.dtype(mask)`.
+Should probably be int in both case. We don't want separate cases to handle.
+If concatenation is not on the time axis, then masks have to be AND-merged on the time axis.
+For theano, `ratio` needs to be `integer`. ```python ratio = height_factor // width_factor ```
+I am also wondering whether it is necessary to specify the original height and width as part of the arguments (this information is part of the tensor X).
+It is looking like `height_factor` and `width_factor` can only be positive integers. This should be specified in the docstring. The API makes it sound like `*_factor` could be a float (e.g. 0.75 for an output image with 75% of the original height).
+Replace with ``` if len(mask.get_shape()) > ndim: raise ValueError(...) ```
+Spaces around `=` please.
+Nit: use `'` as the quote character, for consistency
+Would it be possible to simplify by doing ```python if axis is not None: axis = tuple(axis) ```
+You are right. My bad. I dont think it's necessary to use an intermediate variable though: ```python if isinstance(axis, list): axis = tuple(axis) ```
+For numerical stability, you have to do T.exp(x - x.max())
+Avoid avoid many logical statements on a single line, which harms readability. Instead, use a if/else block.
+Avoid avoid many logical statements on a single line, which harms readability. Instead, use a if/else block.
+> Train a model and store every bit of it, including optimizers, in case you want to pick it up later for further training etc. In this case it makes sense to have the compiled version at hand. At least I would like to have the option to have a compiled version. Sounds very useful, but there are further problems with implementing this: for instance, how do you save the state of the optimizer for further training? That state is contained in shared Theano variables. I have no strong opinion either way, the main argument I see for skipping compilation is the use of custom objectives (custom optimizers are relatively unlikely, much like custom regularizers and constraints, however custom objectives are fairly common).
+Prefer using `if isinstance(...):` / etc: it makes lines shorter and more readable, and it will be extensible to more types in the future.
+This probably won't help with your actual problem, but the following PR was very helpful when I needed to fix feed dict issues: https://github.com/fchollet/keras/pull/7064
+The paragraph above can be replaced with `layer.weights`, which is always implemented.
+It should be clarified in the docstring what "compilation" entails.
+I know this was in the original code, but `_make_train_function` is actually not necessary. If you are going to train further, it will be called automatically anyway. If you only need the forward pass, this step is very slow, specially with Theano. (In my local copy I have patched it out, but never got around to make a PR)
+This will break if `layer` is a container.
+You don't appear to be doing any correctness checking. A simpler test would be: - call `predict` with the first model, store results in y1 - switch the data format, call `predict` on the same input array, store results in y2 - check that y1 == y2
+The best would be to add an `axis` argument in these loss functions. If you don't want to do that, you can use a different loss function, like `mse`.
+Style: break long lines in the test
+Nit: please shorten lines (here and above).
+No need for the extra space at the end of the lines.
+Nit: please shorten lines here to 80 char or less (also in `initializers.py`)
+Per the failing docstring test, this docstring needs a `Raises` section mentioning the ValueError: https://travis-ci.org/fchollet/keras/jobs/282558708
+Please make this method private (unless there is a rationale for making it part of the public API).
+Please make this method private.
+Please fix the identations issues in the file. I'll review the PR in the next few days. Thanks for updating it!
+This is fixed. Please do not submit PRs that are incorrect or unfinished, post a Github issue instead.
+For consistency with layers, this should probably be set as `self.add_update`. Also: how much layer functionality can be shared with layers? Should metrics be a layer subclass? (one with `self.stateful = True`) This would enable weight management, serialization, etc. for free.
+Also around `=`
+Spaces around `<`
+Awesome : ) But now you'll need to remove the outdated exception as well ; )
+I'd rather use `Deconvolution2D` (and an alias `Deconv2D`), to better match the TensorFlow API.
+Use a variable with a complete name, not `l`.
+We might need a more standard way to merge dictionaries (with the latter dict taking precedence). Like a `config` decorator. Or maybe that would introduce too much implicitness.
+Yes, that works
+Hence why we should use `endswith`. To ignore any prefix.
+prefer `or self.monitor == 'auc'` to avoid potential collisions
+Please initially check that `mode` in is `{'auto', 'min', 'max'}`.
+In general we should avoid explicit types when the expect type is a custom class, like in the above case. It creates significant tech debt and maintenance burden going forward.
+No warning should occur with default settings. It is safe to remove this.
+Default values should be 0 (i.e. if argument isn't specified then no padding occurs on that side).
+Same here, I think we should have a polymorphic padding argument that could be `int`, tuple of size 2, or dictionary.
+Additionally, raise a `ValueError` with a helpful message in case an unexpected key is found in the dict. This is important because people may have typos in their dict argument and they would never notice.
+Also style: use `target_height` / `target_width`, no point in removing two characters.
+The ValueError should be listed in the docstring. The error message should specify what was passed, and the list of values expected instead.
+Use `'` as quote char for consistency
+We could add a backend method to do it, with custom implementations in each backend...
+The entries in `config` should match the arguments in `__init__`.
+cropping, not padding
+Likewise, please format docstring
+Please format the docstring like the others, with an `# Arguments` and `# Returns` section
+Using comma here does not work as expected (unlike `print`). Also, I think "Invalid" may be more precise here (since the bias shape is known).
+Looks great to me. :)
+No need for final space
+No need for final space
+Insert line break above
+For the record, you cannot set this as a `property` because `core.Layer` will attempt to set it as a class attribute.
+We don't want to do N dictionary lookups in this loop. Much better to change the `depth_keys` list to match the list of expected keys...
+`weights` are part of the base layer kwargs, so it doesn't need to be included in the test. `name` is only included in order to get the test to pass (otherwise the different names would make the configs different). You can remove it, especially since this is not be the proper syntax for this argument (needs a list).
+You should use a PEP8 linter to avoid style issues. https://pypi.python.org/pypi/pep8
+Ok, that makes sense. I added support for custom placeholders. Unfortunately, in the case of Theano and CNTK, there is no easy way to check whether something is a placeholder. This leads to a loss of generality, but that's not important since Theano and CNTK are secondary to this feature.
+should be self.forward.
+@farizrahman4u this is still not fixed.
+The output below still seems wrong to me, because you also have to shift the output to make the alignment right. Yes, that is why I said bidirectional is really ugly with padding in the first place. [[[ 0. 6.] [ 1. 5.] [ 3. 3.] [ 6. 0.]] [[ 0. 3.] [ 0. 2.] [ 1. 0.] [ 3. 0.]]]
+There's no reason to not make these both extend `MaskedLayer` instead of `Layer` and thereby also be supported in masked scenarios.
+> `T.sqrt(self.p/(1-self.p))` Something should be done to avoid division by zero in case p = 1... maybe clipping p to [epsilon, 1-epsilon]? In terms of coding style, please use spaces around operators and use floats in float operations.
+This reshape will fail for some shapes (all inputs X where X.shape[1] is odd) because the number of elements in the tensor will not be conserved. Additionally it appears that the maxout is done only of the 1st tensor dimension (indexing from 0). This would be time in case of a temporal input, of channels for a picture input. I don't thinking that's how it should work in these cases (it should be respectively the 2nd and 2nd-3rd dimensions).
+Please do not include html markup in the docstrings. Two line breaks should be sufficient (or use markdown list formatting).
+Need to fill in this section
+No, that's a fine style as well. Anything that's PEP8 works. And line length is not strictly enforced (prefer readability over correct line length).
+it's less pythonic but more in line with the style of how things are computed at some other places in the code base.
+Please remove these changes so that this callback has the same behavior as the other callbacks. It could be discussed in another issue/PR.
+Just checking for `Wrapper` will not work in the general case. The only `Wrapper` that could work with an `Embedding` currently is `TimeDistributed` (but even that sounds overly niche). Please remove this statement
+```suggestion if k == KC: ```
+Just noticed that this line doesnt test anything if backend is CNTK. So one last nit pick.. Put the backend check outside the loop so that it makes more sense: ```python def test_stack(self): tensor_list = [np.random.randn(5, 4, 6, 10) for _ in range(5)] stack_axis = 3 results = [] if K.backend() == 'cntk': check_two_tensor_operation('stack', (5, 4, 6, 10), (5, 4, 6, 10), WITH_NP, axis=stack_axis, concat_args=True) else: for k in WITH_NP: tensor_list_var = [k.variable(tensor) for tensor in tensor_list] out = k.eval(k.stack(tensor_list_var, axis=stack_axis)) results.append(out) assert_list_pairwise(results) ```
+I wonder if this whole loop could be simplified somehow? It has a clear recursive structure. The same code should be generalizable to 1D/2D/3D/etc without having to manually unroll the loop.
+No need for final space
+This is already validated in the constructor, no need.
+Better to use `_keras_history`
+It isn't a queue of data? I didn't mean 100 threads. Perhaps I'm not understanding something
+@Dref360 I can throw a specific exception for the case a data element should be just skipped.
+Sometimes you'll have entries in your Dataset that you won't want to process in your model (a class that you can't handle, an image that is too big etc.) and in some other cases your pre-processor might simply fail (bad communication, missing file, invalid labels, etc.). The user can handle those cases by having `Dataset.__getitem__` return an exception, and when that happens simply don't add the index into the queue. Otherwise the user has to pre-preemptively remove from the Dataset every object that might "break". This is not always possible to know in advance.
+This line needs to be placed before the assertions. If an assertion fails in `clean_run`, the image data format will not be reset back to 'channel_last', and all following tests will also fail (because shapes like `(None, None, None, dim)` assumes 'channel_last' format).
+There are added empty lines. Please remove them.
+I think this is a good solution for now. In the future when we have a layer naming system, we'll use that instead.
+this is discussed in https://github.com/fchollet/keras/pull/7113
+Insert link to callbacks page
+"or 1-element list of Numpy arrays" does not need to be specified, since this is not how we want people to use `fit` on `Sequential`.
+This is way too ad-hoc. The choice of having exactly 2 input and 2 outputs and having the input data / target data be just a repetition of the same array is something that happens to work in some of the existing unit tests, but it wouldn't work in the general case.
+In general this test is more like an integration test than a unit test. You don't need half of this stuff: - the model should be minimal (this one has a bunch of extra layers) - you don't need data with a statistical structures, `np.random` will work just fine - etc.
+This test would be very expensive to run. It's an integration test, not a unit test. Please boil it down to essential components.
+No need for such abbreviations, they just make code harder to read.
+You should be able to get this list without relying on `nb_params`. Then you can get rid of all code related to it.
+Optimizers have a `get_config` method precisely for this purpose.
+Please fix the identations issues in the file. I'll review the PR in the next few days. Thanks for updating it!
+There are added empty lines. Please remove them.
+This is fixed. Please do not submit PRs that are incorrect or unfinished, post a Github issue instead.
+Use bullet points
+Break up long line
+You can use `K.is_keras_tensor`
+enumerate is not needed here. i is not used
+Use `'` as quote character
+I believe this is incorrect implementation. In the original paper `a` and `b` are defined as follows: ```tex a = (q + {\alpha'}^2 q (1 - q))^{-1/2} b = -a ((1 - q) \alpha') ``` where `q` is keep probability. But here drop probability `rate` is used instead.
+Please add a note saying that the learning_phase should be added by `fit_generator`, otherwise it's a little confusing.
+This is the non-generator path. 0 is added to val_data here : https://github.com/keras-team/keras/pull/9796/files/86e5448ff06d30bebfdf8a4781562ad6abaabd1c#diff-b25d82c3f751f73f6e62b8455547ac73R124
+No, do not do this
+That crazy process was used for compatibility with TensorFlow. With Theano you could simply call `tensor.shape`, which is itself a symbolic tensor.
+If feel like this should be handled more elegantly in the above loop. This line is not very readable.
+Should be `inputs` and `mask`.
+Please add a docstring describing the overall strategy used to compute the mask.
+Should be `inputs` and `mask`.
+This is incorrect in the general case: just because `call` takes a `training` argument doesn't mean the learning phase is being used. Instead, you should look at whether `_uses_learning_phase` is set on any if the output tensors of the child layer.
+I think this check would be better as if inputs.shape[1] is not None and sum(self.cropping) >= inputs.shape[1]: You could still construct a tensor with size 0 and shape (None, None) that would cause this to crash.
+The ValueError needs to be tested with a test that uses `assertRaisesRegex`
+This would read clearer with format strings, and we are trying to gravitate towards more uniform error messages in keras. f'`cropping` parameter of Cropping layer must be greater than the input shape. ' f'Recieved: inputs.shape={inputs.shape}, and cropping={self.cropping}'
+This is not the same argument. The proper behavior here would be: - if `forget_bias_init` is set to `"one"`, set `unit_forget_bias` to True - else ignore the argument, and in this case, raise a warning specifying the argument was ignored. You will need custom code to do this.
+Missing a space between "argument" and "has". Also tell users to use the `unit_forget_bias` argument instead.
+You can make this a dict instead of a list of tuples, that would be more natural. In this case, the order of the values does no matter.
+The base layer should raise an error actually or None. Depend if we want everyone to provide this service. Every layer in keras' repo should provide this
+Use `'` for strings for consistency with the rest of the file.
+Line too long, and not PEP8 compliant. Break it down into a few lines.
+Should this be part of the public API? It sounds like it should be an internal method.
+This should be a `ValueError`.
+This is too broad an exception, it should be `ImportError` (otherwise something inside the module could fail and you wouldn't know why).
+You are later multiplying with a float. This has no effect on the output
+This seems strangely ad-hoc
+Additionally this will give the wrong number for RNN layers
+I vote for option number two. That seems the most consistent with other parts of the Keras API.
+If concatenation is not on the time axis, then masks have to be AND-merged on the time axis.
+We can either make everything `int`, or make the two different behaviors possible without backend-specific code, for instance by casting to `K.dtype(mask)`.
+I think we should add the arguments "file_format" and "**kwargs" (passed to `Image.save()`) https://pillow.readthedocs.io/en/3.1.x/reference/Image.html#PIL.Image.Image.save "format" needs to be renamed "file_format" to avoid confusion with "data_format".
+Explicitly mention that this is 'channels_first'/'channels_last' (since it may be confusing vs. image file format).
+Parens not necessary here
+I think `if self.dropout > 0 or self.recurrent_dropout > 0` is more clear.
+`try / except` is not the proper thing to do here. You could do a type check instead.
+This is correct.
+Please update the docstrings as well.
+this line is over 80 characters.
+This only applies when save_best_only is true correct? We should call that out. Something like... ``` Initial "best" value of the metric to be monitored. Only applies if `save_best_value=True`. If set, the checkpoint will only be saved if the model metric value is better than this value. ```
+this value error is good but do in other places
+It is looking like `height_factor` and `width_factor` can only be positive integers. This should be specified in the docstring. The API makes it sound like `*_factor` could be a float (e.g. 0.75 for an output image with 75% of the original height).
+I am also wondering whether it is necessary to specify the original height and width as part of the arguments (this information is part of the tensor X).
+You can just append: ``` To install TensorFlow: `pip3 install tensorflow` ``` to the previous message.
+we could just use a dict instead of doing an eval. Would be cleaner.
+This should be a `ValueError`.
+No need for final space
+Better to use `_keras_history`
+var is a reserved keyword, use `v` or something like that.
+The number of batches in the Sequence
+Space after #
+Use code markers around `put()`
+Please use PEP8 conventions: one space after `,`
+There's no reason for these three branches to be inside the `else` of line 773, rather that else should be removed should all be `elif`s up one layer, i.e. ``` if self.consume_less == 'gpu': ... elif self.consume_less == 'cpu': ... elif self.consume_less == 'mem': ... else: raise Exception('Unknown `consume_less` mode.') ```
+oops yeah I can't read apparently. Disregard!
+`weights` are part of the base layer kwargs, so it doesn't need to be included in the test. `name` is only included in order to get the test to pass (otherwise the different names would make the configs different). You can remove it, especially since this is not be the proper syntax for this argument (needs a list).
+You should use a PEP8 linter to avoid style issues. https://pypi.python.org/pypi/pep8
+This is the failing line, failing with `"ValueError: Error when checking model target: expected no data, but got: [array, array]"`. The model has been compiled with 2 target tensors, hence it should not expect any feed data. It seems you are proposing a scheme where one could pass placeholders as target tensors, then have them replace the placeholders created by `compile`, thus expecting feed data. That's a different API from what I had in mind; not sure what the use case would be? The point of the current API is to be able to use data tensors.
+add the type to be consistent send_as_json: Boolean, ...
+It seems there is four spaces missing (unrelated to your changes).
+It's also inconsistent with line 593
+There are added empty lines. Please remove them.
+One import per line. Also import `models` so as to avoid `tf.keras` calls in the code. This *is* the Keras codebase! It should import internal modules, not `tf.keras`.
+Just import `utils`
+Respect PEP8 conventions.
+Capital variable names is not appropriate for scalar variables
+`+ K.epsilon()` in the denominator.
+In the future, I'll just remove this use case. I suspect having `workers > 1 and use_multiprocessing == False` doesn't gives any real speedup. I'll do some profiling and post my findings here. Also, we should try to mimic the Ordered Enqueuer so this class will get heavily refactored anytime soon anyway. (By the end of August)
+Sleeping with a lock held seems bad. Shouldn't it be sufficient to guard this line with the lock: ``` generator_output = next(self._generator) ```
+Please draft a PR. I think we should keep a UX-friendly way of handling python generators. (ie. a good clear message stating that they should set workers=1)
+whoops! Thanks for the fix. I'd lean towards yes, but I don't know the details of how locally declared python classes work between calls.
+Change applied in #6670 in addition to a second bugfix that occurs when servers don't provide a Content-Length header.
+just wasn't sure if "probar" -> "enclosed" goes from a local to a global variable. NVM about threads, that's out of scope. Thanks.
+var is a reserved keyword, use `v` or something like that.
+var is a reserved keyword, use `v` or something like that.
+var is a reserved keyword, use `v` or something like that.
+Depth should come before rows and cols (this might need to be fixed elsewhere as well)
+Shapes mentioned in the docstring are generally 2D; should be 3D
+This is a new layer so no API conversion decorator is necessary.
+Better to check whether the layer's call method accepts the `training` and `mask` arguments.
+`if n.__class__.__name__ == ...`
+Please use string formatting: 'Unrecognized value for argument `merge_mode`: %s' % (self.merge_mode,)
+Use spaces around `-` operator (PEP8).
+cropping, not padding
+The indices of the axes depend on the dim ordering. Just say "width and height"
+In that case the first seed can be used to generate separate seeds for each sub process before the fork
+add param to provide a seed at init time
+Indeed, or you can just increment the input seed for each new process.
+Also prefer using more detailed names -- e.g. `ConvNeXtBlock`.
+It would be more in line with the keras style guide to remove these abbreviations: dw_conv_1 -> depthwise_conv_1
+So, these are initialized based on imagenet: this is required for use with the pretrained weights. Is there a way we can allow users to configure this for custom datasets? @fchollet
+This mechanism will only work for a few layers, and will fail in the general case. The proper behavior when batch size matters is to slice the input mask and run slices through `self.layer.compute_mask`, then concatenate. No reshaping.
+`K.int_shape(inputs)` will not always be available.
+Some layers may only be able to process a batches of a fixed size. A built-in Keras example are stateful RNN layers. Other examples include custom layers that share information across samples in a batch (one case I've come across is to have batches of size 2 and take the distance between the two samples). Again: if the batch size is specified, then it is meaningful, and you should not arbitrarily change it.
+This is way too ad-hoc. The choice of having exactly 2 input and 2 outputs and having the input data / target data be just a repetition of the same array is something that happens to work in some of the existing unit tests, but it wouldn't work in the general case.
+In general this test is more like an integration test than a unit test. You don't need half of this stuff: - the model should be minimal (this one has a bunch of extra layers) - you don't need data with a statistical structures, `np.random` will work just fine - etc.
+This test would be very expensive to run. It's an integration test, not a unit test. Please boil it down to essential components.
+Line too long
+Still relevant? If so, explain the diff
+Past few lines too long
+"or 1-element list of Numpy arrays" does not need to be specified, since this is not how we want people to use `fit` on `Sequential`.
+"the input name to a Numpy array" (singular in this case, for `Sequential`)
+"or 1-element list of Numpy arrays" does not need to be specified, since this is not how we want people to use `fit` on `Sequential`.
+Syntax error here (`}`)
+We might need a more standard way to merge dictionaries (with the latter dict taking precedence). Like a `config` decorator. Or maybe that would introduce too much implicitness.
+I think it would make the operation clearer.
+not sure you need to wrap this in a method it looks clean this way though.
+Yes please, rewrite those lines.
+It's possible to write this one liner in several more readable lines of code. It will also solve your pep8 problems.
+Docstring contains a few typos, please fix / rephrase
+Use markdown format for links
+"samples drawn from"
+This default value will break loading old model files.
+Space between arguments (PEP8).
+Please put the new parameters on a new line
+Insert link to callbacks page
+"or 1-element list of Numpy arrays" does not need to be specified, since this is not how we want people to use `fit` on `Sequential`.
+"the input name to a Numpy array" (singular in this case, for `Sequential`)
+I don't quite understand this message. Do we expect users to be familiar with the concept of "dynamic axis" here? Doesn't seem standard
+No need for final space
+No need for final space
+"or 1-element list of Numpy arrays" does not need to be specified, since this is not how we want people to use `fit` on `Sequential`.
+I feel like it would actually be clearer and more economical to separate the two cases entirely: one input vs. multiple inputs.
+"the parameter" is redundant, you can simply say `epochs`
+Avoid avoid many logical statements on a single line, which harms readability. Instead, use a if/else block.
+Avoid avoid many logical statements on a single line, which harms readability. Instead, use a if/else block.
+Taking the mean makes this quantity a scalar, I believe. It should be a vector (different value for each sample).
+Can we have a better API than `padding=(1, 1, 1, 1)`? Maybe `padding=((1, 1), (1, 1))` (but that one is not very good either). Please think of something. Maybe multiple arguments.
+Change to "pooling over conv_dim2 and conv_dim1"
+Change to "pooling over conv_dim3"
+Callbacks are processed sequentially, future is more vague than next IMO.
+I don't think the grammar is right as-is with "next". Alternate: "make value available to each of the following callbacks"
+This should be: ```python logs = logs or {} loss = logs.get('loss') if loss is not None: if np.isnan(loss) or np.isinf(loss): ```
+In all of these cases, we refer to the `Variable` class.
+Code delimiters ` would be more appropriate than string quotes here, for `x`.
+Code delimiters ` would be more appropriate than string quotes here, for `x`.
+in the tests k.backend() == `cntk` might want to lower case here
+maybe tell the user the valid data_formats
+Suggest to make `data_format` as argument of `_helper_bilinear`. Then parameterize `test_resize_images_bilinear` with `data_format`. Otherwise, you may not be able to test both `data_format` with `pytest.raises`.
+Please print a message for this action (like we do in `on_train_end`): "Restoring model to its state at the end of the best epoch."
+`try` with an `assert` is not the way to test inequality between two integers...
+I really don't see how incrementing `self.wait` at the end of each epoch is the correct behavior. You have access to the epoch counter `epoch`, if you just want to skip the first epoch you can? E.g. if it's the first epoch, then set the best score / weights and continue.
+This description makes it sounds like it is required to pass a hash in order to skip download. But if not hash is passed and a local file is found, we should skip download, too. The hash is just a way to invalidate old files on people's computers after they have been updated on the Keras side.
+This default value will not work with Windows. Use None instead, and set it in the function code.
+Just for reference for newbies, in windows, the cache folder is at C:\Users\USERNAME_HERE\.keras\datasets. I usually download the files manually and place them because sometimes it does fail downloading in my computer.
+Add a `# Arguments` section to the docstring.
+Add a `# Arguments` section to the docstring.
+Remove leading space
+If the default is 0.5, then I would suggest to put `def __init__(self, threshold=0.5):`
+Just `# Arguments` to be consistent
+`self.dtype = dtype or K.floatx()` is equivalent and simpler.
+Please add a check that all kwargs match a list of expected Theano arguments, with helpful error message otherwise. This is necessary to avoid confusion in case of typo.
+Yes, unless we expect users to access it and set it (we don't), it should be private.
+self.current_feed_dict = {} if self.feed_dict is None else self.feed_dict Clearer
+I think it would make the operation clearer.
+This won't work, since the shape of the mask won't match the shape of the input.
+This should be tensor3 instead of matrix.
+Simply `batch_size` would suffice.
+Can we change this parameter to be `write_step` with the options `'epoch'` and `'batch'`, and improve the description? I think `write_step` might be more clear, and doesn't break the true/false setting in the future if there is another setting worth adding.
+Please use a smaller batch size in order to fully test the iteration code (here is only a single batch).
+Please rename to `preprocessing_function`. Please improve the docstring by specifying: "The function should take one argument: a batch of images (Numpy tensor with rank 4), and should output a Numpy tensor with the same shape."
+This function does not have a properly formatted dosctring (see other dosctrings for reference)
+Make this method private and add a docstring explaining its purpose.
+Also rewrite this description assuming an integer axis.
+var is a reserved keyword, use `v` or something like that.
+`_set_keras_shape_for_reduction` would arguably be a better name. This can be reused for any reduction op (sum, etc).
+Capitalize start of argument descriptions ("String or...")
+Please make this method private.
+I don't understand why; `tf.nn.separable_conv2d` does support strides.
+Please add spaces after commas.
+The general term used throughout Keras is "loss" (as well as "objective" for the objective functions); I think we should keep it that way and replace "cost" with "loss" in the variables.
+Definitely a nice way to implement regularization. We'll have to think about a unified system for integrating regularization as part of the loss.
+So I think we should: - move the function inside the parent function, since no one else will use it - keep the list comprehension, since we won't in-line the function after all... Thanks!
+This should be private. Also, since this function is only called once (in a loop), please consider if you could in-line it in the parent function.
+Actually it can. The first two are positional (input_dim, output_dim).
+As I said, using img_to_array would be nicer. The API of `save_img` should reflect the one of img_to_array
+I think we should add the arguments "file_format" and "**kwargs" (passed to `Image.save()`) https://pillow.readthedocs.io/en/3.1.x/reference/Image.html#PIL.Image.Image.save "format" needs to be renamed "file_format" to avoid confusion with "data_format".
+Explicitly mention that this is 'channels_first'/'channels_last' (since it may be confusing vs. image file format).
+Does CNTK support a softmax axis? If not, we can also go with manual softmax in CNTK.
+In general we can use the default implementation if `axis == 1 or axis == x.ndim - 1`
+Could you try benchmarking this against the use of `transpose + softmax + transpose`? It may be that transposing is faster (but impossible to know in advance).
+Let's add a TODO for this one
+If all you do with `ReverseGradient` is call it, why should it be a class? Everything in the backend is a function.
+The `merge_mode` argument is never validated. Additionally, we should consider a `None` mode that just makes the layer return `(forward, backward)`
+Insert a line break after the docstring
+This should be: ```python logs = logs or {} loss = logs.get('loss') if loss is not None: if np.isnan(loss) or np.isinf(loss): ```
+`try` with an `assert` is not the way to test inequality between two integers...
+This is unsafe, because it would be reused across different unrelated calls to `layers_from_config`. I would suggest using a custom object scope inside `layers_from_config`: ```python with custom_objects_scope(custom_objects): layer = ... ``` Or something like that.
+Please add a docstring explaining the behavior and giving a usage example.
+This line should be right after `"""`. Put "`" around function names.
+It seems that all pep8 tests failures are ignored by travis. I'll make a PR to fix it.
+The notation seems unusual (`y`, `_y`, `__y`). Please find something more descriptive and conventional
+These should be `ValueError`
+The indices of the axes depend on the dim ordering. Just say "width and height"
+cropping, not padding
+cropping, not padding
+Incorrect / confusing. Please fix.
+There are no 1D layers that use this dim ordering. I would recommend removing support for it entirely for 'th' dim ordering here (see e.g. Conv1D).
+Additionally, raise a `ValueError` with a helpful message in case an unexpected key is found in the dict. This is important because people may have typos in their dict argument and they would never notice.
+This is correct.
+`T.nnet.softmax` creates less ops and will be more efficient (also simpler).
+For now, after adding `axis` in the crossentropy losses, you will have to use a different loss function when doing pixelwise classification (image segmentation) in NCHW: ```python if K.data_format() == 'channels_first': loss = lambda y_true, y_pred: K.sparse_categorical_crossentropy(y_true, y_pred, axis=1) else: loss = K.sparse_categorical_crossentropy model.compile(optimizer=optimizer, loss=loss) ```
+We have this warning in several places, please fix it everywhere
+Add a `# Arguments` section to the docstring.
+Quick test with heavy I/O ``` from keras.utils import GeneratorEnqueuer import numpy as np import cv2 from itertools import cycle import time # Create fake datas for i in range(10): cv2.imwrite('/tmp/{}.png'.format(i), np.zeros([1024, 1024, 3], np.uint8)) def gen(): for i in cycle(range(10)): yield cv2.resize(cv2.imread('/tmp/{}.png'.format(i)), (600, 600)) enq = GeneratorEnqueuer(gen(), use_multiprocessing=False) enq.start(3,10) g = enq.get() s = time.time() for _ in range(1000): next(g) end = time.time() print("Took :", end - s) ``` Both `workers = 1` and `workers = 3` take 28 seconds to do 1000 iterations. I propose that we just remove all of this and force workers to be 1 when using multithreading. The GIL removes all improvments anyway. @fchollet I would like your input on that.
+You don't need to compute a list of filtered layers in this setup. You can build the index in one go.
+By definition `name` and `layer.name` will be the same. The error message should be modified to reflect this.
+"The weight file you are trying to load is in a legacy format that does not support name-based weight loading".
+`mathews_correlation` or `matthews_correlation_coefficient`
+The targets / predictions are assumed to be in the [0, 1] interval but that is not enforced. It should be.
+Capital variable names is not appropriate for scalar variables
+Needs the same docstring as the TF one
+K.zeros returns a variable, which is not necessary here, hence the use of `constant`.
+`try / except` is not the proper thing to do here. You could do a type check instead.
+Also style: use `target_height` / `target_width`, no point in removing two characters.
+Use `'` as quote char for consistency
+The ValueError should be listed in the docstring. The error message should specify what was passed, and the list of values expected instead.
+Can we have a better API than `padding=(1, 1, 1, 1)`? Maybe `padding=((1, 1), (1, 1))` (but that one is not very good either). Please think of something. Maybe multiple arguments.
+Default values should be 0 (i.e. if argument isn't specified then no padding occurs on that side).
+Same here, I think we should have a polymorphic padding argument that could be `int`, tuple of size 2, or dictionary.
+Personnaly, I would use Theano flags :) I don't know if it should be added directly in Theano. Do tensorflow support this? If it is added in keras, I would do: ``` mode = None if _DEBUG_MODE == 'detect_nan': mode = 'NanGuardMode' ``` Can you open an issue on Theano, Using the Theano flag should not enable the GPU. I don't have this behavior on the lstm example.
+We have a "NanGuardMode" (you can just use that string) that is done for this: http://deeplearning.net/software/theano/tutorial/nan_tutorial.html http://deeplearning.net/software/theano/library/compile/nanguardmode.html I think it would be better to use that then what you propose. We are making it skip some False positive error from time to time: https://github.com/Theano/Theano/pull/3768
+Use `'` as quote character for intra-file consistency
+Suggest to put operator in next line and remove redundant parentheses. ```python (K.backend() != 'tensorflow' or not K.tensorflow_backend._get_available_gpus()), ```
+You can use `random.choice` instead
+You should not be importing `keras` here. You can use `K.placeholder` to create a placeholder.
+If feel like this should be handled more elegantly in the above loop. This line is not very readable.
+I think it would be good to assert than the input tensor is at least 3D (to avoid a more obscure error message later).
+Nit: use backquotes around code keywords
+`data_utils` is no longer meant as a public namespace, use `utils`
+Use `'` as string delimiter
+Is there a way to eliminate the underlying cause of this warning & the other similar ones without requiring the user to inherit from Dataset? I've only used pickling once or twice so I'll defer to others on all such code.
+If you remove this, `get_config` defaults to method of the parent class, which is incorrect in this case.
+Theano -> Theano/TensorFlow
+Blank line required before the next section
+There's no reason to not make these both extend `MaskedLayer` instead of `Layer` and thereby also be supported in masked scenarios.
+I think it would make the operation clearer.
+The entries in `config` should match the arguments in `__init__`.
+Specify an epoch number
+`predict` and `evaluate` with data tensors should have unit tests as well.
+Don't use this pattern. No try/except block here.
+That last sentence will be very difficult to understand for people who don't have further context.
+The inserted ```order of``` is less precise than the original. It is the batches that are shuffled, not their order. The order is randomised.
+Only for Sequence. No effect for Generators
+You shouldn't need to pop these args here. Rather, you should remove them from kwargs before calling the layer (which is fine since they are transferred to the input list)
+Could you please split this method to a standalone utility function in `recurrent.py` (named `def _standardize_args`)? The only instance attribute it needs is `_num_constants`, which can be passed as a function argument (`num_constants`). That way we don't need to duplicate this code, you can just import it from `recurrent.py`.
+In line with naming conventions in this API, this should be `_num_constants`.
+in the tests k.backend() == `cntk` might want to lower case here
+maybe tell the user the valid data_formats
+It is looking like `height_factor` and `width_factor` can only be positive integers. This should be specified in the docstring. The API makes it sound like `*_factor` could be a float (e.g. 0.75 for an output image with 75% of the original height).
+In general throughout this PR, we should follow PEP8 and avoid camel case. Let's use snake case instead (this is Python after all).
+It's the same hack, but the big difference is that `get` is only used in small files where the set of names you want to be able to "get" is identical (or close enough) to the entire namespace. Which makes it safe. The reason this hack is potentially dangerous in the first place is the likelihood of namespace collisions, and they are highly likely in a file as busy as `models.py`. So I'd rather import each module separately, then use `getattr` on the appropriate module name. Then we limit the use of the namespace to the name of modules, which is fine.
+> Train a model and store every bit of it, including optimizers, in case you want to pick it up later for further training etc. In this case it makes sense to have the compiled version at hand. At least I would like to have the option to have a compiled version. Sounds very useful, but there are further problems with implementing this: for instance, how do you save the state of the optimizer for further training? That state is contained in shared Theano variables. I have no strong opinion either way, the main argument I see for skipping compilation is the use of custom objectives (custom optimizers are relatively unlikely, much like custom regularizers and constraints, however custom objectives are fairly common).
+Please add a check and raise `ValueError` if appropriate. Reshape may not be possible.
+However in some cases there will be no weights. This assert is a bug...
+This is a bug, please remove
+In this case the better solution would to check `dtype(x)`.
+In this case the better solution would to check `dtype(x)`.
+In this case the better solution would to check `dtype(x)`.
+LeCun proposed this scheme way back (see ref in `lecun_uniform` docstring). Our initializers are named `*_normal` and `*_uniform`. We already have the `lecun_uniform` initializer, and this initializer is simply the normal version of it. I don't even know why we didn't already have it, it's a significant inconsistency.
+"samples drawn from"
+The meaning of `seed` in the API is to make the dropout *node* in the graph deterministic, but not constant. In this implementation the op would be constant if passed a seed argument. Not super important for just debugging use cases, but easy to fix. I suggest you simply remove the `np.random.seed(seed)` statement, this would be closer to the intended behavior.
+Could you try benchmarking this against the use of `transpose + softmax + transpose`? It may be that transposing is faster (but impossible to know in advance).
+For numerical stability, you have to do T.exp(x - x.max())
+The exact transposition depends on the `axis` value and `x.ndim`. But we'd only need to benchmark it for one configuration. For `axis=2` and `x.ndim=4` your code looks right to me.
+The indent is meant to match to upper logical line, not the semantics of np arrays
+It's also inconsistent with line 593
+We have a "NanGuardMode" (you can just use that string) that is done for this: http://deeplearning.net/software/theano/tutorial/nan_tutorial.html http://deeplearning.net/software/theano/library/compile/nanguardmode.html I think it would be better to use that then what you propose. We are making it skip some False positive error from time to time: https://github.com/Theano/Theano/pull/3768
+It isn't a queue of data? I didn't mean 100 threads. Perhaps I'm not understanding something
+@Dref360 I can throw a specific exception for the case a data element should be just skipped.
+Should there be a timeout option? It might be wise to also have `proportion_full_before_start` parameter so the queue isn't kept empty. This can help improve throughput.
+Yes, unless we expect users to access it and set it (we don't), it should be private.
+self.current_feed_dict = {} if self.feed_dict is None else self.feed_dict Clearer
+Please add a check that all kwargs match a list of expected Theano arguments, with helpful error message otherwise. This is necessary to avoid confusion in case of typo.
+This won't work, since the shape of the mask won't match the shape of the input.
+Should be `inputs` and `mask`.
+Reshaping is appropriate in this case, but only in this case.
+Respect PEP8 conventions.
+Capital variable names is not appropriate for scalar variables
+Since you are taking a global mean instead of the mean on the last axis, this will fail for loss weighting.
+Please add a docstring.
+Using code markers around code keywords (.e.g `_predict_loop`).
+Docstring should have a `Returns` section and a `Raises` section.
+The error messages in `generate_legacy_interface` are layer-specific. Don't use it for model methods.
+For simplicity, I would simply disallow `data_format` as a positional arg. It would be bad practice to pass it as positional anyway.
+This is not the same argument. The proper behavior here would be: - if `forget_bias_init` is set to `"one"`, set `unit_forget_bias` to True - else ignore the argument, and in this case, raise a warning specifying the argument was ignored. You will need custom code to do this.
+Since `dtype` is an argument name and not a string variable, quotes are not necessary.
+No `+` needed for string concatenation at the end
+Better to use `_keras_history`
+Just for reference for newbies, in windows, the cache folder is at C:\Users\USERNAME_HERE\.keras\datasets. I usually download the files manually and place them because sometimes it does fail downloading in my computer.
+This default value will not work with Windows. Use None instead, and set it in the function code.
+This description makes it sounds like it is required to pass a hash in order to skip download. But if not hash is passed and a local file is found, we should skip download, too. The hash is just a way to invalidate old files on people's computers after they have been updated on the Keras side.
+cropping, not padding
+The indices of the axes depend on the dim ordering. Just say "width and height"
+cropping, not padding
+Fix indent. Use `pylint` as linter.
+Also prefer using more detailed names -- e.g. `ConvNeXtBlock`.
+It would be more in line with the keras style guide to remove these abbreviations: dw_conv_1 -> depthwise_conv_1
+The example currently works fine with `data_augmentation=False`...
+That's a bug indeed, but of a different kind. Test/evaluation shouldn't be run with data augmentation. Instead we should be using the Numpy array data + `predict`/`evaluate`.
+Please revert this change.
+Flaky test is fixed just so you know.
+Not sure this is needed.
+"Name-based weight loading (instead of topological weight loading)"
+Better mention that the cropping happens along the time dimension here (axis 1)
+cropping, not padding
+The indices of the axes depend on the dim ordering. Just say "width and height"
+Add space after `#`
+Add imports to make the script compatible with py2/3: ```python from __future__ import absolute_import from __future__ import division from __future__ import print_function ```
+You don't need BN for such a shallow network, `Conv2D` and `MaxPooling2D` should suffice
+Transposing the weights is always the right thing to do regardless of original backend.
+Are you sure about this? Justify.
+Please format the docstring like the others, with an `# Arguments` and `# Returns` section
+You could do that with Matplotlib, to avoid a new dependency
+Add these 3 classes to `utils/__init__.py` so they can be imported from `utils` by users (internally it doesn't matter)
+I'm not 100% sure on whether Keras enforces a standard ordering, but the usual order adopted by most projects that I've worked on that do enforce an ordering is `__future__, builtin, pip-installed, local`. And I'm a believer in going above and beyond for readability :)
+Yes, that works
+Hence why we should use `endswith`. To ignore any prefix.
+prefer `or self.monitor == 'auc'` to avoid potential collisions
+Please format the docstring like the others, with an `# Arguments` and `# Returns` section
+Likewise, please format docstring
+You're right. Never mind then.
+Looks like you got it, I just wanted to make sure this PR wasn't going to get stuck for another couple of releases.
+Using code markers around code keywords (.e.g `_predict_loop`).
+Docstring should have a `Returns` section and a `Raises` section.
+Bit of redundancy: this sets `input` twice (here and in the next few lines).
+`if n.__class__.__name__ == ...`
+If concatenation is not on the time axis, then masks have to be AND-merged on the time axis.
+Here is the generic version that will work for any ndim: return T.TensorType(dtype, (False,)*ndim)(name) So this whole if/elif/.../else will disapear.
+Then you should apply the same modifications in the TensorFlow backend, for consistency.
+But about the `broadcastable` bool tuple: is it required to build the graph? Could we have a tensor that can accept data of _variable_ ndim (like `tf.placeholder()`, which is ndim-agnostic)? I'm asking because occasionally the ndim of certain inputs isn't known at compilation time, which is difficult to work around.
+Don't use needed abbreviations that make code harder to read in order so save 4 characters.
+Better to use keyword arguments (same below). API change looks ok to me.
+That's a good point, since we didn't require it be named `epoch` before, we should probably make the first argument positional and only make the second (new one) a keyword arg.
+These quantities are not relevant here.
+In general this test is more like an integration test than a unit test. You don't need half of this stuff: - the model should be minimal (this one has a bunch of extra layers) - you don't need data with a statistical structures, `np.random` will work just fine - etc.
+This test would be very expensive to run. It's an integration test, not a unit test. Please boil it down to essential components.
+I would definitely exclude `loss_weights` from the `Sequential` API. There is no use case for it, and it is likely to confuse some people.
+We should consider naming it `target_tensor` since it will always be a single tensor.
+Ok for this change.
+> tf.ragged.constant does not accept tf.Tensor inputs gracefully It's really strange that it works with numpy arrays but not tf.Tensors. That's an inconsistency in the ragged API that we should address...
+Ok, we can keep the current behavior for the time being. Thanks for checking!
+Shorten one-line description (further detail can be provided in the docstring), add `Args:` section and `Returns:` section
+`pickle_safe` is generally not a good API argument, it is not very descriptive and is Python-specific (the Keras API should generally avoid being Python-specific). This is an opportunity to get rid of it. I would use `use_multiprocessing` (or `multiprocessing`, but then we have to handle to name collision with the module name) in the new code, and deprecate the `pickle_safe` argument in the generator methods at a later date.
+Indeed, or you can just increment the input seed for each new process.
+add param to provide a seed at init time
+Capitalize start of argument descriptions ("String or...")
+I don't understand why; `tf.nn.separable_conv2d` does support strides.
+I think that would be better indeed. It's not a big deal if the internal implementations differ as long as the external interface is the same.
+That should be `inputs`, not None (same below).
+The entries in `config` should match the arguments in `__init__`.
+This one should follow the same logic as above, as well.
+Can be replicated in all backends
+Let's add a TODO for this one
+Can be replicated in all backends
+The CNTK errors on Travis CI seem to come from this line. `self.bias[0]` results in a `(1, 3 * self.units)` 2-D tensor in CNTK.
+`self.dtype = dtype or K.floatx()` is equivalent and simpler.
+For efficiency reasons I believe it is preferable to keep the default regularizers to `None`. This is also important because using `None` in the class constructor is part of the standard API and the class should be able to deal with it. This is absolutely not an issue in `get_config`: you can simply use, e.g.: ``` python "W_constraint":self.W_constraint.get_config() if self.W_constraint else None, ``` After setting `self.W_constraint` to the value given to the constructor in `__init__`.
+Add these 3 classes to `utils/__init__.py` so they can be imported from `utils` by users (internally it doesn't matter)
+Remove blank line
+One import per line
+Additionally, the old `Embedding` supported a `dropout` argument that we no longer support. Since calls using the old API should still work, the dropout argument needs to be handled. Just remove it from kwargs if present, and raise a warning saying that the argument no longer exists that people should use instead a `keras.layers.SpatialDropout1D` layer right after the `Embedding` layer to get the same behavior.
+This ignores additional keyword arguments possibly passed by the user.
+Should `args[1:]` here (the first entry in `args` is `self`).
+Please revert this change.
+That's a bug indeed, but of a different kind. Test/evaluation shouldn't be run with data augmentation. Instead we should be using the Numpy array data + `predict`/`evaluate`.
+The example currently works fine with `data_augmentation=False`...
+In order to avoid this `for` loop, I think it would be better to have the test for `logsumexp` be a separate function, with a parameterization decorator over axes and shapes.
+It seems that all pep8 tests failures are ignored by travis. I'll make a PR to fix it.
+Please keep the random tests where they were. Unit tests should be small and target as few things as possible for better error reporting and debugging.
+`)` after `]`
+Please remove new line (`"""Instantiates`).
+or invalid depth_multiplier, alpha, rows when `weights='imagenet'`.
+this is discussed in https://github.com/fchollet/keras/pull/7113
+Insert link to callbacks page
+"or 1-element list of Numpy arrays" does not need to be specified, since this is not how we want people to use `fit` on `Sequential`.
+No need for final space
+No need for final space
+No need for final space
+Incorrect / confusing. Please fix.
+No return section in such cases.
+This is somewhat problematic because this will be ignored in most Keras functions. But that's a separate problem I suppose, which we will fix in a different PR.
+Is there a way to eliminate the underlying cause of this warning & the other similar ones without requiring the user to inherit from Dataset? I've only used pickling once or twice so I'll defer to others on all such code.
+What about failure cases? Example: #6928 it is possible only x, only y, neither x nor y, or a tuple of some other unexpected size gets returned. At a minimum, check the tuple size and throw an exception if it doesn't match expectations. There are probably other cases like this in this pull request, it might be worth double checking.
+`all_outs` is meant to be a list of arrays (potentially with 1 element), not a Numpy array, because we need to support multi-output models (the present code wouldn't). Same for `outs`. So I would recommend following the pattern from `evaluate_generator`: converting the output of `self.predict_on_batch` to a list if necessary, etc.
+We could add a backend method to do it, with custom implementations in each backend...
+cropping, not padding
+should be self.forward.
+I think this is a good solution for now. In the future when we have a layer naming system, we'll use that instead.
+We generally call it "KTF"
+This would benefit from a bit more explanation on how to use TensorBoard, at least a link to https://www.tensorflow.org/versions/master/how_tos/summaries_and_tensorboard/index.html
++1. Use case would be validating on more data than fits in GPU memory. So the generator has to return small-ish minibatches, but I want to validate on more than one minibatch.
+"or 1-element list of Numpy arrays" does not need to be specified, since this is not how we want people to use `fit` on `Sequential`.
+Insert link to callbacks page
+Add space after `#`
+`# Returns `
+Please format all docstrings in this CL like other docstrings in the codebase: ```python """One-line summary ending in a period. # Arguments argument_1: Description (may include type if relevant). argument_2: Description. # Returns Description of the output. """ ```
+Blank line required before the next section
+Blank line required before the next section
+Theano -> Theano/TensorFlow
+This is fixed. Please do not submit PRs that are incorrect or unfinished, post a Github issue instead.
+Let's not include that.
+Previous version was more readable imo.
+Space (" ") instead of period(" ")
+Past few lines too long
+Does it really have to be this complex? This is just a unit test. why not: ```python def rnn_fn(x, h): return x, [x, K.concatenate([x, x], axis=-1)] ```
+Link on a single line, otherwise it won't work (we don't enforce line length)
+In general your docstrings have an indentation problem, the lines after the first one should be indented by 1 level (4 spaces).
+Just say "either md5 or sha256".
+Link on a single line, otherwise it won't work (we don't enforce line length)
+In general your docstrings have an indentation problem, the lines after the first one should be indented by 1 level (4 spaces).
+I don't understand why we would want to deprecate md5, or have a preference for one algo or another. It's cool to support more than one hash function, but md5 works just fine for this purpose. We're just building a basic cache invalidation mechanism.
+@tiferet the API change in `sparse_categorical_crossentropy` is not something we can merge, sorry. Such an argument should be called `axis` and should default to `-1` (`K.image_data_format()` is a layer-level configuration argument and should not affect the default behavior of backend methods).
+For now, after adding `axis` in the crossentropy losses, you will have to use a different loss function when doing pixelwise classification (image segmentation) in NCHW: ```python if K.data_format() == 'channels_first': loss = lambda y_true, y_pred: K.sparse_categorical_crossentropy(y_true, y_pred, axis=1) else: loss = K.sparse_categorical_crossentropy model.compile(optimizer=optimizer, loss=loss) ```
+`T.nnet.softmax` creates less ops and will be more efficient (also simpler).
+var is a reserved keyword, use `v` or something like that.
+var is a reserved keyword, use `v` or something like that.
+var is a reserved keyword, use `v` or something like that.
+Note that layers that don't have weights are not taken into account in the topological ordering, so adding or removing layers is fine as long as they don't have weights.
+"Name-based weight loading (instead of topological weight loading)"
+Importantly, these are not all model weights, just the model's top-level weights (assigned to the model instance directly, not via layers). We should pick a group name that reflects this, e.g. `top_level_weight_names`
+It would be more concise to make the named keyword args part of the function call, rather than storing them in the `kwargs` dict.
+Blank line required before the next section
+Blank line required before the next section
+You can replace the next lines with `return - dice_coef_loss(y_true, y_pred)`
+The targets / predictions are assumed to be in the [0, 1] interval but that is not enforced. It should be.
+Capital variable names is not appropriate for scalar variables
+If you remove this, `get_config` defaults to method of the parent class, which is incorrect in this case.
+"weights incident to each hidden unit" is not clear in this context. A "hidden unit" is generally understood as a coefficient in the layer weight tensor.
+Theano -> Theano/TensorFlow
+No `+` needed for string concatenation at the end
+No need for `+` at the end. But needs a space after `.`.
+Better to use `_keras_history`
+@farizrahman4u this is still not fixed.
+The output below still seems wrong to me, because you also have to shift the output to make the alignment right. Yes, that is why I said bidirectional is really ugly with padding in the first place. [[[ 0. 6.] [ 1. 5.] [ 3. 3.] [ 6. 0.]] [[ 0. 3.] [ 0. 2.] [ 1. 0.] [ 3. 0.]]]
+Should be `inputs` and `mask`.
+Should we rely have to rely on `np.dot`? Besides the fact that it's expensive, it's also a black box. The logic should be inferable from reading the code.
+For theano, `ratio` needs to be `integer`. ```python ratio = height_factor // width_factor ```
+Format your docstrings like other docstrings in the codebase
+This is not the same argument. The proper behavior here would be: - if `forget_bias_init` is set to `"one"`, set `unit_forget_bias` to True - else ignore the argument, and in this case, raise a warning specifying the argument was ignored. You will need custom code to do this.
+You can make this a dict instead of a list of tuples, that would be more natural. In this case, the order of the values does no matter.
+Missing a space between "argument" and "has". Also tell users to use the `unit_forget_bias` argument instead.
+Yes, that's right
+These should be `ValueError`
+I don't understand why; `tf.nn.separable_conv2d` does support strides.
+Fix indent here and below
+Better to add `rank` here
+This would read clearer with format strings, and we are trying to gravitate towards more uniform error messages in keras. f'`cropping` parameter of Cropping layer must be greater than the input shape. ' f'Recieved: inputs.shape={inputs.shape}, and cropping={self.cropping}'
+Please initially check that `mode` in is `{'auto', 'min', 'max'}`.
+No warning should occur with default settings. It is safe to remove this.
+Please print a message for this action (like we do in `on_train_end`): "Restoring model to its state at the end of the best epoch."
+This is a significant regression which breaks a lot of my code too.
+The right way to check if a class attribute is a property is: ```python is_property = isinstance(type(obj).attribute, property) ``` So here it would be: ```python if not isinstance(type(self).losses, property): self.losses += losses ```
+The `merge_mode` argument is never validated. Additionally, we should consider a `None` mode that just makes the layer return `(forward, backward)`
+Introduce an `if` block to avoid a very long line.
+Why not return `None` instead? Wouldn't it be more efficient (one less element-wise multiplication in the objective function).
+No, do not do this
+@briannemsick Sorry, I wasn't clear about my main point! 1. The tqdm API UX is worth considering for inspiration when designing stateful metrics, which must be updated at every batch and displayed to the user. 2. I'm suggesting stateful metrics should be a callback call and not a special init variable that gets passed around to every class in keras. Rather than actually including tqdm (which is just a convenient option), the point is the excellent API UX style of tqdm for the stateful task of iterating through batches and counting them.
+I think this is out of scope, the goal of the PR is to support stateful metrics. A complete rewrite of progbar (if that's the route taken) should be a follow on PR.
+> The current progbar is fine. We're not changing the existing API, we just extend it in a really simple way to support a new use case. Fair enough, but rather than a different progbar please allow me to suggest a **different, composable stateful metric design**, unrelated to progbars, which uses the tqdm API for inspiration. In other words, consider a stateful metric which is a decorated iterator implementing `next()`, `def __iter__(self):`, `update()`, `clear()`, ` def __len__(self):`, etc.
+Are you sure about this? Justify.
+Order arguments vertically to avoid an overly long line.
+Why do you need two methods? You should only need one...
+In this case the better solution would to check `dtype(x)`.
+This is the TF backend, so don't rely on `_keras_shape`, instead use `tuple(kernel.get_shape().as_list())` (always available).
+I would consider abstracting `conv2d` into a single interface that could use `conv`, `deconv`, `atrous_conv`. Otherwise there is a lot of redundancy across these 3.
+This default value will not work with Windows. Use None instead, and set it in the function code.
+Just for reference for newbies, in windows, the cache folder is at C:\Users\USERNAME_HERE\.keras\datasets. I usually download the files manually and place them because sometimes it does fail downloading in my computer.
+This description makes it sounds like it is required to pass a hash in order to skip download. But if not hash is passed and a local file is found, we should skip download, too. The hash is just a way to invalidate old files on people's computers after they have been updated on the Keras side.
+Looks good to me now.
+So, these are initialized based on imagenet: this is required for use with the pretrained weights. Is there a way we can allow users to configure this for custom datasets? @fchollet
+It would be more in line with the keras style guide to remove these abbreviations: dw_conv_1 -> depthwise_conv_1
+Singe the names are expected to match across models, "in the current model" does not make sense here.
+You don't need to compute a list of filtered layers in this setup. You can build the index in one go.
+By definition `name` and `layer.name` will be the same. The error message should be modified to reflect this.
+Is there a reason why there is not a `SpatialAlphaDropout` like there is a `SpatialDropout`? In the paper they are not explicitly doing it, but they do have an argument `noise_shape` on their Github. When they release the code for more advanced datasets, we'll know for sure I guess.
+pg 6 of the [paper](https://arxiv.org/pdf/1706.02515.pdf) says: > Therefore, we propose âalpha dropoutâ, that randomly sets inputs to Î±
+Use a variable with a complete name, not `l`.
+Code markers around `validation_split`
+Code markers around tuple
+This will be more readable with code markers around `epochs`.
+Please use one import per line from now on.
+can tf.logging be hooked into this? that may be the best course of action https://www.tensorflow.org/api_docs/python/tf/logging
+`K.floatx()` is the preferred way to access this.
+The targets / predictions are assumed to be in the [0, 1] interval but that is not enforced. It should be.
+Capital variable names is not appropriate for scalar variables
+`mathews_correlation` or `matthews_correlation_coefficient`
+An optimizer instance is not serializable (it's a Python object). The previous 4 lines were serializing it. Revert this
+You don't need to compute a list of filtered layers in this setup. You can build the index in one go.
+This is a private method, for safety, better not pass a default value for `include_optimizer`. Users shouldn't be using it, and when working on Keras itself it is easy to forget to pass it.
+You should be able to get this list without relying on `nb_params`. Then you can get rid of all code related to it.
+No need for such abbreviations, they just make code harder to read.
+Importantly, these are not all model weights, just the model's top-level weights (assigned to the model instance directly, not via layers). We should pick a group name that reflects this, e.g. `top_level_weight_names`
+Let's add a TODO for this one
+Let's add a TODO for this one
+Can be replicated in all backends
+This is the TF backend, so don't rely on `_keras_shape`, instead use `tuple(kernel.get_shape().as_list())` (always available).
+These should be `ValueError`
+I don't understand why; `tf.nn.separable_conv2d` does support strides.
+Reformat this in a way that avoids the use of `\`
+PEP8 issues (space around operators)
+This probably won't help with your actual problem, but the following PR was very helpful when I needed to fix feed dict issues: https://github.com/fchollet/keras/pull/7064
+Use backticks around codde keywords
+Please format the link (`as described [here](...)`)
+Also say "may be slightly inconsistent" since 1) it is not necessarily the case depending on various parameters, 2) the difference is minor and generally unimportant
+The requirement for `validation_steps` should be based on the type of `validation_data`. We should allow Numpy validation data even if fitting from data tensors (e.g. same way that `fit_generator` allows both Numpy validation data and generator validation data).
+"When using `steps_per_epoch`, ..."
+Prefer `if steps_per_epoch is not None`
+I'm glad I could help :)
+Please initially check that `mode` in is `{'auto', 'min', 'max'}`.
+No warning should occur with default settings. It is safe to remove this.
+Importantly, these are not all model weights, just the model's top-level weights (assigned to the model instance directly, not via layers). We should pick a group name that reflects this, e.g. `top_level_weight_names`
+Break up line
+Singe the names are expected to match across models, "in the current model" does not make sense here.
+Would it be possible to simplify by doing ```python if axis is not None: axis = tuple(axis) ```
+You are right. My bad. I dont think it's necessary to use an intermediate variable though: ```python if isinstance(axis, list): axis = tuple(axis) ```
+Could you try benchmarking this against the use of `transpose + softmax + transpose`? It may be that transposing is faster (but impossible to know in advance).
+Replace with ``` if len(mask.get_shape()) > ndim: raise ValueError(...) ```
+That crazy process was used for compatibility with TensorFlow. With Theano you could simply call `tensor.shape`, which is itself a symbolic tensor.
+You can replace these lines with `outputs.set_shape((inputs.get_shape()[0], None, None))`
+This will break if `layer` is a container.
+Two line breaks after the first sentence.
+It should be clarified in the docstring what "compilation" entails.
+`if not {expression} != {expression}:` is quite a strange structure. Did you mean: ```python dtype = getattr(x, 'dtype', None) if dtype != K.floatx(): x = np.asarray(x, dtype=K.floatx()) ```
+In this case the better solution would to check `dtype(x)`.
+Then remove the test case. I assume what's being raised is a TypeError and that's why it would fail. It doesn't make sense to have this check for this function and nowhere else.
+`pickle_safe` is generally not a good API argument, it is not very descriptive and is Python-specific (the Keras API should generally avoid being Python-specific). This is an opportunity to get rid of it. I would use `use_multiprocessing` (or `multiprocessing`, but then we have to handle to name collision with the module name) in the new code, and deprecate the `pickle_safe` argument in the generator methods at a later date.
+Remove leading space
+Use code markers around `put()`
+The `merge_mode` argument is never validated. Additionally, we should consider a `None` mode that just makes the layer return `(forward, backward)`
+This will break with TF, and it would be more efficient to use `go_backwards` since it avoid the back and forth with `permute_dimensions`.
+should be self.forward.
+Awesome : ) But now you'll need to remove the outdated exception as well ; )
+Also around `=`
+Spaces around `<`
+Please make this method private.
+"Passed to `tf.Session.run`", with ` around code
+self.current_feed_dict = {} if self.feed_dict is None else self.feed_dict Clearer
+`pickle_safe` is generally not a good API argument, it is not very descriptive and is Python-specific (the Keras API should generally avoid being Python-specific). This is an opportunity to get rid of it. I would use `use_multiprocessing` (or `multiprocessing`, but then we have to handle to name collision with the module name) in the new code, and deprecate the `pickle_safe` argument in the generator methods at a later date.
+Remove leading space
+Use code markers around `put()`
+Optimizers have a `get_config` method precisely for this purpose.
+`compile=True` is a more user-friendly API.
+Also add a `# Arguments` section for `*args`
+No `+` needed for string concatenation at the end
+Better to use `_keras_history`
+No need for `+` at the end. But needs a space after `.`.
+Nit: ` around code keywords
+Please make this method private (underscore) and make the docstring style-compliant.
+Since this is ad-hoc and specific to a single method it shouldn't be a class method but rather a function defined on the fly in `compile`.
+@tiferet the API change in `sparse_categorical_crossentropy` is not something we can merge, sorry. Such an argument should be called `axis` and should default to `-1` (`K.image_data_format()` is a layer-level configuration argument and should not affect the default behavior of backend methods).
+For now, after adding `axis` in the crossentropy losses, you will have to use a different loss function when doing pixelwise classification (image segmentation) in NCHW: ```python if K.data_format() == 'channels_first': loss = lambda y_true, y_pred: K.sparse_categorical_crossentropy(y_true, y_pred, axis=1) else: loss = K.sparse_categorical_crossentropy model.compile(optimizer=optimizer, loss=loss) ```
+`T.nnet.softmax` creates less ops and will be more efficient (also simpler).
+Do not use backslashes to break lines.
+Better to use a more explicit variable name, like `key`
+This warning does not seem necessary
+I believe you should be able to remove a lot of redundant code by subclassing `RNN`. There are lots of shared methods.
+Use bullet points
+Break up long line
+How about the following? ``` mean, var, beta, gamma = [np.random.random(other_shape).astype(np.float32) for _ in range(4)] ```
+```suggestion if k == KC: ```
+Just noticed that this line doesnt test anything if backend is CNTK. So one last nit pick.. Put the backend check outside the loop so that it makes more sense: ```python def test_stack(self): tensor_list = [np.random.randn(5, 4, 6, 10) for _ in range(5)] stack_axis = 3 results = [] if K.backend() == 'cntk': check_two_tensor_operation('stack', (5, 4, 6, 10), (5, 4, 6, 10), WITH_NP, axis=stack_axis, concat_args=True) else: for k in WITH_NP: tensor_list_var = [k.variable(tensor) for tensor in tensor_list] out = k.eval(k.stack(tensor_list_var, axis=stack_axis)) results.append(out) assert_list_pairwise(results) ```
+Introduce an `if` block to avoid a very long line.
+The same concern exists for Theano with `data_format='channels_first'`. I do not know the extent of the performance hit. My guess is that it is small. I note that [native TF ops](https://www.tensorflow.org/api_docs/python/tf/nn/conv2d) use the same kernel shape for both data formats, which indicates that performance optimization can probably be handled at the backend level.
+Whatever the backend uses internally, the kernel shape is standardized to `self.kernel_size + (input_dim, self.filters)`, to allow portability across models. Revert this change. Note: we used to have 2 different possible shapes for kernels, in Keras 1.0. It was a nightmare. That's why it is now standardized.
+I don't quite understand this message. Do we expect users to be familiar with the concept of "dynamic axis" here? Doesn't seem standard
+No need for final space
+No need for final space
+Please use backticks around code keywords.
+The `(` should be next to the `]` in order for the markdown to render properly.
+Please make sure the link fits on a single line
+This function does not have a properly formatted dosctring (see other dosctrings for reference)
+At this point it would be fine to have `np_kernel = kernel.eval()`
+It would be more concise to make the named keyword args part of the function call, rather than storing them in the `kwargs` dict.
+It's "depth, height and width" in this order (was previously incorrect)
+Style: break long lines in the test
+and -> or
+It's all very confusing, and `Convolution2D` wasn't doing great on that front either. Here I think we should refer to the kernel dimensions as `kernel_dim*` and to the target tensor dimensions as `conv_dim*`.
+Thinking about it, I think `conv_dim*` like in the code would be the clearest here. Otherwise we should explicitly mention that these are the dimensions the convolution will operate on.
+Sections in docstring should be separated with a line break. I don't think the `len_` prefix everywhere is necessary, just `input_dim*` seems clear enough.
+`# Returns `
+It appeared to do so. I altered the `append` line above to: `trained_encoders.append((ae.layers[0].encoder, ae.layers[0].encoder.get_weights()))` and this line to: ``` model.add(encoder) model.layers[-1].set_weights(weights) ``` This seems to be working pretty well.
+Use `'` as the quote character for consistency with the rest of the file
+Space between "take" and "place"
+I'd say we can remove both warnings.
+From reading this, we would use autogenerated names `param_n` all the time when using TF or Theano. That's not what we want...
+You can replace these lines with `outputs.set_shape((inputs.get_shape()[0], None, None))`
+If feel like this should be handled more elegantly in the above loop. This line is not very readable.
+Clarify the error message; a "Keras tensor" is the output of a Keras layer
+Here is the generic version that will work for any ndim: return T.TensorType(dtype, (False,)*ndim)(name) So this whole if/elif/.../else will disapear.
+Then you should apply the same modifications in the TensorFlow backend, for consistency.
+But about the `broadcastable` bool tuple: is it required to build the graph? Could we have a tensor that can accept data of _variable_ ndim (like `tf.placeholder()`, which is ndim-agnostic)? I'm asking because occasionally the ndim of certain inputs isn't known at compilation time, which is difficult to work around.
+This still seems hackey. Maybe a better or more clear solution could be something like: ``` python from keras import backend as K if K._BACKEND == 'tensorflow': logic else: other_logic ```
+Actually we don't; what matters is that the weights are in a deterministic order. In _what_ order they are is not very important. We could simply sort by `auto_name`.
+Since this is about dealing with a Theano-specific behavior, the syntax should be: if Theano: else:
+`K.eye` should already follow this same behavior (at least it does in TF). So no padding necessary.
+Only the `tf.eye` supports the non-square. Currently, all the three `K.eye`s don't support that, thus I proposed #12534.
+I think we could refactor this to call `K.eye` instead. The advantage of `K.eye` is that for TF it will not store the numpy array returned by `np.eye` in the TF graph (so the graph will be smaller).
+Can we have a better API than `padding=(1, 1, 1, 1)`? Maybe `padding=((1, 1), (1, 1))` (but that one is not very good either). Please think of something. Maybe multiple arguments.
+Additionally, raise a `ValueError` with a helpful message in case an unexpected key is found in the dict. This is important because people may have typos in their dict argument and they would never notice.
+Change to 0. Also please format code elements in docstring with "`" (tuples. dicts).
+Please put "`" around code keywords.
+More elegant would be to shuffle an array of indices once, then use the array to index X and y (yes, unlike the current code in this module, but like the code in `models.py`).
+This seems to make `reset()` in `flow()` superfluous. If so I think it would be cleaner and still safe to just remove the `reset()` from flow and have the index_array generator handle resetting all its counters.
+Needs a space after {}
+That's a good warning to have. Reformat: `"` should be `'`. "`output_shape` argument not specified for layer {} and cannot be automatically inferred with the Theano backend. Defaulting to output shape {} (same as input shape). If the expected output shape is different, specify it via the `output_shape` argument. "
+Theano -> Theano/TensorFlow
+What if the layer does not have a name, though? There should be an exception or a fallback (preferably an exception, for maximum explicitness).
+Yes, that would make sense.
+This reshape will fail for some shapes (all inputs X where X.shape[1] is odd) because the number of elements in the tensor will not be conserved. Additionally it appears that the maxout is done only of the 1st tensor dimension (indexing from 0). This would be time in case of a temporal input, of channels for a picture input. I don't thinking that's how it should work in these cases (it should be respectively the 2nd and 2nd-3rd dimensions).
+`K.floatx()` is the preferred way to access this.
+I believe you should be able to remove a lot of redundant code by subclassing `RNN`. There are lots of shared methods.
+Explain what the difference is and what motivates it
+Need spaces at the end of every line in this message (this is also true of a few other messages)
+I don't quite understand this message. Do we expect users to be familiar with the concept of "dynamic axis" here? Doesn't seem standard
+Need at least rank 3
+replace `with` with `to`
+`CNTK` (to have consistent capitalization with other messages) `when constructing the trainer`
+Period after `inputs`
+"on how masking is handled by the wrapped layer"
+If feel like this should be handled more elegantly in the above loop. This line is not very readable.
+The indices of the axes depend on the dim ordering. Just say "width and height"
+No need for final space
+No need for final space
+I don't quite understand this message. Do we expect users to be familiar with the concept of "dynamic axis" here? Doesn't seem standard
+At this point it would be fine to have `np_kernel = kernel.eval()`
+Processing of `np_kernel` should be removed from this function
+Please raise a `RuntimeError` instead of using `assert`.
+Set the default value to `0.0` rather than None, for consistency with `fit`
+This function does not have a properly formatted dosctring (see other dosctrings for reference)
+This should default to `None`, not to a boolean
+@farizrahman4u this is still not fixed.
+The output below still seems wrong to me, because you also have to shift the output to make the alignment right. Yes, that is why I said bidirectional is really ugly with padding in the first place. [[[ 0. 6.] [ 1. 5.] [ 3. 3.] [ 6. 0.]] [[ 0. 3.] [ 0. 2.] [ 1. 0.] [ 3. 0.]]]
+But it cannot be a list of None, should be just None. weights [:nw/2]=None, because you use : , the result is a list.
+Docstring contains a few typos, please fix / rephrase
+One-line docstring description should end with a period.
+Use markdown format for links
+Additionally, raise a `ValueError` with a helpful message in case an unexpected key is found in the dict. This is important because people may have typos in their dict argument and they would never notice.
+It would be more concise to make the named keyword args part of the function call, rather than storing them in the `kwargs` dict.
+At this point a check should be done that the cropping argument is a tuple of length 2 of tuples of length 2
+Actually, maybe it would be higher performance to have a switch: `if eta > 3600` / `if eta > 60` So that we only compute what we need.
+Please add `s` for seconds.
+Don't format a string two lines, do it in one pass. Also, there is seemingly no need for the `% 7`...
+Reduce indent (should be 4 spaces)
+Right, better to use `then_expression` etc.
+Wrap `then` and `else` with ` to make the sentence easier to parse.
+please shorten the line by using temporary variables, it will be easier to read.
+please shorten the line by using temporary variables, it will be easier to read. ```python indices = tf.to_int64(indices) ... ```
+Use `train_dataset` and `val_dataset` as the names
+Clarify the error message; a "Keras tensor" is the output of a Keras layer
+All of this should be delegated to the parent's `__call__`.
+In line with naming conventions in this API, this should be `_num_constants`.
+Prefer importing `layers` then using e.g. `layers.Conv2D`
+You don't need BN for such a shallow network, `Conv2D` and `MaxPooling2D` should suffice
+Please standardize the docstrings formatting to be the same as other docstrings in the codebase.
+For an unimplemented method to be useful, it should have a docstring describing its specs.
+Two line breaks after the first sentence.
+Actually it can. The first two are positional (input_dim, output_dim).
+Parens not necessary here
+filters //= 2
+If you're using the default RMSprop parameters, you might as well pass it as a string to `compile()`.
+I think we should make this function private, as well as `is_current_explicit_device`, and `get_available_gpus`.
+Per the failing docstring test, this docstring needs a `Raises` section mentioning the ValueError: https://travis-ci.org/fchollet/keras/jobs/282558708
+Please make this method private (unless there is a rationale for making it part of the public API).
+`try` with an `assert` is not the way to test inequality between two integers...
+While print the batch index with so many leading zeros? Just use `%d`
+This should be: ```python logs = logs or {} loss = logs.get('loss') if loss is not None: if np.isnan(loss) or np.isinf(loss): ```
+`nb_val_worker` should be described in the docstring.
+`maxproc` should be `nb_worker`, for consistency.
+Please add this to the docstring, with mention that it only applies to the validation data.
+Should this be part of the public API? It sounds like it should be an internal method.
+This should be a `ValueError`.
+This is too broad an exception, it should be `ImportError` (otherwise something inside the module could fail and you wouldn't know why).
+Typo: output. It should be clarified that it needs to be a valid Theano expression.
+Same remark as before regarding `output_shape`.
+cropping, not padding
+This statement should come afterwards
+The ValueError should be reported in the docstring
+Please break up this line into several
+Break up long line
+You can use `K.is_keras_tensor`
+Use bullet points
+`mathews_correlation` or `matthews_correlation_coefficient`
+The targets / predictions are assumed to be in the [0, 1] interval but that is not enforced. It should be.
+Capital variable names is not appropriate for scalar variables
+I think this is a good solution for now. In the future when we have a layer naming system, we'll use that instead.
+We generally call it "KTF"
+This would benefit from a bit more explanation on how to use TensorBoard, at least a link to https://www.tensorflow.org/versions/master/how_tos/summaries_and_tensorboard/index.html
+`if self.depth_multiplier != 1` Additionally: please put this exception in the Theano function, in the backend, since it is Theano-specific.
+Whatever the backend uses internally, the kernel shape is standardized to `self.kernel_size + (input_dim, self.filters)`, to allow portability across models. Revert this change. Note: we used to have 2 different possible shapes for kernels, in Keras 1.0. It was a nightmare. That's why it is now standardized.
+The same concern exists for Theano with `data_format='channels_first'`. I do not know the extent of the performance hit. My guess is that it is small. I note that [native TF ops](https://www.tensorflow.org/api_docs/python/tf/nn/conv2d) use the same kernel shape for both data formats, which indicates that performance optimization can probably be handled at the backend level.
+Please include a non abbreviated explanation of what erf is.
+Add a docstring.
+Code delimiters ` would be more appropriate than string quotes here, for `x` and `increment`.
+You can define the set on the same line, to avoid a named variable
+Bit of redundancy: this sets `input` twice (here and in the next few lines).
+Personnaly, I would use Theano flags :) I don't know if it should be added directly in Theano. Do tensorflow support this? If it is added in keras, I would do: ``` mode = None if _DEBUG_MODE == 'detect_nan': mode = 'NanGuardMode' ``` Can you open an issue on Theano, Using the Theano flag should not enable the GPU. I don't have this behavior on the lstm example.
+Not sure this is the behavior we actually want. Seems like a lot of hard-coded assumptions.
+What case does this cover? Also, here we have twice an unchecked assumptions that we are dealing with a list; all we know is that it isn't a float. Not all non-floats are lists.
+You don't have to return from the function. If the current epoch was best and `restore_best_weights= True` then the weights wont ever be restored which is done in the code following this line.
+It seems like the `weights` argument for `preprocess_weights_for_loading` is not really a list of numpy arrays. It's a list of `HDF5 dataset`. When I call `print(weights)` on my machine, I saw something like: ``` [<HDF5 dataset "kernel:0": shape (100, 96), type "<f4">, <HDF5 dataset "recurrent_kernel:0": shape (32, 96), type "<f4">, <HDF5 dataset "bias:0": shape (192,), type "<f4">] ``` Hence there would be some metadata attached to the weights. Specifically, with `print([x.name for x in weights])`, the output is: ``` ['/model_weights/cu_dnngru_1/cu_dnngru_1/kernel:0', '/model_weights/cu_dnngru_1/cu_dnngru_1/recurrent_kernel:0', '/model_weights/cu_dnngru_1/cu_dnngru_1/bias:0'] ``` However, I'm really not sure if this is a behavior that we could rely on (i.e., is it a consistent behavior for different versions of h5py, different versions of Keras, python, OS, ...). Also, it might not pass some existing tests since the tests are written under the assumption that the input is a list of arrays.
+What if we're loading a `GRU` layer with `reset_after=True`? It will have 6 biases also. I think we shouldn't transpose the kernels in this case.
+You're right. Never mind then.
+I see, it's to be able to compare it with the other backends with `==` later on. Nevermind.
+"not currently supported with CNTK".
+I don't quite understand this message. Do we expect users to be familiar with the concept of "dynamic axis" here? Doesn't seem standard
+This is a significant regression which breaks a lot of my code too.
+I feel like it would actually be clearer and more economical to separate the two cases entirely: one input vs. multiple inputs.
+I fear this is a brittle mechanism. It will work in simple cases but will fail in advanced cases.
+This is a significant regression which breaks a lot of my code too.
+Some layers may only be able to process a batches of a fixed size. A built-in Keras example are stateful RNN layers. Other examples include custom layers that share information across samples in a batch (one case I've come across is to have batches of size 2 and take the distance between the two samples). Again: if the batch size is specified, then it is meaningful, and you should not arbitrarily change it.
+If concatenation is not on the time axis, then masks have to be AND-merged on the time axis.
+Missing a space between "argument" and "has". Also tell users to use the `unit_forget_bias` argument instead.
+You can make this a dict instead of a list of tuples, that would be more natural. In this case, the order of the values does no matter.
+This ignores additional keyword arguments possibly passed by the user.
+It makes it much easier to keep track of parts of the code that are backend-specific.
+Importantly, these are not all model weights, just the model's top-level weights (assigned to the model instance directly, not via layers). We should pick a group name that reflects this, e.g. `top_level_weight_names`
+Singe the names are expected to match across models, "in the current model" does not make sense here.
+Please initially check that `mode` in is `{'auto', 'min', 'max'}`.
+"Number of epochs to wait for before..."
+Please update the docstrings as well.
+Prefer using `if isinstance(...):` / etc: it makes lines shorter and more readable, and it will be extensible to more types in the future.
+This probably won't help with your actual problem, but the following PR was very helpful when I needed to fix feed dict issues: https://github.com/fchollet/keras/pull/7064
+Please remove these changes so that this callback has the same behavior as the other callbacks. It could be discussed in another issue/PR.
+Please use instead `K.epsilon()`, so that the user can globally set all fuzz factors throughout the codebase.
+An Example section would be welcome here.
+Please log the `axes` argument in the error message. It should be clear to the user upon reading the message what happened and why it happened (likewise for other backends).
+Yes, all private methods in the Keras codebase use a single leading underscore. Thanks!
+This should be a private method, I believe
+Sounds good. I'll put something together in the weekend and I'll tag you to get your feedback.
+In general we can use the default implementation if `axis == 1 or axis == x.ndim - 1`
+Flaky test is fixed just so you know.
+I think `if self.dropout > 0 or self.recurrent_dropout > 0` is more clear.
+Looks like you got it, I just wanted to make sure this PR wasn't going to get stuck for another couple of releases.
+Using code markers around code keywords (.e.g `_predict_loop`).
+Docstring should have a `Returns` section and a `Raises` section.
+In which case this wouldn't be necessary anymore.
+Please add this to the docstring, with mention that it only applies to the validation data.
+Good catch! yeah there should be a warning.
+The entries in `config` should match the arguments in `__init__`.
+Use a variable with a complete name, not `l`.
+If all you do with `ReverseGradient` is call it, why should it be a class? Everything in the backend is a function.
+"not currently supported with CNTK".
+You are setting this to True but don't seem to be using the learning phase in the code.
+In line with naming conventions in this API, this should be `_num_constants`.
+No point in calling super here
+This should be `activations.get(activation)` where `activations` is `from keras import activations`
+Format your docstrings like other docstrings in the codebase
+Use `'` for strings for consistency with the rest of the file.
+Nitpick, but the line would be more readable if `padding` was a list instead of a tuple (many parens here).
+The indices of the axes depend on the dim ordering. Just say "width and height"
+Prefer more explicit variable names.
+Good catch! yeah there should be a warning.
+It seems the `if shuffle` block is repeated twice, you can move it out of the conditional block
+I think this is a good solution for now. In the future when we have a layer naming system, we'll use that instead.
+We generally call it "KTF"
+This would benefit from a bit more explanation on how to use TensorBoard, at least a link to https://www.tensorflow.org/versions/master/how_tos/summaries_and_tensorboard/index.html
+Also style: use `target_height` / `target_width`, no point in removing two characters.
+Use `'` as quote char for consistency
+@briannemsick Sorry, I wasn't clear about my main point! 1. The tqdm API UX is worth considering for inspiration when designing stateful metrics, which must be updated at every batch and displayed to the user. 2. I'm suggesting stateful metrics should be a callback call and not a special init variable that gets passed around to every class in keras. Rather than actually including tqdm (which is just a convenient option), the point is the excellent API UX style of tqdm for the stateful task of iterating through batches and counting them.
+It's a hack, but changing to something like ``` return K.mean(y_pred, axis=-1) + (0 * y_true) ``` may suppress the Theano warning that you're currently throwing. (NB: Not sure the dimensions here are correct in all situations, but something along these lines would work.)
+Since you are taking a global mean instead of the mean on the last axis, this will fail for loss weighting.
+You can replace the next lines with `return - dice_coef_loss(y_true, y_pred)`
+As a user, what can I do, knowing that I can now feed a Layer to the `metrics` arguments? Can I feed any Layer? (No, but some will try)
+There is a problem here. `_feed_input_names` is the list of model *inputs*, but `ins` refers to list of the Keras function input placeholders. Typically, ins = model_inputs + model_outputs + sample_weights. Your setup will still work, but the conversion doesn't get applied to targets.
+How is there any difference between this and `on_epoch_end`? In practice, both are called in succession, with nothing in between.
+It doesn't really make sense to me, because random transformations are important to have at test time as well (because they modify the statistics of the data). Best evals are from multiple random transforms, with results merged via power averaging.
+If you don't need to create a loss dependent on model outputs, you can use `loss=None`. In that case only the loss you added with `add_loss` earlier will be used.
+This should be tensor3 instead of matrix.
+Bit of redundancy: this sets `input` twice (here and in the next few lines).
+This should be tensor3 instead of matrix.
+`input_spec` contains constraints that future inputs should respect. This statement would set the length of the first input as a length constraint, but unless the network is unrolled there should be no constraint on length. This is in part what the previous TODO was referring to.
+Let's add a TODO for this one
+Let's add a TODO for this one
+Let's add a TODO for this one
+The ValueError should be reported in the docstring
+Please break up this line into several
+Bit of redundancy: this sets `input` twice (here and in the next few lines).
+"When using `steps_per_epoch`, ..."
+Insert link to callbacks page
+Prefer `if steps_per_epoch is not None`
+Looks good to me now.
+So, these are initialized based on imagenet: this is required for use with the pretrained weights. Is there a way we can allow users to configure this for custom datasets? @fchollet
+It would be more in line with the keras style guide to remove these abbreviations: dw_conv_1 -> depthwise_conv_1
+Default axis to -1
+I think we should rename this to `batch_normalization` in order to follow the TF API. API consistency matters, and Keras is aligning on TF rather than Theano.
+Default axis to -1
+No need for final space
+No need for final space
+`new_shape_temp` will be deleted automatically after the return statement. There is no need to delete it explicitly.
+Space (" ") instead of period(" ")
+Past few lines too long
+Does it really have to be this complex? This is just a unit test. why not: ```python def rnn_fn(x, h): return x, [x, K.concatenate([x, x], axis=-1)] ```
+Code delimiters ` would be more appropriate than string quotes here, for `x`.
+Code delimiters ` would be more appropriate than string quotes here, for `x` and `increment`.
+Code delimiters ` would be more appropriate than string quotes here, for `x`.
+In which cases would this be needed? It may be better to defined a proper private function than a very long named lambda. e.g. ``` python def _expand_if_needed(input, mask): ... ```
+This should be decorated with `@keras_test`
+You'd save quite a bit of code by simply not passing the `axis` argument, which is equivalent to what you are doing (normalize each sample globally). The change you are proposing matches with the docstring description, but it may not necessarily be the most useful thing to. We could also normalize per channel (`axis=(row_axis, col_axis)`). In any case the current code does not look good to me, so we should fix it indeed.
+List or tuple. Iterables implement `__iter__()` and thus may not necessarily be indexable (requires `__getitem__()`).
+It is not clear from the name "first_or_list" what the function does. A list or set with a single element is a singleton. Maybe a better name would be `unpack_singleton`.
+Shapes mentioned in the docstring are generally 2D; should be 3D
+Parens not necessary here
+I don't understand why; `tf.nn.separable_conv2d` does support strides.
+At this point it would be fine to do the dimshuffle without the call the `_postprocess_conv2d_output`
+The class docstring should explain the meaning of the arguments.
+If write batch performance is false self.seen should probably be equal to the epoch so the current behavior remains unchanged.
+This would benefit from a bit more explanation on how to use TensorBoard, at least a link to https://www.tensorflow.org/versions/master/how_tos/summaries_and_tensorboard/index.html
+`for/else` is not idiomatic Python. Please don't use this pattern.
+apologies if I gave a poor suggestion...
+If some weights are incorrectly named, we better fix it at the level where the weights are created.
+Please use more informative descriptions, not just types
+Wrap `then` and `else` with ` to make the sentence easier to parse.
+Right, better to use `then_expression` etc.
+I don't understand why; `tf.nn.separable_conv2d` does support strides.
+These should be `ValueError`
+This one is fine too
+The class docstring should explain the meaning of the arguments.
+Good catch! yeah there should be a warning.
+Please initially check that `mode` in is `{'auto', 'min', 'max'}`.
+Same remark as before regarding `output_shape`.
+Typo: output. It should be clarified that it needs to be a valid Theano expression.
+Line too long, and not PEP8 compliant. Break it down into a few lines.
+No `+` needed for string concatenation at the end
+`try / except` is not the proper thing to do here. You could do a type check instead.
+This one is fine too
+I don't think the line needs to be broken.
+In validation or test, there is no concept of epoch, so that seems OK to me.
+`pickle_safe` is generally not a good API argument, it is not very descriptive and is Python-specific (the Keras API should generally avoid being Python-specific). This is an opportunity to get rid of it. I would use `use_multiprocessing` (or `multiprocessing`, but then we have to handle to name collision with the module name) in the new code, and deprecate the `pickle_safe` argument in the generator methods at a later date.
+What about failure cases? Example: #6928 it is possible only x, only y, neither x nor y, or a tuple of some other unexpected size gets returned. At a minimum, check the tuple size and throw an exception if it doesn't match expectations. There are probably other cases like this in this pull request, it might be worth double checking.
+Add a `# Arguments` section to the docstring.
+In the future, I'll just remove this use case. I suspect having `workers > 1 and use_multiprocessing == False` doesn't gives any real speedup. I'll do some profiling and post my findings here. Also, we should try to mimic the Ordered Enqueuer so this class will get heavily refactored anytime soon anyway. (By the end of August)
+We could add a backend method to do it, with custom implementations in each backend...
+The entries in `config` should match the arguments in `__init__`.
+This will break with TF, and it would be more efficient to use `go_backwards` since it avoid the back and forth with `permute_dimensions`.
+Space after #
+I think we should use `max_queue_size` for consistency with other API keywords, which are full words, as a general rule
+Use code markers around `put()`
+These should be `ValueError`
+If using a tuple as the `kernel_size` argument, better to use a tuple for `strides` as well, for consistency.
+Spaces around operators
+The ValueError should be reported in the docstring
+Please break up this line into several
+Bit of redundancy: this sets `input` twice (here and in the next few lines).
+No point in calling super here
+This should be `activations.get(activation)` where `activations` is `from keras import activations`
+`cnn` sounds like a model instance, but it's a tensor. Call it `x`
+`)` after `]`
+Please remove new line (`"""Instantiates`).
+or invalid depth_multiplier, alpha, rows when `weights='imagenet'`.
+It's good to have an explicit example. Put it in an `# Example` section. I don't understand the message "It therefore has to be part of the computational graph,". Please remove, the example is self-explanatory.
+No `+` needed for string concatenation at the end
+Better to use `_keras_history`
+Not sure this is the behavior we actually want. Seems like a lot of hard-coded assumptions.
+What case does this cover? Also, here we have twice an unchecked assumptions that we are dealing with a list; all we know is that it isn't a float. Not all non-floats are lists.
+You don't have to return from the function. If the current epoch was best and `restore_best_weights= True` then the weights wont ever be restored which is done in the code following this line.
+No, that's a fine style as well. Anything that's PEP8 works. And line length is not strictly enforced (prefer readability over correct line length).
+For efficiency reasons I believe it is preferable to keep the default regularizers to `None`. This is also important because using `None` in the class constructor is part of the standard API and the class should be able to deal with it. This is absolutely not an issue in `get_config`: you can simply use, e.g.: ``` python "W_constraint":self.W_constraint.get_config() if self.W_constraint else None, ``` After setting `self.W_constraint` to the value given to the constructor in `__init__`.
+Most of this stuff is included in the config of `super` and thus does not need to figure here.
+replace the word hack with workaround
+This should be a `ValueError` (never raise `Exception`).
+This mechanism will only work for a few layers, and will fail in the general case. The proper behavior when batch size matters is to slice the input mask and run slices through `self.layer.compute_mask`, then concatenate. No reshaping.
+Nit: first line of docstring (one-line summary) should fit in one line and end with a period.
+Could you please split this method to a standalone utility function in `recurrent.py` (named `def _standardize_args`)? The only instance attribute it needs is `_num_constants`, which can be passed as a function argument (`num_constants`). That way we don't need to duplicate this code, you can just import it from `recurrent.py`.
+You shouldn't need to pop these args here. Rather, you should remove them from kwargs before calling the layer (which is fine since they are transferred to the input list)
+The `merge_mode` argument is never validated. Additionally, we should consider a `None` mode that just makes the layer return `(forward, backward)`
+This will break with TF, and it would be more efficient to use `go_backwards` since it avoid the back and forth with `permute_dimensions`.
+should be self.forward.
+Importantly, these are not all model weights, just the model's top-level weights (assigned to the model instance directly, not via layers). We should pick a group name that reflects this, e.g. `top_level_weight_names`
+Note that layers that don't have weights are not taken into account in the topological ordering, so adding or removing layers is fine as long as they don't have weights.
+Singe the names are expected to match across models, "in the current model" does not make sense here.
+In line with naming conventions in this API, this should be `_num_constants`.
+and -> or
+All of this should be delegated to the parent's `__call__`.
+For papers that are closer to the heart of VAEs: Might be useful to cite Kingma's [IAF paper](https://arxiv.org/abs/1606.04934) (the encoder is more complicated though) Larsen's [vae-gan paper](https://arxiv.org/abs/1512.09300) is good as well.
+Are we sure about this removal of the multiplication by the original_dim? @RuiShu added this multiplication in #3220, and he had some arguments to do it. Initial implementation was without this multiplication.
+I can't see the relation to Normalising Flows (IAF paper) or VAE-GANs. If you're looking for VAE papers that make use of convolutional architectures then there are dozens of papers. I'm not sure if the ref needs to be changed as the adaptation is minor (using convolutions for image data instead of inner product layers).
+About this test: - please use the same docstring format as elsewhere in the codebase - use `'` as quote character for consistency - use lines that are <= 80 char
+The best would be to add an `axis` argument in these loss functions. If you don't want to do that, you can use a different loss function, like `mse`.
+You don't appear to be doing any correctness checking. A simpler test would be: - call `predict` with the first model, store results in y1 - switch the data format, call `predict` on the same input array, store results in y2 - check that y1 == y2
+I'm afraid "Container" is not a term that can be readily understood by most users. Please say "list, tuple, or set"
+I will note in passing that doing one conv per channel is not an efficient way to implement depthwise conv (too much overhead). Preferable to do a single conv with a diagonal kernel.
+Use bullet points
+These should be `ValueError`
+For efficiency reasons I believe it is preferable to keep the default regularizers to `None`. This is also important because using `None` in the class constructor is part of the standard API and the class should be able to deal with it. This is absolutely not an issue in `get_config`: you can simply use, e.g.: ``` python "W_constraint":self.W_constraint.get_config() if self.W_constraint else None, ``` After setting `self.W_constraint` to the value given to the constructor in `__init__`.
+Use `'` for strings for consistency with the rest of the file.
+This function does not have a properly formatted dosctring (see other dosctrings for reference)
+I think we should not expect only a list, but also allow for tuples. In which case this comparison won't work; better to compare each member: `zoom_range[0] == 1 and zoom_range[1] == 1` . Also, since we make the assumption that `zoom_range` is going to be a 2-element list/tuple, better check first and raise a helpful error message if it's not the case.
+Better to put the activation as the `activation` keyword of the layer below
+No need for final space
+No need for final space
+`new_shape_temp` will be deleted automatically after the return statement. There is no need to delete it explicitly.
+Use a variable with a complete name, not `l`.
+Is there a reason why there is not a `SpatialAlphaDropout` like there is a `SpatialDropout`? In the paper they are not explicitly doing it, but they do have an argument `noise_shape` on their Github. When they release the code for more advanced datasets, we'll know for sure I guess.
+pg 6 of the [paper](https://arxiv.org/pdf/1706.02515.pdf) says: > Therefore, we propose âalpha dropoutâ, that randomly sets inputs to Î±
+Fix link (should be explicit link)
+This is a private method, for safety, better not pass a default value for `include_optimizer`. Users shouldn't be using it, and when working on Keras itself it is easy to forget to pass it.
+Code markers around `validation_split`
+This and everything that uses it is too tf specific for this file. See how I handled these same issues in #6928
+You can just append: ``` To install TensorFlow: `pip3 install tensorflow` ``` to the previous message.
+Excessive line breaks. The lines 202-213 do not exceed a length 85.
+Use `'` as quote char for consistency
+Explicitly mention that this is 'channels_first'/'channels_last' (since it may be confusing vs. image file format).
+As I said, using img_to_array would be nicer. The API of `save_img` should reflect the one of img_to_array
+This should be: ```python logs = logs or {} loss = logs.get('loss') if loss is not None: if np.isnan(loss) or np.isinf(loss): ```
+While print the batch index with so many leading zeros? Just use `%d`
+I don't think the grammar is right as-is with "next". Alternate: "make value available to each of the following callbacks"
+We could add a backend method to do it, with custom implementations in each backend...
+cropping, not padding
+The indices of the axes depend on the dim ordering. Just say "width and height"
+The number of batches in the Sequence
+It isn't a queue of data? I didn't mean 100 threads. Perhaps I'm not understanding something
+Space after #
+Use the same docstring as the TF version.
+Does this create a copy of the tensor? I suspect it does. We need to just copy the pointer without touching the data in memory.
+If I remember correctly, we use `to_categorical` for this one. Since the imports are not added in the docs, users will wonder what `to_categorical` is. Let's remove {{np_implementation}} it until we find another way to display it nicely.
+I think these layers would benefit from having more transparent names.
+Spaces around operators
+If you're using the default RMSprop parameters, you might as well pass it as a string to `compile()`.
+var is a reserved keyword, use `v` or something like that.
+var is a reserved keyword, use `v` or something like that.
+var is a reserved keyword, use `v` or something like that.
+The indices of the axes depend on the dim ordering. Just say "width and height"
+cropping, not padding
+cropping, not padding
+may be use a local variable here and in the cases below to avoid code duplication? ``` ndim = len(self.output_shape[i]) if ... else ... weight = ... ```
+You can change line 263-269 like this: ``` ndim = len(self.output_shape[i]) if ... else ... weight = ... ``` and you can do the same in other such places.
+Avoid avoid many logical statements on a single line, which harms readability. Instead, use a if/else block.
+It would be more in line with the keras style guide to remove these abbreviations: dw_conv_1 -> depthwise_conv_1
+So, these are initialized based on imagenet: this is required for use with the pretrained weights. Is there a way we can allow users to configure this for custom datasets? @fchollet
+Also prefer using more detailed names -- e.g. `ConvNeXtBlock`.
+It seems the `if shuffle` block is repeated twice, you can move it out of the conditional block
+Use `train_dataset` and `val_dataset` as the names
+In any case, this PR is a great addition for Keras, thank you!
+> The current progbar is fine. We're not changing the existing API, we just extend it in a really simple way to support a new use case. Fair enough, but rather than a different progbar please allow me to suggest a **different, composable stateful metric design**, unrelated to progbars, which uses the tqdm API for inspiration. In other words, consider a stateful metric which is a decorated iterator implementing `next()`, `def __iter__(self):`, `update()`, `clear()`, ` def __len__(self):`, etc.
+I think this is out of scope, the goal of the PR is to support stateful metrics. A complete rewrite of progbar (if that's the route taken) should be a follow on PR.
+@briannemsick Sorry, I wasn't clear about my main point! 1. The tqdm API UX is worth considering for inspiration when designing stateful metrics, which must be updated at every batch and displayed to the user. 2. I'm suggesting stateful metrics should be a callback call and not a special init variable that gets passed around to every class in keras. Rather than actually including tqdm (which is just a convenient option), the point is the excellent API UX style of tqdm for the stateful task of iterating through batches and counting them.
+Line too long (and several other lines in this file as well)
+Still relevant? If so, explain the diff
+Line too long
+Please use readable variable names such as `array`
+Should be named `apply_brightness_shift`
+You'd save quite a bit of code by simply not passing the `axis` argument, which is equivalent to what you are doing (normalize each sample globally). The change you are proposing matches with the docstring description, but it may not necessarily be the most useful thing to. We could also normalize per channel (`axis=(row_axis, col_axis)`). In any case the current code does not look good to me, so we should fix it indeed.
+I see you are a Theano user. This wouldn't work with TF.
+How about: epsilon = K.random_normal(shape=K.shape(z_mean), mean=0., this works on Tensorflow CPU.
+This might work in both tf and th, please help to check ```python epsilon = K.random_normal(shape=(K.int_shape(z_mean)[0], K.int_shape(z_mean)[1]), mean=0., ```
+This would be very inefficient and would cause EOM errors even for smallish datasets. Please use instead the approach of `predict()` (preallocating entire arrays as soon as their shape is known, then assigning values inside the preallocated arrays). This is doable because the number of samples that are expected is known (`val_samples`).
+`all_outs` is meant to be a list of arrays (potentially with 1 element), not a Numpy array, because we need to support multi-output models (the present code wouldn't). Same for `outs`. So I would recommend following the pattern from `evaluate_generator`: converting the output of `self.predict_on_batch` to a list if necessary, etc.
+In that case the first seed can be used to generate separate seeds for each sub process before the fork
+Please use standard formatting for the docstrings, e.g. ``` # Arguments ```
+I don't see how it makes the behavior any different. You are still feeding the *_generator functions with a generator that creates batches. The decomposition of the batch preparation process to (1) items drawn from a sequence and (2) a batch creation from a list of items, is a stronger abstraction, because: (a) It allows the user to do stronger shuffling (instead of using fixed batches throughout the training), also making layers like BatchNormalization more effective. (b) It allows the user to handle dataset elements that are not suitable for training by simply skipping over them. (c) It completely contains the current approach (of having the Dataset items be fixed batches), since in that case just set the `create_batch` function be the identity function.
+To be clear, the idea (to my understanding) is that `OrderedEnqueuer` will be the class that knows about `batch_size`. The generator that `fit_generator` receives is constructed in `DatasetEnqueuer.get()`. This generator pops `batch_size` items from the queue and then calls `self.dataset.create_batch(lst_items)` to obtain the actual batch.
+You are manually encoding the hyperparameters in both cases (number of layers and size of each layer).
+Better to put the activation as the `activation` keyword of the layer below
+Better to put the activation as the `activation` keyword of the layer below
+No `+` needed for string concatenation at the end
+`try / except` is not the proper thing to do here. You could do a type check instead.
+This one is fine too
+One import per line. Also import `models` so as to avoid `tf.keras` calls in the code. This *is* the Keras codebase! It should import internal modules, not `tf.keras`.
+Just import `utils`
+Also prefer using more detailed names -- e.g. `ConvNeXtBlock`.
+For now, after adding `axis` in the crossentropy losses, you will have to use a different loss function when doing pixelwise classification (image segmentation) in NCHW: ```python if K.data_format() == 'channels_first': loss = lambda y_true, y_pred: K.sparse_categorical_crossentropy(y_true, y_pred, axis=1) else: loss = K.sparse_categorical_crossentropy model.compile(optimizer=optimizer, loss=loss) ```
+@tiferet the API change in `sparse_categorical_crossentropy` is not something we can merge, sorry. Such an argument should be called `axis` and should default to `-1` (`K.image_data_format()` is a layer-level configuration argument and should not affect the default behavior of backend methods).
+I don't understand why; `tf.nn.separable_conv2d` does support strides.
+Then you wouldn't be able to easily serialize it.
+add space after `(w[1])`
+No point in calling super here
+Please initially check that `mode` in is `{'auto', 'min', 'max'}`.
+No warning should occur with default settings. It is safe to remove this.
+What case does this cover? Also, here we have twice an unchecked assumptions that we are dealing with a list; all we know is that it isn't a float. Not all non-floats are lists.
+Nit: use backquotes around code keywords
+Nit: use `'` as the quote character, for consistency
+Spaces around `=` please.
+I think this is out of scope, the goal of the PR is to support stateful metrics. A complete rewrite of progbar (if that's the route taken) should be a follow on PR.
+@briannemsick Sorry, I wasn't clear about my main point! 1. The tqdm API UX is worth considering for inspiration when designing stateful metrics, which must be updated at every batch and displayed to the user. 2. I'm suggesting stateful metrics should be a callback call and not a special init variable that gets passed around to every class in keras. Rather than actually including tqdm (which is just a convenient option), the point is the excellent API UX style of tqdm for the stateful task of iterating through batches and counting them.
+> The current progbar is fine. We're not changing the existing API, we just extend it in a really simple way to support a new use case. Fair enough, but rather than a different progbar please allow me to suggest a **different, composable stateful metric design**, unrelated to progbars, which uses the tqdm API for inspiration. In other words, consider a stateful metric which is a decorated iterator implementing `next()`, `def __iter__(self):`, `update()`, `clear()`, ` def __len__(self):`, etc.
+It looks like you undid my work in a merge conflict here.
+I meant "if someone de decides to catch the exception you don't want the trackback printed at all" . I should 't do this from my phone apparantly...
+remove unused keyword `args`
+Line too long
+Line too long
+Line too long
+The `merge_mode` argument is never validated. Additionally, we should consider a `None` mode that just makes the layer return `(forward, backward)`
+This will break with TF, and it would be more efficient to use `go_backwards` since it avoid the back and forth with `permute_dimensions`.
+should be self.forward.
+Line too long
+Still relevant? If so, explain the diff
+Past few lines too long
+It seems there is four spaces missing (unrelated to your changes).
+Move to the line below in order to keep each line under 80 char.
+There are no 1D layers that use this dim ordering. I would recommend removing support for it entirely for 'th' dim ordering here (see e.g. Conv1D).
+Should we rely have to rely on `np.dot`? Besides the fact that it's expensive, it's also a black box. The logic should be inferable from reading the code.
+var is a reserved keyword, use `v` or something like that.
+This is correct.
+`self.dtype = dtype or K.floatx()` is equivalent and simpler.
+I mean `RuntimeError`.
+or invalid depth_multiplier, alpha, rows when `weights='imagenet'`.
+Nit: please shorten lines (here and above).
+No need for the extra space at the end of the lines.
+Nit: please shorten lines here to 80 char or less (also in `initializers.py`)
+No warning should occur with default settings. It is safe to remove this.
+Please print a message for this action (like we do in `on_train_end`): "Restoring model to its state at the end of the best epoch."
+Please initially check that `mode` in is `{'auto', 'min', 'max'}`.
+Prefer making multiple statements, it will be easier to read than breaking the statements into multiple lines. Breaking lines should only be done if necessary. ```python slices = [] for i in range(x.ndim): .... ```
+enumerate is not needed here. i is not used
+@farizrahman4u Isn't `ndim` always going to be 1 for `n`, I think you meant the equivalent of `len(n)`
+Simply `batch_size` would suffice.
+Can we change this parameter to be `write_step` with the options `'epoch'` and `'batch'`, and improve the description? I think `write_step` might be more clear, and doesn't break the true/false setting in the future if there is another setting worth adding.
+Please use a smaller batch size in order to fully test the iteration code (here is only a single batch).
+Format your docstrings like other docstrings in the codebase
+`if n.__class__.__name__ == ...`
+What you call `one_hot` is referred to as `categorical` everywhere else in the codebase (e.g. categorical_crossentropy, cateorical_accuracy, to_categorical). But think we don't need this argument, when it comes to single-label classification, because you can automatically infer it from the shape of the predictions (if the last axis is size 1, it's binary, else categorical).
+This is too broad an exception, it should be `ImportError` (otherwise something inside the module could fail and you wouldn't know why).
+This should be a `ValueError`.
+Since this is about dealing with a Theano-specific behavior, the syntax should be: if Theano: else:
+I think we should either not mention the details of choosing the reduction methods, or explain why it's chosen this way (for which, I'm afraid there's not an easy way to describe in docs as it really depends on tf.distribute strategies' implementation). So, I would probably just say the library would choose the best reduction method based on the training environment, for 2).
+"first", "concat", or "sum".
+Suggest: all cases to be replaced by "general use cases"
+I think we should make this function private, as well as `is_current_explicit_device`, and `get_available_gpus`.
+Per the failing docstring test, this docstring needs a `Raises` section mentioning the ValueError: https://travis-ci.org/fchollet/keras/jobs/282558708
+Please make this method private (unless there is a rationale for making it part of the public API).
+This would benefit from a bit more explanation on how to use TensorBoard, at least a link to https://www.tensorflow.org/versions/master/how_tos/summaries_and_tensorboard/index.html
+That's a good point, since we didn't require it be named `epoch` before, we should probably make the first argument positional and only make the second (new one) a keyword arg.
+Better to use keyword arguments (same below). API change looks ok to me.
+Please rename to `preprocessing_function`. Please improve the docstring by specifying: "The function should take one argument: a batch of images (Numpy tensor with rank 4), and should output a Numpy tensor with the same shape."
+It doesn't really make sense to me, because random transformations are important to have at test time as well (because they modify the statistics of the data). Best evals are from multiple random transforms, with results merged via power averaging.
+This is incorrect
+I think it's fine to test for KNP. As you said in our previous discussions, we can make certain assumptions regarding the numpy backend when the function is simple (K.expand_dims for example). In this case, I believe it is simple to check that `unroll` is not used in KNP.rnn because * `unroll` can have no meaning in the numpy implementation of RNNs. * With a decent text editor with python pluging / IDE, the variable `unroll` is marked as `unused variable` so it's fairly easy to notice an error. To be clear: * I believe that the numpy backend should get tested for complex functions * KNP.rnn should get tested for correctness * It is safe to assume that KNP.rnn doesn't use `unroll`
+I thought about it last time, and I don't think we need those checks, because you already did everything needed in the numpy implementation. KNP.rnn is garanteed to give the same result for `unroll=True` and `unroll=False` because you don't use the variable `unroll` in the implementation. You already compare against KNP.rnn, so you're good to go. This should simplify this function quite a bit. Do you see what I mean? Maybe I'm not clear.
+Past few lines too long
+How about the following? ``` mean, var, beta, gamma = [np.random.random(other_shape).astype(np.float32) for _ in range(4)] ```
+Past few lines too long
+Isn't it equivalent to this? ```python def int_shape(x): return x.shape ```
+One import per line. Also import `models` so as to avoid `tf.keras` calls in the code. This *is* the Keras codebase! It should import internal modules, not `tf.keras`.
+Just import `utils`
+Also prefer using more detailed names -- e.g. `ConvNeXtBlock`.
+It looks like you undid my work in a merge conflict here.
+I meant "if someone de decides to catch the exception you don't want the trackback printed at all" . I should 't do this from my phone apparantly...
+remove unused keyword `args`
+Also I think the line does too much, breaking it into several lines would be preferable.
+Not a useful example. Instead please have examples dealing with larger input shapes (e.g. 3D, 4D).
+Should be `inputs` and `mask`.
+In that case shouldn't it be `if x.ndim == 4`? Also this line is becoming too long, I'd suggest creating a `use_cudnn` intermediate variable.
+Default axis to -1
+this is not good I think with the new back-end. I think it should be: use_cudnn = ndim(x) < 5 and reduction_axes == [0, 2, 3] if dev.startswith('gpu') and theano.sandbox.cuda.dnn_available(): pass elsif dev.startswith('cuda') and theano.gpuarray.dnn.dnn_available(dev): pass else: use_cudnn = False This can be refactored, but I think it show more clearly the logic to use.
+Just say "either md5 or sha256".
+I don't understand why we would want to deprecate md5, or have a preference for one algo or another. It's cool to support more than one hash function, but md5 works just fine for this purpose. We're just building a basic cache invalidation mechanism.
+In general your docstrings have an indentation problem, the lines after the first one should be indented by 1 level (4 spaces).
+Use `'` as string delimiter
+`data_utils` is no longer meant as a public namespace, use `utils`
+We have this warning in several places, please fix it everywhere
+In general this test is more like an integration test than a unit test. You don't need half of this stuff: - the model should be minimal (this one has a bunch of extra layers) - you don't need data with a statistical structures, `np.random` will work just fine - etc.
+This test would be very expensive to run. It's an integration test, not a unit test. Please boil it down to essential components.
+Also, you don't actually need these error messages after `assert` since this is a unit test
+That's a good point, since we didn't require it be named `epoch` before, we should probably make the first argument positional and only make the second (new one) a keyword arg.
+Better to use keyword arguments (same below). API change looks ok to me.
+Don't use needed abbreviations that make code harder to read in order so save 4 characters.
+I don't think so, adding @KeDengMS from cntk team to confirm
+You may use [element_select](https://cntk.ai/pythondocs/cntk.ops.html#cntk.ops.element_select)
+Don't indent. Don't use \ (this is not code)
+I'm glad I could help :)
+Please initially check that `mode` in is `{'auto', 'min', 'max'}`.
+No warning should occur with default settings. It is safe to remove this.
+An optimizer instance is not serializable (it's a Python object). The previous 4 lines were serializing it. Revert this
+You don't need to compute a list of filtered layers in this setup. You can build the index in one go.
+This is a private method, for safety, better not pass a default value for `include_optimizer`. Users shouldn't be using it, and when working on Keras itself it is easy to forget to pass it.
+`raise NotImplementedError` may be more appropriate.
+Don't use needed abbreviations that make code harder to read in order so save 4 characters.
+I thought since `callbacks.Tensorboard` didn't need `validation_data` anymore (and no other callback seems to use it), we could safely remove it; but I guess this would break users' custom callbacks. +1 for keeping it, then.
+Need to fill in this section
+Use list markers
+Shapes mentioned in the docstring are generally 2D; should be 3D
+Not a fan of this. It is neither simple nor elegant.
+Be more specific with the test name
+I don't think this is required, please remove mmh3-related code.
+Need to fill in this section
+Use list markers
+Shapes mentioned in the docstring are generally 2D; should be 3D
+replace `with` with `to`
+`CNTK` (to have consistent capitalization with other messages) `when constructing the trainer`
+Spaces at the end of lines
+There are no 1D layers that use this dim ordering. I would recommend removing support for it entirely for 'th' dim ordering here (see e.g. Conv1D).
+At this point a check should be done that the cropping argument is a tuple of length 2 of tuples of length 2
+cropping, not padding
+Use `'` as string delimiter for consistency
+You don't need BN for such a shallow network, `Conv2D` and `MaxPooling2D` should suffice
+Better to put the activation as the `activation` keyword of the layer below
+The error message should mention the rank of the condition that was passed and the rank of the then/else expressions
+Right, better to use `then_expression` etc.
+Wrap `then` and `else` with ` to make the sentence easier to parse.
+PEP8: spaces around operators. We don't do strict PEP8, but such guidelines make the code more readable and should be respected.
+I don't get why you are introducing this unused argument.
+It appeared to do so. I altered the `append` line above to: `trained_encoders.append((ae.layers[0].encoder, ae.layers[0].encoder.get_weights()))` and this line to: ``` model.add(encoder) model.layers[-1].set_weights(weights) ``` This seems to be working pretty well.
+Right. My mistake.
+@farizrahman4u Undefined variable `K`
+@farizrahman4u Isn't `ndim` always going to be 1 for `n`, I think you meant the equivalent of `len(n)`
+```suggestion if k == KC: ```
+Just noticed that this line doesnt test anything if backend is CNTK. So one last nit pick.. Put the backend check outside the loop so that it makes more sense: ```python def test_stack(self): tensor_list = [np.random.randn(5, 4, 6, 10) for _ in range(5)] stack_axis = 3 results = [] if K.backend() == 'cntk': check_two_tensor_operation('stack', (5, 4, 6, 10), (5, 4, 6, 10), WITH_NP, axis=stack_axis, concat_args=True) else: for k in WITH_NP: tensor_list_var = [k.variable(tensor) for tensor in tensor_list] out = k.eval(k.stack(tensor_list_var, axis=stack_axis)) results.append(out) assert_list_pairwise(results) ```
+Please keep the random tests where they were. Unit tests should be small and target as few things as possible for better error reporting and debugging.
+The three lines above can be removed.
+Use f-strings for string formatting (or otherwise `format()`). The error message should include what the input shape was and what the output shape would have been. "check the input shape" is not actionable.
+Use `'` for strings for consistency with the rest of the file.
+I believe this is incorrect implementation. In the original paper `a` and `b` are defined as follows: ```tex a = (q + {\alpha'}^2 q (1 - q))^{-1/2} b = -a ((1 - q) \alpha') ``` where `q` is keep probability. But here drop probability `rate` is used instead.
+Keeping `rate` does not make the expressions below more complicated; it makes them more readable: ```python a = (1 - rate) * (1 + rate * alpha_p ** 2) ** (-0.5) b = -a * (alpha_p * rate) ```
+Some parentheses missed, and some aren't required. I would propose: ```python a = ((1 - rate) * (1 + rate * alpha_p ** 2)) ** -0.5 b = -a * alpha_p * rate ```
+Bit of redundancy: this sets `input` twice (here and in the next few lines).
+This should be: ```python logs = logs or {} loss = logs.get('loss') if loss is not None: if np.isnan(loss) or np.isinf(loss): ```
+Callbacks are processed sequentially, future is more vague than next IMO.
+"Name-based weight loading (instead of topological weight loading)"
+"The weight file you are trying to load is in a legacy format that does not support name-based weight loading".
+You don't need to compute a list of filtered layers in this setup. You can build the index in one go.
+This should be: ```python logs = logs or {} loss = logs.get('loss') if loss is not None: if np.isnan(loss) or np.isinf(loss): ```
+While print the batch index with so many leading zeros? Just use `%d`
+It's also inconsistent with line 593
+You're right. Never mind then.
+Please format the docstring like the others, with an `# Arguments` and `# Returns` section
+Likewise, please format docstring
+The Keras API does not require `compile` before calling `predict`, because `compile` merely configures training and is not related to inference. If MXNet requires it, that's a bug and it should be fixed.
+Transposing the weights is always the right thing to do regardless of original backend.
+We could add a backend method to do it, with custom implementations in each backend...
+This will be more readable with code markers around `epochs`.
+"the parameter" is redundant, you can simply say `epochs`
+Code markers around code keywords (`)
+Seems a bit specific. Since this is the last `if` clause, it would be okay to cast it to list: ``` else: key = list(key) ```
+Simply as `(self.end - self.start,) + self.data.shape[1:]`
+The weights should be sorted. Simply catching the exception is not the right fix...
+Is this backwards compatible with what we had previously? We have datasets and applications relying on the previous system.
+Newline before this line
+This description makes it sounds like it is required to pass a hash in order to skip download. But if not hash is passed and a local file is found, we should skip download, too. The hash is just a way to invalidate old files on people's computers after they have been updated on the Keras side.
+You could do that with Matplotlib, to avoid a new dependency
+Same, please add more info. Maybe a concrete example would help.
+Previous version was more readable imo.
+isn't is always \n anyway? POSIX uses \n as default. So we could remove the if.
+This argument is only accepted in Python 3, it would not work with Python 2.
+B is added in the constructor if we remove the NT check.
+I think this check would be better as if inputs.shape[1] is not None and sum(self.cropping) >= inputs.shape[1]: You could still construct a tensor with size 0 and shape (None, None) that would cause this to crash.
+This would read clearer with format strings, and we are trying to gravitate towards more uniform error messages in keras. f'`cropping` parameter of Cropping layer must be greater than the input shape. ' f'Recieved: inputs.shape={inputs.shape}, and cropping={self.cropping}'
+Some layers may only be able to process a batches of a fixed size. A built-in Keras example are stateful RNN layers. Other examples include custom layers that share information across samples in a batch (one case I've come across is to have batches of size 2 and take the distance between the two samples). Again: if the batch size is specified, then it is meaningful, and you should not arbitrarily change it.
+No need for final space
+No need for final space
+I don't quite understand this message. Do we expect users to be familiar with the concept of "dynamic axis" here? Doesn't seem standard
+This should be private. Also, since this function is only called once (in a loop), please consider if you could in-line it in the parent function.
+So I think we should: - move the function inside the parent function, since no one else will use it - keep the list comprehension, since we won't in-line the function after all... Thanks!
+Please add `# Arguments` and `# Returns` sections.
+The ValueError should be listed in the docstring. The error message should specify what was passed, and the list of values expected instead.
+this value error is good but do in other places
+This is already validated in the constructor, no need.
+Line too long
+Line too long
+Line too long
+Please add a docstring.
+Using code markers around code keywords (.e.g `_predict_loop`).
+Docstring should have a `Returns` section and a `Raises` section.
+Please log the `axes` argument in the error message. It should be clear to the user upon reading the message what happened and why it happened (likewise for other backends).
+An Example section would be welcome here.
+Introduce an `if` block to avoid a very long line.
+These few lines break PEP8 conventions.
+You don't need a lambda here. Also, don't break lines with `\`.
+Don't put logic on an `if` line, introduce a line break. In general, I suggest rewriting the part of the code that prints evaluation results to make it simpler, easier to read, and more user friendly. A big goal of these example scripts is to be as user friendly as possible while introducing best practices.
+Better mention that the cropping happens along the time dimension here (axis 1)
+cropping, not padding
+The indices of the axes depend on the dim ordering. Just say "width and height"
+pg 6 of the [paper](https://arxiv.org/pdf/1706.02515.pdf) says: > Therefore, we propose âalpha dropoutâ, that randomly sets inputs to Î±
+Is there a reason why there is not a `SpatialAlphaDropout` like there is a `SpatialDropout`? In the paper they are not explicitly doing it, but they do have an argument `noise_shape` on their Github. When they release the code for more advanced datasets, we'll know for sure I guess.
+We might need a more standard way to merge dictionaries (with the latter dict taking precedence). Like a `config` decorator. Or maybe that would introduce too much implicitness.
+Better to use keyword arguments (same below). API change looks ok to me.
+That's a good point, since we didn't require it be named `epoch` before, we should probably make the first argument positional and only make the second (new one) a keyword arg.
+Please initially check that `mode` in is `{'auto', 'min', 'max'}`.
+Better to use `_keras_history`
+No `+` needed for string concatenation at the end
+"of a symbolic tensor" (it doesn't have to be a keras one)
+Are there cases where `any` would not return `bool`? If so, better to fix it in the corresponding backend.
+This mechanism will only work for a few layers, and will fail in the general case. The proper behavior when batch size matters is to slice the input mask and run slices through `self.layer.compute_mask`, then concatenate. No reshaping.
+No, this should always be entered if `input_shape[0]`.
+"`x` can be" (better be explicit)
+"input names to Numpy arrays"
+Same, can be a list
+No need for final space
+No need for final space
+You should be able to get this list without relying on `nb_params`. Then you can get rid of all code related to it.
+`+ K.epsilon()` in the denominator.
+Capital variable names is not appropriate for scalar variables
+PEP8 specifies that there should be spaces around operators. Also this is a very long line, so you might want to break it up into two lines.
+The best would be to add an `axis` argument in these loss functions. If you don't want to do that, you can use a different loss function, like `mse`.
+You don't appear to be doing any correctness checking. A simpler test would be: - call `predict` with the first model, store results in y1 - switch the data format, call `predict` on the same input array, store results in y2 - check that y1 == y2
+About this test: - please use the same docstring format as elsewhere in the codebase - use `'` as quote character for consistency - use lines that are <= 80 char
+Please make multiple statements instead of breaking the line, it will improve readability. ```python if _LEARNING_PHASE ....: return .... else: return .... ```
+The same fix should be applied to `get_updates_for`.
+Incorrect / confusing. Please fix.
+There are added empty lines. Please remove them.
+One import per line. Also import `models` so as to avoid `tf.keras` calls in the code. This *is* the Keras codebase! It should import internal modules, not `tf.keras`.
+Just import `utils`
+Nit: first line of docstring (one-line summary) should fit in one line and end with a period.
+Could you please split this method to a standalone utility function in `recurrent.py` (named `def _standardize_args`)? The only instance attribute it needs is `_num_constants`, which can be passed as a function argument (`num_constants`). That way we don't need to duplicate this code, you can just import it from `recurrent.py`.
+In line with naming conventions in this API, this should be `_num_constants`.
+I think this is probably needed as well, otherwise the follow up model.eval() will accumulate the metric result from this train/test_on_batch.
+Description not consistent with actual behavior...
+`raise NotImplementedError` may be more appropriate.
+Style: code markers around `Sequence`
+I'm afraid "Container" is not a term that can be readily understood by most users. Please say "list, tuple, or set"
+This method is new, so it has never had a `verbose` argument. This check was for backwards compatibility. Here it isn't required. You can just remove `kwargs` management altogether.
+Please rename `sparse_top_k_categorical_accuracy` for consistency with other metrics names
+You can replace the next lines with `return - dice_coef_loss(y_true, y_pred)`
+PEP8 specifies that there should be spaces around operators. Also this is a very long line, so you might want to break it up into two lines.
+This line should be right after `"""`. Put "`" around function names.
+Also add a `# Arguments` section for `*args`
+Please make this method private (unless there is a rationale for making it part of the public API).
+The point of these conversion interfaces is that old code should still work. So in this case we should figure out a better solution. Please leave out this layer.
+This could simple read "converted"
+Unclear what purpose this line serves.
+Additionally, raise a `ValueError` with a helpful message in case an unexpected key is found in the dict. This is important because people may have typos in their dict argument and they would never notice.
+It would be more concise to make the named keyword args part of the function call, rather than storing them in the `kwargs` dict.
+At this point a check should be done that the cropping argument is a tuple of length 2 of tuples of length 2
+Yes please, rewrite those lines.
+it's less pythonic but more in line with the style of how things are computed at some other places in the code base.
+It's possible to write this one liner in several more readable lines of code. It will also solve your pep8 problems.
+If you're using the default RMSprop parameters, you might as well pass it as a string to `compile()`.
+Previous version was more readable imo.
+`# Returns `
+"the input name to a Numpy array" (singular in this case, for `Sequential`)
+"or 1-element list of Numpy arrays" does not need to be specified, since this is not how we want people to use `fit` on `Sequential`.
+Insert link to callbacks page
+Better to put the activation as the `activation` keyword of the layer below
+You are manually encoding the hyperparameters in both cases (number of layers and size of each layer).
+Better to put the activation as the `activation` keyword of the layer below
+Awesome : ) But now you'll need to remove the outdated exception as well ; )
+Also around `=`
+Spaces around `<`
+Remove leading space
+Add line break above
+The number of batches in the Sequence
+No need to capitalize Input or Tensor
+num_train_samples != steps_per_epoch, though. A step is a batch, not a single sample.
+this is discussed in https://github.com/fchollet/keras/pull/7113
+"Name-based weight loading (instead of topological weight loading)"
+Please clarify the docstring: "in case of mismatch between the number or shapes of the weights of a layer in your model, and the corresponding weights in the savefile".
+"The weight file you are trying to load is in a legacy format that does not support name-based weight loading".

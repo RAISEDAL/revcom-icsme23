@@ -1,0 +1,1255 @@
+The test page has a perfectly good `application/ld+json` script element with `@type: VideoObject` which should be the default source for metadata.
+`try_get` is useless here.
+I mean you must pass both regexes.
+you should use md5 for long fields like this ```py 'description': 'md5:xxx', ```
+This breaks all non ks embeds. ks part must be optional.
+additional info can be extracted from `video` request.
+Use more relaxed version, e.g. `[^/]+` to match segments and `[^/?#&]+` to match id.
+Combining is a task of a player or any other consumer, youtube-dl should not do that. Otherwise in general we would need to generate all `n! / (n - 2)!` partial permutations of unique subtitles for consistency.
+Now you break extraction if any of these keys is missing.
+`ipv4_addrs` is a misleading name since ip version depends on `filter_for` and not necessarily equals v4.
+Breaks on `None`.
+try to parse multiple formats, set `vcodec` to `none`.
+I guess this should better go right to `_ffmpeg_filename_argument`. It does also work with just `-`.
+Must be numeric not string.
+@zachee @dstftw I had a go at removing the duplication. Is this any good? **Function** ``` def _get_first_valid_downloaded_webpage(urls, video_id, headers): for url in urls: webpage = self._download_webpage(url, video_id, headers=headers) if not ('File not found' in webpage or 'deleted by the owner' in webpage): return webpage raise ExtractorError('File not found', expected=True, video_id=video_id) ``` **Usage** ``` def _real_extract(self, url): video_id = self._match_id(url) url = 'https://openload.co/embed/%s/' % video_id url2 = 'https://openload.co/f/%s/' % video_id headers = { 'User-Agent': self._USER_AGENT, } webpage = self._get_first_valid_downloaded_webpage([url, url2], video_id, headers) ```
+I think it's customary to use `_VALID_URL` for id matching if possible.
+There should be spaces between `%`.
+```XimilayaIE.ie_key()``` is better
+`if playlist_size:` is enough.
+Maybe better: ```suggestion cdn_url = '/'.join((data['cdns'][0], 'replays', user, video_id)) ```
+Should be `--gnome-keyring` or so for symmetry with `--netrc`.
+Therehere could be a fallback to video/embed URL and extraction without metadata with a warning to use credentials for correct metadata printed.
+Just remove the `try:` and `except:` lines.
+This regex does not make any sense.
+No need for that check it's already checked in `parse_iso8601`.
+Read: coding conventions, optional fields.
+I believe their generic name is `YouPorn`, so you can just delete this line.
+This should not raise a generic Exception, but an `ExtractorError`.
+`<span[^>]+class="name">...` is better.
+This should not be fatal.
+Move flags into regex.
+Breaks if `node_views_class` is `None`.
+Remove all unused code.
+Probably this will work instead? `urllink = ''.join([str(urlcode[key]) for key in sorted(urlcode.keys())])`
+The new group is non-capturing and should be marked as such. I'm not sure what the other group (`(["\']])`) was ever for, so we can mark it non-capturing as well
+Breaks on `None` title.
+Nothing to do with RFC 3986.
+No escape for `/`.
+Must be int.
+`try_get` is useless here.
+This must be asserted.
+`if playlist_size:` is enough.
+it better to extract all the urls in the `mpath` array.
+Use display id.
+Hi @dragonken, The current commit by @chongjea does not work now. @atxalex 's code also does not work in my environment. I am currently using my patch privately. Should I open a new PR? Seems @chongjea not response anymore...
+This will fail in Python 3.2 as old `base64.b64decode` requires bytestrings. You need: ``` base64.b64decode(v['play_url']['main_url'].encode('utf-8')).decode('utf-8') ```
+No, use a value that matches the user agent used by youtube-dl(`chrome`).
+Code at lines 37-42 is similar to code @ 51-56. It should be moved to separate routine.
+This will prevent downloading http URLs with time pointers without ffmpeg in `PATH`. ffmpeg availability should also be checked here.
+Do not touch existing `AtomicParsley` code. `mutagen` path must be a fallback if `AtomicParsley` is missing.
+Should be `flv`.
+1. Breaks if div is not found. 2. `re.finall`.
+hls and rtmp are available as well.
+Use fatal=False or default=None in _html_search_regex to handle fallbacks instead of try-except patterns.
+`SoundcloudIE.ie_key() if SoundcloudIE.suitable(permalink_url) else None` at the place of passing `ie`.
+Extractor must not return None.
+Do not escape `/`.
+Here (ll.77-9) you can use `try_get()` to simplify and enforce the `format_url`: ``` format_url = try_get(format_dict, lambda x: url_or_none(x['src'])) if not format_url: continue # now guaranteed: format_dict is a dict-like object, format_url is not None ```
+```suggestion next_page = urljoin(url, next_page and self._search_regex( r'''<a\b[^>]+\bhref\s*=\s*("|')(?P<url>(?:(?!\1).)+)''', next_page, 'next page link', group='url', default=None)) ```
+[You should not be calling `__contains__` directly.](http://stackoverflow.com/a/1964949/1072626)
+Title is mandatory.
+`varvideoInfo` is not possible, regex is invalid.
+Use regular string format syntax instead.
+No `\W`. You must match arbitrary quotes and arbitrary whitespace.
+`<h1>` is more likely to change than `<title>`, so I guess extracting from `<title>` is better.
+URLs must contain scheme name. There is no need to thoroughly test all the thumbnails.
+It does not check the other path since you neither download it here nor test the `url` not to contain `mp4:`. Thus you can't be sure whether this test involved the other path or not.
+The same. Should use https if ```url``` use https.
+This code is not required anymore (it used to - where did you still find it) - `_real_extract` only gets called when th eURL is suitable, and being suitable is defined as `re.match(self._VALID_URL, url)`.
+The argument will already be a character string, no need to decode it.
+It should be `decode('utf-8')` not encode. Also use lowercase for encoding name for consistency.
+Also where did you get `https://mp3d.jamendo.com/download/track/%s/mp32` from? Browser uses different location.
+Change 1 test to https://vplayer.nbcsports.com/p/BxmELC/nbcsports_embed/select/9CsDKds0kvHI. Change 2 test to https://vplayer.nbcsports.com/p/BxmELC/nbcsports_embed/select/media/_hqLjQ95yx8Z.
+Still does not handle aforementioned URLs.
+End users do not read source codes thus will never find this advice.
+No such key `thumbnailUrl` possible in `info`.
+Sorry it took me so long to get to this, but I just tested #25216 and it works for me as-is. So my theory above is completely wrong.
+This should actually be just `self.url_result(embedded_url)`.
+Dots not escaped.
+This does not make any sense, you already have `url`.
+Remove all garbage.
+same for `episode_number`(both lines where highlighted).
+Must be separate extractor.
+* If there may be a newline in the 'videodescription', the `s` (dotall) flag is needed. * The regex as proposed will match everything between the first `<p>` and the last `</p>` (in the test video there's only one `<p>` element, but that's not robust). * A named group isn't really required. ```suggestion article = self._search_regex( r'(?s)<article\b[^>]*?\bclass\s*=\s*[^>]*?\bpost\b[^>]*>(.+?)</article\b', webpage, 'post', default='') video_description = ( self._html_search_regex(r'(?s)<p>\s*([^<]+)\s*</p>', article 'videodescription', fatal=False) or self._og_search_description(webpage)) ``` The suggestion (untested) tries to get the `<article>` with class `post`. Then the first `<p>` element in the article's innerHTML is selected, with the description being its stripped text. An alternative could be to find all the `<p>` elements in the page and return the one that matches the start of the ld+json or og:description text.
+I would prefer indent similar to the former code.
+All formats should be extracted.
+I guess format codes are some denotions not related to the quality. `_sort_formats()` will sort the formats by resolutions, bitrates, etc., so it would not be a problem. If formats are not sorted, users may download videos with worse qualities. For example in the case I've mentioned previously, 640x352 is downloaded instead the 1920x1072 one.
+This video is georestricted.
+Forward slash does not need escaping.
+`vcodec` of format should be set to `'none'`.
+These dependencies are unacceptable. Moreover you don't use them.
+should be handled someway in `js_to_json`, at least add a `TODO` to indicate that this should be fixed in a general way.
+This will prevent downloading http URLs with time pointers without ffmpeg in `PATH`. ffmpeg availability should also be checked here.
+It shouldn't fail if `user` or `username` is missing.
+Again: it's not part of the video's title and must not be in the title.
+Remove all debug output.
+No such field.
+Uppercase is not honored.
+keep similar checks for element class and `get_element_by_class` value.
+The third parameter of `_html_search_regex` is name but not ID.
+Doesn't match, and `display_id` shouldn't be a URL anyway: ```suggestion ```
+make one of the tests an `only_matching` test.
+Remove unnecessary verbosity.
+It would be useful to mention version in `'url'` to know which has failed. Version can be passed outside to `_get_format`.
+It's added in Python 2.6, so it's OK to use it as youtube-dl supports Python 2.6+ only.
+Use `self._og_search_*` functions here.
+Better to use `'url': update_url_query(v, {'rnd': rnd, }),` (and import `update_url_query`). For backward compatibility, format fields must be numbered (throughout, if any remain).
+Read coding conventions.
+This will return non existent path if conversion fails.
+Mandatory field: `video_detail.['name']`, or add `or self._generic_title(url)` (not generally done).
+This is pointless.
+Single loop for all sources without any unnecessary intermediates.
+Therehere could be a fallback to video/embed URL and extraction without metadata with a warning to use credentials for correct metadata printed.
+This branch is never reached.
+Use `utils.qualities` to produce value for `quality` fields instead of `preference`. Also eliminate code duplication.
+Don't capture groups you don't use.
+Instead of this extraction should be delegated to `WSJIE` via `url_result`.
+`[]` is useless.
+> Is there a good way to do that that I'm missing? Currently no. You can add it in another pull request. Don't be surprising that youtube-dl lacks such a basic utility. It's an old project from 2006.
+All debug code should be removed.
+Depending on where in the page the target may be, consider `self._html_search_regex()` which unescapes the returned match (eg, if it contains `&amp;` that should be `&`, or just `&#0049;` that should be `1`).
+No exact URLs.
+This code looks similar to `sd` format and can be extracted to a function.
+`twitter:title` meta tag does not contain ` | Dagelijkse kost` in the end. if you want to keep `og:title` then you can use `remove_end` function to clean the title.
+remove, youtube-dl will create the `thumbnail` key from the `thumbnails` list.
+Must be int.
+Re-read my post with eyes please.
+This should be rewritten in terms of [`YoutubeIE._extract_urls`](https://github.com/rg3/youtube-dl/commit/66c9fa36c10860b380806b9de48f38d628289e03).
+Use `utils.xpath_text` instead, again with `fatal=False`.
+This is never reachable.
+Bitrate should go to corresponding format meta field.
+Breaks if no `rate` key in `stream`.
+`if playlist_size:` is enough.
+> compat_input can't cope with non-ascii titles Any Python bug report for that? Maybe we need to implement our ```compat_input``` rather than wrapping existing functions.
+There are three matching groups in here, one of which can evaluate to an empty string. That's unlikely to be correct.
+will easily match outside the element.
+If you accept this to be missing then it must be `default=` not `fatal`.
+Remove useless code.
+this URL you have provided is not related to this part of the code(`RaiPlayLiveIE`).
+Const must be uppercase. Protected must be prefix with underscore. Single quotes.
+No. What's the point of video id here? `settings` part provides enough uniqueness.
+Do not use leading underscore for locals.
+Don't give a default, especially not of the wrong data type; just let it default to `None`. Also, perhaps move this down to l.129 where `duration` is further processed.
+Uppercase is used for const.
+```suggestion content_id = self._html_search_regex(r'"contentId":"(.+?)"', webpage, 'content_id') ```
+Any reason to have three full tests? If not, you could set two of them to `'only_matching': True`
+- you can just do `e.cause.read()` instead of `e.cause.fp.read()`. - extract `message` into a variable as it's going to be used either way.
+`id` must not contain any irrelevant parts.
+`default` and `fatal` are not used together. Prefix keyword arguments with their names.
+No brackets needed.
+`<h3>` is intentional.
+still won't allow for https://www.vvvvid.it/show/156/psycho-pass/?foo=bar, `https?://(?:www\.)?vvvvid\.it/` can also be shared between extractors.
+This check does not make sense since `media` contains mandatory data continuing without which is pointless. Read coding conventions.
+The best way is modifying determine_ext and make it recognize whether it's audio or video. As of now you can just omit this line and let the ext be unknown_video.
+This website uses JWPlayer. Use `JWPlatformBaseIE._extract_jwplayer_data` instead. Usually it's not a good practice to re-invent the wheel.
+`_match_id`. Do not shadow built-in names.
+It does not necessarily mean that.
+```suggestion for k in ('subtitles', 'subtitlesUrl'): subtitles_array.append({'url': video_data.get(k)}) ```
+Pass `Referer` header to avoid 403: ```suggestion headers = {'Referer': 'https://www.duboku.co/static/player/videojs.html'} formats = self._extract_m3u8_formats(data_url, video_id, 'mp4', headers=headers) ```
+Move flags into regex.
+OK. I'll open an issue for discussing this. For now you can remove this line.
+`fatal` must be added to `_extract_info`. No changes to core code.
+Final bit, self._search_regex is better than re.search
+`re.search` is almost always incorrect in an extractor. Use `self._search_regex` instead, because the latter fails appropriately when the regexp isn't found.
+```suggestion new = '' ```
+Parenthesis are superfluous.
+This test is pointless. You must test iframe extraction not regex match.
+still won't allow for https://www.vvvvid.it/show/156/psycho-pass/?foo=bar, `https?://(?:www\.)?vvvvid\.it/` can also be shared between extractors.
+Side note: Wow, these guys are military, but don't support https? Oh my...
+The (non-empty) matches succeeded (or an exception would have been raised) so the values are both truthy: ```suggestion headers['rfApiProfileId'] = api_token headers['rfWidgetId'] = widget_id ```
+Instead of this extractor you should add an extractor for `https://20.detik.com/embed/...` URLs and add detection of such embeds in generic extractor.
+It's better to keep the original ID for existing patterns, or --download-archive will be broken.
+This should be split into building url and extracting formats.
+For example, `playlistitems` may come from a graphical selection where the user selects the items of a playlist. It would be highly suprising to download all videos if none are selected.
+`else` is superfluous.
+I think it's better to directly include `'?v_id=%s'` in `_VIDEO_INFO_BASE_URL`.
+No. You should not shadow the original explicitly provided password.
+There are lots of Content-Type calls. Please merge them together
+default and fatal are not used together. `True` is default.
+Uh oh. Just use `self._match_id(url)` and change the symbolic name of regex group to `id`.
+i think it would be better to keep the old variable name(`song`) as this response contain most of the data available in the old `API` response.
+Well, the helper method can be smart about when to call `cleanHTML`
+it whould be better to iterate once and extract the needed information.
+A lot of extractors use the format "{extractor} says: {error_message}", which may be clearer to the user.
+It's not about on what to be called. It's about on what it will be called. Malformed webpage is very possible case and even when one single format webpage is malformed the **whole** extraction will be broken. The error should not be hidden rather a warning printed (this is what you'll get with `fatal=False`) but it should not break everything.
+I think it's safe to use `avi` here since we use extensions for this option. Moreover, it will simplify [this code](https://github.com/aurium/youtube-dl/blob/master/youtube_dl/postprocessor/ffmpeg.py#L297-L301) a bit.
+> Is there a good way to do that that I'm missing? Currently no. You can add it in another pull request. Don't be surprising that youtube-dl lacks such a basic utility. It's an old project from 2006.
+No. Use fatal search regex instead.
+```suggestion url_json = self._parse_json(self._html_search_regex(r'''<div\b[^>]+\bdata-item\s*=\s*(["'])(?P<videourls>\{.*})\1''', webpage, 'videourls', group='videourls', default='{}'), video_id, fatal=False)) or {} video_url = url_or_none(try_get(url_json, lambda x: x['sources'][0]['src'], compat_str) or self._og_search_video_url(webpage)) # Get the video url ```
+All tests that test similar extraction scenario should be `only_matching`.
+You don't need to call `report_extraction` here and above, since the extraction is over already.
+Though not thoroughly tested, I think [`int_or_none`](https://github.com/rg3/youtube-dl/blob/master/youtube_dl/utils.py#L1278-1284) has similar functionality.
+should be in the `else` block of the `for` loop.
+Add `fatal` flag.
+This will prevent downloading http URLs with time pointers without ffmpeg in `PATH`. ffmpeg availability should also be checked here.
+Must not be fatal.
+No need to escape `]` is character set.
+This code is not required anymore (it used to - where did you still find it) - `_real_extract` only gets called when th eURL is suitable, and being suitable is defined as `re.match(self._VALID_URL, url)`.
+What's the point of `# match self._live_title` here? Remove.
+This should be clarified that it's not guaranteed to actually exclude processing of mentioned things since extractor may use own extraction routines.
+`postInfo` contains far more metadata that should also be extracted. Consider [this](https://github.com/taichatha/youtube-dl/blob/master/youtube_dl/extractor/common.py#L63-L198) for a set of relevant fields.
+Possibly referenced before assignment.
+This regex does not look like generic embed. Provide several examples that use this embedding.
+Don't capture groups you don't use. Use proper regex to match all country codes.
+No direct URLs in tests.
+So what? If `not enclosure_nodes` is `False` it does not mean `next_url` was obtained.
+It's added in Python 2.6, so it's OK to use it as youtube-dl supports Python 2.6+ only.
+JSON layout has changed. Error is not captured properly anymore.
+There's no need to use `u` prefix given `unicode_literals` is declared.
+breaks the extraction if `clips` is `None`.
+Breaks if no `rate` key in `stream`.
+Correct field name is `format_id`.
+`/?` is senseless at the end.
+Re-read my post with eyes please.
+Doesn't exist in yt-dl. See also: * parse_qs * srt_subtitles_timecode * traverse_obj In this case, it's simple function that you could implement locally.
+not finding formats should be an error, and it should be raised directly from `_sort_formats`.
+What the hell are you doing? `urljoin(url, '/api/v1/videos/%s' % video_id)`. All.
+This is in the test suite, and in the test suite, warnings are an error of us, aren't they? So why isn't the implementation ``` raise Exception(message) ```
+Remove useless code.
+This doc string does not match the function now.
+As already said: no trailing $. Override `suitable`.
+It sends "userid" and "password" instead. `<input type="text" name="userid" id="nameBox" value="" maxlength="50" size="50" class="slidTxtbox" title="Userid" style="color: rgb(170, 170, 170);">` `<input type="text" placeholder="Password" name="password" id="pwdBox" value="" maxlength="50" size="50" class="slidTxtbox" autocomplete="off" title="Password">`
+No. _extract_urls of youtube extractor.
+It should be in `YoutubeDL.process_ie_result` instead, and it's better to open a new pull request for this change.
+Make more relaxed and add title regex as fallback.
+This is usually called `display_id` and included in info dict as well.
+Today it provides, tomorrow it doesn't. But extractor is broken across all the distros some of which are tend not to update fast enough.
+Should be `fatal=False`.
+`<h3>` is intentional.
+Remove useless code.
+If they switch to strings this will break formats' sorting. Same should be done for width & height.
+`self._html_search_meta` is better here.
+No, use a value that matches the user agent used by youtube-dl(`chrome`).
+```python for path, format_id in (('', 'audio'), ('video', 'sd'), ('videohd', 'hd')): self._download_xml( 'https://www.heise.de/ct/uplink/ctuplink%s.rss' % path, video_id, 'Downloading %s XML' % format_id, fatal=False) ```
+No escape for `/`.
+resolution is defined as "Textual description of width and height". "medium" does not fit.
+Just output complete stringified flashvars and consume in python code as JSON.
+Capture as `id` obviously.
+after the change to check the `a` HTML element `class` attribute, this is no longer needed.
+Must only contain description.
+Use `self._parse_html5_media_entries` instead.
+Nothing to do with RFC 3986.
+Extracting duplicate code into a function obviously.
+Use _hidden_inputs or _form_hidden_inputs - they're better than the long regex pattern.
+I know that. If Youku merges the two API calls, we should do the same thing. EDIT: Sorry I didn't see the new commits below.
+Everything except title and the actual video should be optional.
+All fields apart from `title` and `formats` should be treated optional and extraction must not fail when any of these fields are missing.
+End users do not read source codes thus will never find this advice.
+`ext` here makes no sense.
+Do not capture groups you don't use.
+Before these changes there were 4 references and extraction followed them strictly in order of reference declaration.
+Doesn't match, and `display_id` shouldn't be a URL anyway: ```suggestion ```
+More maintainable: ```suggestion 'skip': 'Requires alura account credentials',# }, { ```
+Consistently use single quotes.
+Import `sanitize_url` from `..utils` and: ```suggestion thumbnail = sanitize_url(thumbnail) ``` Or just allow a scheme-less URL to be handled by `info_dict['thumbnail'] = sanitize_url(thumbnail)` in YoutubeDL.py: ```suggestion ```
+- use `sample_mp3` as the primary source. - match only up to mp3 extension.
+Again: float_or_none, not parse_duration.
+There should be fallbacks for these values since they are more or less static.
+`<h1>` is more likely to change than `<title>`, so I guess extracting from `<title>` is better.
+Read coding conventions on how mandatory data should be accessed.
+```suggestion 'language': compat_str(lang), ```
+All integral numeric metafields should be wrapped in `int_or_none`.
+Suggest using `int` instead of (or in addition to) `round` because I'm seeing a lot of `x.0 min.` even though the default rounding is 0 decimals.
+This should actually be just `self.url_result(embedded_url)`.
+Separate variable is superfluous.
+Too broad regex.
+Just copy paste the whole line I've posted.
+You still duplicate the URL and unnecessary `if/elif` branches.
+Use ```room['rtmp_url']``` and ```room['rtmp_live']``` here as [video_url is a mandatory field](https://github.com/rg3/youtube-dl/blob/master/README.md#mandatory-and-optional-metafields)
+use the extension extracted from `determine_ext`.
+Should be `flv`.
+will easily match outside the element.
+I'd lose the space here, between `%s:` and `%s`, so that we get precisely what is sent.
+Should match from the beginning. It's senseless to replace mobile URL with itself.
+Do not touch this.
+Lack of information is denoted by `None` not `0`.
+This check is not necessary now as you test pathconf anyway.
+Use bare `re.match`.
+Re-read my post with eyes please.
+Should not break if missing.
+Removing useless noise.
+reduce the indentation. ```suggestion episodes = season.get('episodes') or [] for episode in episodes: ```
+Use single quotes consistently.
+`get` could return `None` resulting in, > AttributeError: 'NoneType' object has no attribute 'split'
+Breaks. Read coding conventions.
+Code duplication 173, 213. There is no sense to extract fields explicitly.
+For rtmp it's always flv despite of the extension.
+Instead of escaping the inner double quotes you could single-quote the string.
+Use compat_urllib_parse_unquote instead. Also, there's no need to create a function with only one line.
+This line is unnecessary, webpage is never used.
+Code duplication in these three methods. Again they are only used once, so there is really no need in them.
+works also for me :+1:
+Thanks. It turns out that data-brightcove-video-id is a bostonglobe-specific usage, so a dedicated extractor is better.
+No need in another test.
+Read some doc on regular expressions. Namely what does `[]` and `()` mean and how it should be used.
+franceinter is also available without the `www` domain. Additionally, dots match everything, so this should be ``` _VALID_URL=r'http://(?:www\.)?franceinter\.fr/player/reecouter\?play=(?P<id>[0-9]{6})' ```
+Capture with /album. Capture non greedy.
+after the change to check the `a` HTML element `class` attribute, this is no longer needed.
+This does not mean it should not be included.
+Default note is enough.
+Default part should be removed since there is no default.
+try_get is pointless here. Read coding conventions.
+Currently IEs are randomly sorted. I guess sorted IE names make `lazy_extractors.py` look better.
+That's OK as long as `json_data['sources']` (no need for `.get()`) is just a dict of media formats. The `_check_formats()` method, which I think is called later, will strip out any formats with null `url`. In case they start sending, say, '4k' rather than '2160p', this would be better: ``` ... for source in media_sources: format = { 'format_id': media_format, 'url': source.get('src'), } format.update(parse_resolution(media_format)) # next line only if height should sort ahead of bitrate, etc (see _sort_formats()) format['quality'] = format.get('height') formats.append(format) ```
+Empty string capture does not make any sense.
+Either `text` or `html` is mandatory.
+extraction should not break if an episode or all episodes couldn't be extracted.
+Maybe some unwanted `mediaAsset` has no `type`: ```suggestion if mediaAsset.get('type') == 'SOURCE': ```
+Query to `query=`.
+i think it would be better to keep the old variable name(`song`) as this response contain most of the data available in the old `API` response.
+`creator` should be preserved for backward compatibility.
+This line is unnecessary, webpage is never used.
+No, you can't. Title is mandatory meaning you must fail if you can't extract it. Read new extractor tutorial.
+Today it provides, tomorrow it doesn't. But extractor is broken across all the distros some of which are tend not to update fast enough.
+If the title is not available from the webpage, it can be omitted. People who want a title should use the non-embed URL.
+Require n-n-n in `id` field; no need to match the tail: ```suggestion _VALID_URL = r'(?:https?://[^/]+\.duboku\.co/vodplay/)(?P<id>(?:[0-9]+-){2}[0-9]+)\.html' ```
+`id` and `display_id` should be tested as well.
+There is no need to test URLs.
+extract mandatory information(title and formats) first, and sort formats.
+Do not escape quotes inside triple quotes.
+Must also match https://zattoo.com/highlights?foo=1&channel=orf-1 and similar.
+`compat_str()`, here and in l.96.
+Any reason for not using helper functions like `_add_ns`? Codes look lengthy without that.
+This does not mean it should not be included.
+`skip_fragment` sounds more logical in this context. Also `append_url_to_file` may be renamed to something better reflecting it's actual content.
+As above, you can omit this and let the core set it from `release_timestamp`: ```suggestion ```
+No `upload_date` is guaranteed to be present.
+Const must be uppercase. Protected must be prefix with underscore. Single quotes.
+Should not be fatal.
+This does not work in python 2.6.
+Alternatively you can just restore it after this PR is merged.
+34-35 can be easily moved into `for`.
+Or (probably the same result): ``` title = self._generic_title(url) ```
+`title` must never be `None`.
+Must be list, not a string.
+Instead of `video_url` there should be `formats` extracted from hds manifest with `self._extract_f4m_formats`.
+`default` and `fatal` are not used together. Prefix keyword arguments with their names.
+This intermediate dict is completely pointless. Build formats directly.
+Remove all debug output.
+1. Do not remove the old pattern. 2. Relax regex.
+No trailing `$`. Override `suitable`.
+Some `display_id` should be extracted from `url` and shown instead of `None`.
+Automatic captions are also available.
+Download archive behavior must not change, it must only take place after success of the actual download and post processing.
+`title` is required, so use the original pattern `item.get('title') or item['alias']` Or if you want to make the ensuing crash report clearer, `dict_get(item, ('title', 'alias')) or item['title']`
+Should not break if there is no `resolution` key.
+This is always true.
+This is always true.
+`url` should not be `None`.
+There's no need to name a group if not used.
+**Never ever** use `eval` on data you don't control.
+Similarly, should fail if no `label`, or default to `IE._generic_title()`.
+Avoid unrelated changes.
+Is there a case that 'url' is not in mobj.groupdict()? From _LIST_VIDEO_RE, the 'url' group is mandatory.
+Better to use `'url': update_url_query(v, {'rnd': rnd, }),` (and import `update_url_query`). For backward compatibility, format fields must be numbered (throughout, if any remain).
+There are three matching groups in here, one of which can evaluate to an empty string. That's unlikely to be correct.
+Sure, but `strip_` **or_none**. The regex matches a whitespace title --> `None`.
+`re.search` is almost always incorrect in an extractor. Use `self._search_regex` instead, because the latter fails appropriately when the regexp isn't found.
+Do not remove the old pattern.
+Use `self.url_result(inner_url, 'Generic')` instead.
+All these regexes should be relaxed.
+Filter invalid URLs.
+Not all live videos have subtitles. For example http://www.vlive.tv/video/7871/1996-%EC%95%88%EC%8A%B9%EC%A4%80-%EC%9C%A4%EC%A0%95%EC%9E%AC-%EB%9D%BC%EC%9D%B4%EB%B8%8C does not have a subtitle when I just checked. By the way, I guess `_get_live_sub_url` is a better function name.
+No, this should not be global at least due to presence of potentially case sensitive parts and every regexp should not be touched either. Only those seen to be case insensitive in the wild should do.
+> They can't be multiline, can they? Yep. According to [ECMA 262 5.1](http://www.ecma-international.org/ecma-262/5.1/), CR (U+000D), LF (U+000A), LS (U+2028) and PS (U+2029) are not allowed in RegExp literals
+No escapes for slash.
+As we're now in a dedicated extractor, just choose a better one from either the value of ```og:title``` or ```<title>``` contents. This can make codes simpler.
+As we're always going to want `type` later (but that's a Python keyword, so rename it): ```suggestion main_id, type_ = re.match(self._VALID_URL, url).group('id', 'type') ```
+I think it's customary to use `_VALID_URL` for id matching if possible.
+Prefer '' where possible. Allow `.*` to match line breaks. ```suggestion media_server = self._html_search_regex(r'var\s*mediaServer\s*=\s*\{.*"vod"\s*:\s*"([^"]+)"', webpage, 'vod', 'ms02.w24.at') mp4_path = self._html_search_regex(r"(?s)src:.*\+ '([^']+)'.*type:'video/mp4'", webpage, 'mp4_path') m3u8_path = self._html_search_regex(r"(?s)src:.*\+ '([^']+)'.*type:'application/x-mpegURL'", webpage, 'm3u8_path') ```
+We should really provide a better interface to test against, something along the lines of `download(url)`.
+You are missing that it's a metadata provided by a 3dparty and there can by anything. So that you must ensure it's `int` before returning its value in info dict.
+Do not touch this.
+EntryId must be extracted the very first.
+There should be an `id` group.
+Add check for private videos: ```suggestion video_holder = get_element_by_class('video-holder', webpage) or '' if '>This video is a private video' in video_holder: self.raise_login_required( (clean_html(video_holder) or 'Private video').split('\n', 1)[0]) # video_id, video_url and license_code from the 'flashvars' JSON object: ```
+Can we save the trickery for later? In the first version, I'd expect ``` python from youtube_dl.extractors.youtube import YoutubeIE, YoutubePlaylistIE from youtube_dl.extractors.escapist import EscapistIE .... ``` That also makes it rather easy to move the extractors off one by one - just keep `InfoExtractors.py` as it is and import the newly moved classes.
+will be extracted from the URL.
+The info_dict is missing here. I'm considering to upgrade the "missing keys" output to an error.
+Field name is supposed to be `key` not `long_video_id`.
+This must be asserted.
+No need for this check, this is already checked in `_sort_formats`.
+Plain `for x in l`.
+All formats must be extracted.
+`playlist_description` can be extracted from the same data.
+Do not remove the old pattern.
+This is too broad and detects the same video twice.
+Uppercase is used for const.
+All methods only used once should be explicitly inlined.
+Query should go in `query=` .
+As `title` is not a required field for playlists, add `default=None`. Similarly for `uploader_id` below.
+Do not mix different scenarios in single regex. Upload date should be extracted first. If this fails it should fallback on ago pattern extraction.
+Read coding conventions on optional and mandatory data extraction.
+[`determine_ext`](https://github.com/rg3/youtube-dl/blob/master/youtube_dl/utils.py#L901) is more robust. However, usually you don't need to specify `ext` in formats dictionary.
+[Correct way](https://github.com/rg3/youtube-dl/blob/master/youtube_dl/extractor/pluralsight.py#L95-L100) to implement order independent argument matching.
+Read coding conventions.
+Suggest using `int` instead of (or in addition to) `round` because I'm seeing a lot of `x.0 min.` even though the default rounding is 0 decimals.
+Format URLs should be extracted from the page itself (`data-m4a='/vrmedia/2296-clean.m4a'` and so on) as it won't break if storage path schema changes sometime.
+All formats must be extracted.
+Breaks on `None`.
+Original order **was intentional** since `_og_search_title` provides incorrect titles for some extractors that have skipped tests now.
+These will be needed later: ```suggestion from ..utils import ( get_element_by_id, get_element_by_class, int_or_none, js_to_json, MONTH_NAMES, qualities, unified_strdate, ) ```
+and the function that normally used to encode postdata is `urlencode_postdata`.
+As said it should be more relaxed allowing both kinds of quotes, attributes in between and reversed order of attributes.
+What are you even trying to do? 1. Create a base class for playlist extractor. 2. Make this method of this base class. 3. Move all constants into derived classes' members.
+`default=None` for the first.
+Note for us: Before merging, switch this to the new #980 structure, i.e. `formats` entry consisting only of url+format+ext. All further listformats or selection business can be removed as well.
+What the hell are you doing? `urljoin(url, '/api/v1/videos/%s' % video_id)`. All.
+`video_data` is totally useless. Write directly to id variable when found.
+Wrong fallback value in `thumbnail`, `description` and `creator`.
+Remove unnecessary verbosity.
+Read coding conventions.
+Just output complete stringified flashvars and consume in python code as JSON.
+This is fatal.
+Use `self._download_json` instead.
+It should be the following as the (valid) URL variations of https://itunes.apple.com/us/itunes-u/uc-davis-symphony-orchestra/id403834767 don't match otherwise ``` python _VALID_URL = r'https?://itunes\.apple\.com/[a-z]{2}?/?[a-z0-9-]+/?(?P<display_id>[a-z0-9-]+)?/(?:id)?(?P<id>[0-9]+)' ``` * https://itunes.apple.com/itunes-u/id403834767 * https://itunes.apple.com/us/itunes-u/id403834767 * https://itunes.apple.com/itunes-u/uc-davis-symphony-orchestra/id403834767
+Breaks if no `rate` key in `stream`.
+Field name is supposed to be `key` not `long_video_id`.
+The may match something unexpected. `r'var\s+__desc_popup_d_\d+\s*=\s*({[^><]+});'` is better.
+Should handle `src` with `https?:` also.
+_og_search_description is a youtube-dl function
+"" -> ''
+Either `default=''` or, better, let it crash (no default), since nothing else can work if this fails. Otherwise failure leads to a mysterious attempt to append `None` to a `compat_str`.
+Does not work as expected in all cases.
+Read coding conventions on mandatory data.
+We use single quotes as much as possible.
+Again: it's not part of the video's title and must not be in the title.
+Can we save the trickery for later? In the first version, I'd expect ``` python from youtube_dl.extractors.youtube import YoutubeIE, YoutubePlaylistIE from youtube_dl.extractors.escapist import EscapistIE .... ``` That also makes it rather easy to move the extractors off one by one - just keep `InfoExtractors.py` as it is and import the newly moved classes.
+I did this so I can deprecate `--get-url` (along with all other --get options). Unless you want to do that too, `urls` field isn't really needed
+Course extraction must be in a separate extractor.
+Breaks on `None`.
+Never use bare except.
+Ok, It's up to you.
+I don't see any technical difference. Both ways are "tinkering" with `m3u8` extension. The only difference in one case is that you use already written and tested code and get metadata extracted for free. `re.sub` is the tool.
+Breaks if no URLs extracted.
+No point in base class.
+1. Provide clear evidence this field is supposed to store the video URL. According to http://atomicparsley.sourceforge.net/mpeg-4files.html `tvnn` is a TV Network Name and obviously has nothing to do with video URL at all. 2. This does not guarantee the actual container is `mp4`. 3. This won't work for audio.
+This does not make any sense, you already have `url`.
+I guess you misunderstand this completely. Simply speaking `(["\'])(?P<url>(?:(?!\1).)+)\1` regular expression means: 1. Match either `"` or `'` and remember it as `\1`. 2. Then match any character but `\1` until `\1` is found and remember it as `url`. Thus it will match everything between quotes regardless of quotes' type (double or single) found, e.g. it will capture `123` as `url` group of out `data-video="123"` as well as `data-video='123'` strings. This is applied in order to be future-proof in case of quotes' type change. So it's does not make any sense here and in most of other places in this PR.
+`urls` is pointless. Build `entries` straightaway.
+`True` is default.
+If you accept this to be missing then it must be `default=` not `fatal`.
+Should not be greedy.
+Trailing /? is not necessary here
+`dynamic` is not a very descriptive name. It looks like what you want is to pass the output both to a file and to stdout. In general, this problem has already been solved by `tee`.
+but it would always remove formats without `acodec` even if they are only present as `EXT-X-MEDIA` formats.
+I've already pointed out: replacing one time-proven working data extraction approach with another is not an improvement and I will reject all such further PRs. All additional scenarios should be added as fallbacks. Again, this code is not PEP 8 compliant.
+Eliminate code duplication.
+This is bitrate, not quality.
+In `_html_search_regex` (as well as `_search_regex`), the default value for default is `None`, so there's no need to specify it explicitly.
+Also pass `m3u8_id='hls'`.
+Read coding conventions and fix all optional meta fields.
+franceinter is also available without the `www` domain. Additionally, dots match everything, so this should be ``` _VALID_URL=r'http://(?:www\.)?franceinter\.fr/player/reecouter\?play=(?P<id>[0-9]{6})' ```
+Original regexes should be tested first.
+This video is georestricted.
+[No, you don't get it](https://github.com/rg3/youtube-dl/blob/master/youtube_dl/extractor/acast.py#L80).
+On python 2 `root` is byte string and `file_path` is unicode. When `root` contains non-ASCII `os.path.join` fails when trying to decode with default ascii encoding: ``` C:\temp\ÑÐµÑÑ\youtube-dl>youtube-dl.exe -vs test:youtube [debug] System config: [] [debug] User config: [] [debug] Command-line args: [u'-vs', u'test:youtube'] [debug] Encodings: locale cp1251, fs mbcs, out cp866, pref cp1251 [debug] youtube-dl version 2015.12.18 [debug] Python version 2.7.10 - Windows-7-6.1.7601-SP1 [debug] exe versions: ffmpeg N-73189-g7728d23, ffprobe N-73189-g7728d23, rtmpdump 2.4 [debug] Proxy map: {'http': 'http://127.0.0.1:8888', 'https': 'https://127.0.0.1:8888'} Traceback (most recent call last): File "__main__.py", line 19, in <module> File "youtube_dl\__init__.pyo", line 414, in main File "youtube_dl\__init__.pyo", line 404, in _real_main File "youtube_dl\YoutubeDL.pyo", line 1676, in download File "youtube_dl\YoutubeDL.pyo", line 664, in extract_info File "youtube_dl\extractor\common.pyo", line 291, in extract File "youtube_dl\extractor\testurl.pyo", line 65, in _real_extract File "youtube_dl\utils.pyo", line 2556, in translate File "youtube_dl\utils.pyo", line 2604, in find_file_in_root File "ntpath.pyo", line 85, in join UnicodeDecodeError: 'ascii' codec can't decode byte 0xf2 in position 6: ordinal not in range(128) ``` `root` should be decoded with proper encoding: ``` python full_path = os.path.join(decodeFilename(root), file_path) ```
+Note `video_data` may be `None`.
+The argument will already be a character string, no need to decode it.
+Relying on `userMayViewClip` is probably a [bad idea](https://github.com/rg3/youtube-dl/commit/2b6bda1ed86e1b64242b33c032286dc315d541ae#diff-0b85b33765d2939b773726fda5a55b06).
+Master m3u8 should be extracted with corresponding method.
+There is no need in this method.
+Use `try_get()`, which does this for you: ``` thumbnail = try_get(api_metadata, lambda x: x['video'][0]['poster']) ``` You could also condition the value with `url_or_none()`
+`get_element_by_class` is already a string or `None`. `strip` on `None` will break.
+If the title is not available from the webpage, it can be omitted. People who want a title should use the non-embed URL.
+1. Don't shadow outer names. 2. `url_or_none`.
+Regex should be relaxed. Dots should be escaped.
+Page has changed: ```suggestion 'title': 'äº²ç±çèªå·± ç¬¬1é', ```
+This will fill up to `_TEST_FILE_SIZE` is the file is `< _TEST_FILE_SIZE`.
+Any test case using this approach? I can't find it.
+it's about the way you're setting `playlist_title`. `playlist_title` should not be set directly, it should be set in the playlist result title(by using the `playlist_result` method or using the playlist result type).
+Must be extracted first.
+What's the point of lines 104-108? `ext` is already flv.
+- use `sample_mp3` as the primary source. - match only up to mp3 extension.
+We may use proper XML parsing here and simply call `self._download_xml`
+If audio_info does not have category_name, categories will become [None, 'xxx']. It should be only ['xxx']
+Just use `'thumbnail'` to match the default image URL.
+There is no need in this method.
+`varvideoInfo` is not possible, regex is invalid.
+This is default.
+Note `dl_data` may be `None`.
+Use `re.sub` instead.
+What I actually meant is to put them in a tuple or a list.
+It does not necessarily mean that.
+Thanks. It turns out that data-brightcove-video-id is a bostonglobe-specific usage, so a dedicated extractor is better.
+All formats should be extracted.
+Consistently use flags inside regex.
+Though not thoroughly tested, I think [`int_or_none`](https://github.com/rg3/youtube-dl/blob/master/youtube_dl/utils.py#L1278-1284) has similar functionality.
+Check code with flake8.
+```suggestion 'url': 'http://www.rtve.es/play/videos/balonmano/o-swiss-cup-masculina-final-espana-suecia/2491869/', ``` This URL redirects to https://www.rtve.es/play/videos/balonmano/o-swiss-cup-masculina-final-espana-suecia/2491869/. This corresponds with the previous test L44 where we are using `play`.
+Insert this alphabetically (after veehd and before veoh).
+>This does however add unnecessary complexity that could break the extractor when it should be able to work. I'm guessing this is why you want it out? Yes.
+DRY with `_limelight_result`.
+No point checking this.
+The issue appears to be distinguishing between codes sent over SMS (`[None, tfa_code, True, 2]`), and codes generated from an authenticator app (Google Authenticator, Authy, etc). which is sent using `[tfa_code, True]`. The list of available challenges is returned (default first) from `challenge_results`, with a corresponding ID (from the above code appears to be available as `select_tfa_results[8]`) and some extra information for each challenge. Rather than switching challenges after failure, you can switch only if the default challenge is not `6` or `9`, and similarly determine which payload to use. I'd very, very much recommend looking at [this code](https://github.com/omarroth/invidious/blob/6215259/src/invidious.cr#L1004-L1084) for reference, which is heavily based on youtube-dl's implementation.
+All formats should be extracted.
+I've already pointed out: API URLs should be used.
+Everything apart from `url` is optional.
+You could get a thumbnail, and perhaps a (constant) uploader: ```suggestion 'extension': 'mp4', 'thumbnail': self._og_search_thumbnail(webpage), 'uploader': self._og_search_property('site_name', webpage, fatal=False), ``` That seems to be as much metadata as can be pulled from the page.
+Field name is supposed to be `key` not `long_video_id`.
+No. Override `suitable`.
+Right, that's fine for `display_id`.
+This is my idea: 1. get_element_by_id is not touched (by HTML standards IDs are unique) 2. get_element_by_attribute => get_elements_by_attribute 3. get_element_by_class => get_elements_by_class And replace all usages in extractors. It's better to open a new pull request for this change.
+Direct URLs should also be extracted.
+Move flags into regex.
+I missed that, then you should either use [itertools.islice](https://docs.python.org/2/library/itertools.html#itertools.islice) or ``` python for i, track in enumerate(tracks): if i >= n: break ```
+`&#39;` should be unescaped to single quotes to match the title shown on the webpage.
+`'id'` is required.
+`show = data.get('show') or {}`
+Any test case using this approach? I can't find it.
+You have to use `filepath`, because the destination path can be anywhere in the filesystem, if you use `title` it will end in the current directory.
+`vcodec` of format should be set to `'none'`.
+``` python course_id = self._search_regex( (r'data-course-id=["\'](\d+)', r'&quot;id&quot;: (\d+)'), webpage, 'course id') ```
+Should be more relaxed. Any minor change in HTML layout of the first part will break it.
+No. Must be fatal. Read coding conventions on optional fields.
+Also `_valueless_option` is probably a better name for it.
+resolution is defined as "Textual description of width and height". "medium" does not fit.
+Carry long lines. Bother to finally read coding conventions.
+They are actually different :`MIGcBg` vs. `MIGmBg`
+No. ``` for ext in ('mp3', 'opus') # or KNOWN_EXTENSIONS: if ext in d...: d... = ext break ```
+```suggestion if not (playlist_files and isinstance(playlist_files, list)): ```
+Why not just use ``` video_id = self._match_id(url) player_page = self._download_webpage(url, video_id) ```
+All the fields except `title` should be passed `fatal=False` in order not to break extraction if webpage layout for any of these field changes.
+`urls` is pointless. Build `entries` straightaway.
+I'm not talking about capturing upload date. Do not capture AMPM.
+`try_get`, single quotes.
+Does not work as expected in all cases.
+Note for us: Before merging, switch this to the new #980 structure, i.e. `formats` entry consisting only of url+format+ext. All further listformats or selection business can be removed as well.
+both are know beforehand, so there is no need to use `urljoin`.
+URLs must contain scheme name. There is no need to thoroughly test all the thumbnails.
+It would be useful to mention version in `'url'` to know which has failed. Version can be passed outside to `_get_format`.
+`self._html_search_meta` is better here.
+It's a function in ```..utils```. For example: ```data = urlencode_postdata({'foo': 'bar'})```. Basically it does the same thing as ```urlencode({'foo': 'bar'}).encode('ascii')```, just a more meaningful name.
+Use `utils.xpath_text` instead, again with `fatal=False`.
+there is not need for excess verbosity.
+Above, it's still possible that the JSON download works but doesn't result in a `dict`. So this would be better (setting `None` on error to help with the second point below): ``` status = try_get(info, lambda x: x['status']) ``` Then, if the API makes a breaking change without us noticing, is that `expected` or not? As the site is unlikely to revert the change, it becomes our bug and so not `expected`. I suggest `expected` should correspond to the API returning an actual status that is not OK, and nothing else, like so: ``` raise ExtractorError(status or 'something went wrong', expected=status not in ('ok', None)) ``` But you are obviously familiar with the API and I'm not ...
+``` content_el = itemdoc.find(self._xpath_ns('.//content', 'http://search.yahoo.com/mrss/')) duration = float_or_none(content_el.attrib.get('duration')) if content_el is not None else None ``` or ``` content_el = find_xpath_attr(itemdoc, self._xpath_ns('.//content', 'http://search.yahoo.com/mrss/'), 'duration') duration = float_or_none(content_el.attrib['duration']) if content_el is not None else None ```
+Still too restrictive for http://future.arte.tv/fr/la-science-est-elle-responsable.
+Read coding conventions on mandatory metadata.
+when you're using the kwargs in order, you don't have to use the kwarg name. you can just do(after moving `data` extraction to `_download_info`): ```suggestion return self.playlist_result( entries, show_id, show_info.get('title'), show_info.get('description')) ```
+This does not mean it should not be included.
+Is the match on trailing `\s+title` necessary to avoid false matches? ```suggestion for video_id in re.findall(r'(?is)<div\s[^>]*\bclass\s*=\s*["'.*?\bvideo-item\b.*?["'][^>]*>\s*<a\s[^>]*\bhref\s*=\s*["'](.*?)["']', webpage): ```
+There's a `_check_formats()` method for this: ```suggestion formats = [] if len(sources) > 1: formats = [sources[1][1]] self._check_formats(formats, video_id) if len(sources) > 0: formats.append(sources[0][1]) map(add_format, formats) ```
+will easily match outside the element.
+Use single quotes consistently.
+Breaks on `None` title.
+Instead of such hacks you can name group differently and capture it without any issue.
+```suggestion get_element_by_class, int_or_none, ```
+Do not mix different scenarios in single regex. Upload date should be extracted first. If this fails it should fallback on ago pattern extraction.
+A lot of extractors use the format "{extractor} says: {error_message}", which may be clearer to the user.
+Note for us: Before merging, switch this to the new #980 structure, i.e. `formats` entry consisting only of url+format+ext. All further listformats or selection business can be removed as well.
+This is not matched by `_VALID_URL`.
+I don't see any technical difference. Both ways are "tinkering" with `m3u8` extension. The only difference in one case is that you use already written and tested code and get metadata extracted for free. `re.sub` is the tool.
+By the way, the pythonic way is to just evaluate `thumb_list`
+Avoid shadowing built-in names.
+That's OK as long as `json_data['sources']` (no need for `.get()`) is just a dict of media formats. The `_check_formats()` method, which I think is called later, will strip out any formats with null `url`. In case they start sending, say, '4k' rather than '2160p', this would be better: ``` ... for source in media_sources: format = { 'format_id': media_format, 'url': source.get('src'), } format.update(parse_resolution(media_format)) # next line only if height should sort ahead of bitrate, etc (see _sort_formats()) format['quality'] = format.get('height') formats.append(format) ```
+There's no need to name a group if not used.
+Usually display_id is used before the actual video_id is extracted.
+I think `_search_json_ld` finds the first matching. There are 3 ld+json in the page and `VideoObject` is the last. Also code breaks [in this line](https://github.com/ytdl-org/youtube-dl/blob/master/youtube_dl/extractor/common.py#L1243) due to `contentUrl` parameter doesn't contains any hostname. It has only path. So must be added hostname to `contentUrl` before calling `_json_ld` function I think
+Read coding conventions on mandatory metadata.
+I think it's customary to use `_VALID_URL` for id matching if possible.
+This is already checked in `float_or_none`.
+`id` should not be optional. No need in trailing `/`.
+See how browser calls it.
+Playlist title is optional, description breaks.
+Final bit, self._search_regex is better than re.search
+If 'plflag' is not in `video_info`, this line crashes. This should work: (not tested) `.get('plflag')` => `.get('plflag', '')`
+Breaks extraction if `release_date[0:4]` is not `int`.
+Same as in some previous PR.
+It's in the patch if gave to you. Of course your code works, but this can be handled by other functions to simplify things.
+Remove all unused code.
+Do you even read what's addressed to you? If one explicitly wants to access via http you **must not** force it to https. Current code uses http because at the time of writing such URLs were not available via https at all. I'm not going to argue further - your either do what's requested or this will be rejected.
+why is 403 error catched? `expected_status` specify only allowed error codes, there is no need to specify 200 status code.
+Instead of `video_url` there should be `formats` extracted from hds manifest with `self._extract_f4m_formats`.
+Don't use `;` unless you need to write more than 1 statement per line (personally, I would also avoid doing that)
+This link just gives a page whose source is `OK`, and obviously it won't be possible to extract anything useful from that `webpage`.
+The description is always optional, so there should be a `fatal=False` in here.
+Just rethrow active exception.
+Read and follow code conventions. Check code with flake8.
+No need to escape `]` is character set.
+Never use bare except.
+Upps, that's wrong, the results are indeed tuples.
+I've already pointed out: `.*$` is pointless at the end.
+It does since there may be no postprocessing at all.
+This breaks all non ks embeds. ks part must be optional.
+This is always true.
+`quality` must be used for quality.
+Not all live videos have subtitles. For example http://www.vlive.tv/video/7871/1996-%EC%95%88%EC%8A%B9%EC%A4%80-%EC%9C%A4%EC%A0%95%EC%9E%AC-%EB%9D%BC%EC%9D%B4%EB%B8%8C does not have a subtitle when I just checked. By the way, I guess `_get_live_sub_url` is a better function name.
+Should not be greedy.
+the extraction can work just by having the track URL, so the entry `id` is an optional field, and the extraction should proceed even if an entry id has not been found.
+it would be preferable to parse the other metadata(`title`, `thumbnail`,etc...) for use with `--flat-playlist` option, otherwise just use the `url_result` method.
+Breaks. Read coding conventions.
+Audio is not 128.
+The latter is simpler. The `fatal` parameter can be added to `get_element_by_id` later if there are more similar use cases.
+You don't need list here. Just return it directly.
+[Correct extraction delegation](https://github.com/rg3/youtube-dl/blob/master/youtube_dl/extractor/lcp.py#L76).
+```suggestion _VALID_URL = r'https?://(?:www\.)?samplefocus\.com/samples/(?P<id>[^/?&#]+)' ```
+Use utils.try_get() to simplify and increase robustness; also condition more values: ```suggestion for song in try_get(data, lambda x: x['data'], list) or []: song_url = try_get(song, lambda s: x['url']) if self._is_valid_url(song_url, info['id'], 'song'): formats.append({ 'url': song_url, 'ext': details.get('extension'), 'abr': float_or_none(song.get('br'), scale=1000), 'format_id': song_format, 'filesize': int_or_none(song.get('size')), 'asr': int_or_none(details.get('sr')), }) ```
+1. Extract dict if you expect dict. 2. Relax regex. 3. Escape dots.
+Do not shadow built-in names.
+`video_id` is already a string.
+No exact URLs, use `re:`.
+The current `playliststart` and `playlistend` options feel redundant with `playlistitems`. First of all, they are ignored when playlistitems is given, and even if not, the code is unnecessarily complex when we could simply set playlistitems to `playliststart-playlistend`
+Everything apart from `url` is optional.
+No. It must be a soft dependency. Message requesting installation of `AtomicParsley` or `mutagen` should only be output when thumbnail embedding is requested and neither of these dependencies is found.
+When we have an m3u8 download and no ffmpeg installed we'll get unhandled exception and crash with a traceback. Previously there were an additional check before this line that has been reporting an error and returning quietly so that `check_version()` were never reached thus no unhandled exception. For now lets just restore it and later think how to move these checks outside actual downloading routines to phase when we select downloader.
+This does not matter, if you open https://youtu.be/BaW_jenozKc there is a video embedded. If you open https://redirect.invidious.io/watch?v=BaW_jenozKc there is no video embedded. >used for URLs floating over the net to share youtube videos. Prove that.
+> compat_input can't cope with non-ascii titles Any Python bug report for that? Maybe we need to implement our ```compat_input``` rather than wrapping existing functions.
+1. This does not make any sense at all since there will never be an exception. 2. You must extract media URL not guess it.
+Why did you remove this test? It does not work with your changes.
+- `'%s/' % show_id` part is also repeated twice. - as i said before, the `info` request should not be break the extraction it fails.
+You should extract `partner_id` and `entry_id` and return `kaltura:...` shortcut.
+Yes, or `'%s/...' % self._HOST_URL`. Or even hide `self._HOST_URL` in a helper method.
+I've already pointed out: replacing one time-proven working data extraction approach with another is not an improvement and I will reject all such further PRs. All additional scenarios should be added as fallbacks. Again, this code is not PEP 8 compliant.
+Must be extracted first.
+- try to use `refreshTokenUrl` and fallback to static URL. - break long lines when possible. - `data` should not be a dict. - extract `token` directly.
+Breaks extraction if there is no `stream-labels` key.
+They are actually different :`MIGcBg` vs. `MIGmBg`
+This code is not required anymore (it used to - where did you still find it) - `_real_extract` only gets called when th eURL is suitable, and being suitable is defined as `re.match(self._VALID_URL, url)`.
+Add check for private videos: ```suggestion video_holder = get_element_by_class('video-holder', webpage) or '' if '>This video is a private video' in video_holder: self.raise_login_required( (clean_html(video_holder) or 'Private video').split('\n', 1)[0]) # video_id, video_url and license_code from the 'flashvars' JSON object: ```
+Read coding conventions.
+Move before youtube-dl imports.
+this should be done once(in `_real_initialize`).
+Must be numeric.
+It also failed in your previous commit: https://travis-ci.org/rg3/youtube-dl/jobs/8459585. b64encode returns bytes, you must decode to get a string : `base64.b64decode(googleString).decode('ascii')`, I'm not sure since I have little experience with base64.
+```suggestion 'url': urljoin(spl_url, v['urls'].get(ext)) ``` fix flake8 check
+Read coding conventions on optional metadata.
+`default` is already not fatal.
+Won't work. See how this is done for output template.
+Do not pass `default=None` to `_html_search_regex` instead.
+Or (probably the same result): ``` title = self._generic_title(url) ```
+Breaks on `default=False`. `title` must be fatal.
+No. As already said it's an implementation detail and may be changed any time. [This](https://github.com/ytdl-org/youtube-dl/blob/a6e6673e825f6225c3a316b164ddca03fd20b5d2/youtube_dl/YoutubeDL.py#L140-L321) and [this](https://github.com/ytdl-org/youtube-dl/blob/master/youtube_dl/extractor/common.py#L100-L325) are maintained. Embeddable metadata is not.
+Should contain `quality` key.
+All formats must be extracted.
+No need to escape `/`.
+Don't capture groups you don't use. Use proper regex to match all country codes.
+`<span[^>]+class="name">...` is better.
+- use single quotes consistently. - i think it would be better to keep errnote closer to note.
+This should be split into building url and extracting formats.
+Should be `mp4`.
+`user_info` may be `None`.
+It's fine to use it until it produces longer/more complicated code. You should also limit `try-catch` section to the code it's actually applies for.
+There is no need in this method.
+Do not mix different scenarios in single regex. Upload date should be extracted first. If this fails it should fallback on ago pattern extraction.
+Just copy paste the whole line I've posted.
+the same for `streaming` key.
+So what? If `not enclosure_nodes` is `False` it does not mean `next_url` was obtained.
+* improve robustness * extract m3u8 manifest * get resolution for mp4 ```suggestion # may crash on these two, or on no formats found vidello_values = vidello_settings['cta'][0]['values'] title = vidello_values['product_title'] formats = [] video_sources = try_get(vidello_settings, lambda x: x['player']['clip']['sources'], list) for curr_entry in video_sources or []: if not isinstance(curr_entry, dict) or not curr_entry.get('src'): continue video_url = self._proto_relative_url(curr_entry['src']) if not video_url: continue if curr_entry.get('type') == 'video/mp4': fmt = { 'url': video_url, } width = int_or_none(video_url.rsplit('/', 2)[1]) if width is not None: fmt['width'] = width inv_ar = try_get(vidello_settings, lambda x: x['player']['ratio'], float) if inv_ar is not None: fmt['height'] = int(round(inv_ar * width)) fmt['format_id'] = 'mp4-%04d' % (fmt['height'], ) formats.append(fmt) elif curr_entry.get('type') == 'application/x-mpegurl': formats.extend(self._extract_m3u8_formats(video_url, video_id, ext='mp4', entry_protocol='m3u8_native', m3u8_id='hls', fatal=False)) self._sort_formats(formats) ```
+It does not necessarily mean that.
+This is **changing of the name** because you've merged `IndavideoIE` into `IndavideoEmbedIE` (or simply dropped it) and then renamed it to `IndavideoIE` as a result you've **broken** all download archives made with previous versions of youtube-dl. Just do what is asked.
+Allow arbitrary whitespace and both quote types.
+What's the point of this extractor? It's covered by album extractor. Remove.
+will break if `item` is `None`.
+When we have an m3u8 download and no ffmpeg installed we'll get unhandled exception and crash with a traceback. Previously there were an additional check before this line that has been reporting an error and returning quietly so that `check_version()` were never reached thus no unhandled exception. For now lets just restore it and later think how to move these checks outside actual downloading routines to phase when we select downloader.
+* Use built-in sorting (needs https://github.com/dirkf/youtube-dl/tree/df-kikuyan-jwplayer-patch) * Get `description` in different ways * Extract `upload_date` by translating month names from Georgian ```suggestion formats = self._parse_jwplayer_formats(jwplayer_sources or [], video_id) for f in formats or []: f['preference'] = self._quality(f['format_id']) self._sort_formats(formats) description = ( self._og_search_description(webpage) or get_element_by_id('long_desc_holder', webpage) or self._html_search_meta('description', webpage)) uploader = self._search_regex(r'<a[^>]+class="mv_user_name"[^>]*>([^<]+)<', webpage, 'uploader', fatal=False) upload_date = get_element_by_class('mv_vid_upl_date', webpage) # as ka locale may not be present roll a custom date conversion upload_date = (unified_strdate( # translate any ka month to en re.sub('|'.join(self._MONTH_NAMES_KA), lambda m: MONTH_NAMES['en'][self._MONTH_NAMES_KA.index(m.group(0))], upload_date, re.I)) if upload_date else None) ```
+Inline all these.
+`.*/?` is pointless at the end.
+```suggestion # coding: utf-8 from __future__ import unicode_literals ```
+It does not necessarily mean that.
+Same issue for urlh
+`not json_lds` already does the second part.
+I think that this line would produce unexpected results with multiple urls. The first one would use the generic extractor and the rest would use the normal extractors. (I may have misunderstood it)
+`id` is of arbitrary length.
+If either of these attrs is missing whole playlist extraction is broken.
+Optional data should not break extraction if missing. Read coding conventions.
+Matching empty data is senseless.
+Move into `_download_json`.
+Title part should be optional.
+`filter_for = socket.AF_INET if '.' in source_address else socket.AF_INET6`.
+there is not need for excess verbosity.
+`fatal=False` will print error wen failed. Instead it should be optional and not print any error.
+The semantics of tests should be kept. This test should test `*-videoplayer_size-[LMS].html` URL. Same for others: `*-videoplayer.html`, `*-audioplayer.html` (on two different domains).
+Should not be fatal.
+Couldn't we simply look at the extension (below) to get the format map? Then we don't have to update this list.
+Since we don't do any network requests after this line, it's not really needed, and does not contribute to the user's experience. Nowadays, our helper methods will already output status reports when it's needed. Formally deprecating or removing all of this is on my TODO list.
+This field is added automatically no need to add it by hand.
+PEP8 mandates two empty lines here.
+Don't capture groups you don't use.
+you should use md5 for long fields like this ```py 'description': 'md5:xxx', ```
+All these regexes should be relaxed.
+eg find type by URL ext
+since `list_type` can only be `top` or `global` you can change it to `else:` and safely remove `jsonp_url = ""` (which should have been set to `None`).
+This won't skip empty strings.
+Debug code must be removed.
+Should not be greedy.
+The code should match the content. If it's not possible to figure out the lang code there is no point placing it in subtitles. Moreover it's not time bound so can't even barely be treated as subtitles.
+Do not touch the old patterns.
+Do not touch this.
+This should go into `YoutubeDL.py`
+Don't capture groups you don't use.
+There is already an extractor with such `IE_NAME`.
+This is also available as JSON if `&type=js` is appended to the query. With JSON extra webm format is served, e.g. http://servix.idnes.cz/media/video.aspx?idvideo=V150730_150323_hodinovy-manzel_kuko&reklama=1&idrubriky=hodinovy-manzel&idostrova=play&idclanku=A150730_150323_hodinovy-manzel_kuko&type=js&element=video1439148852492. This is used by web player itself.
+Breaks on `None`.
+Same issue for urlh
+`default` is already not fatal.
+It seems you aren't using the module, remove this line.
+What are you even trying to do? `'1'` that's all.
+Any test case using this approach? I can't find it.
+Simplify, harmonise with yt-dlp pt6: ```suggestion formats = self._extract_m3u8_formats( 'https://b-%s.%s/hls/%d/%d.m3u8' % (server, host, model_id, model_id), video_id, ext='mp4', m3u8_id='hls', fatal=False, live=True) self._sort_formats(formats) ```
+Just rethrow active exception.
+Since you now skip already downloaded segments the total fragment message displays wrong value after restarting: `[hlsnative] Total fragments: ...`. As a result - wrong download progress data.
+do not use names of Python built-in functions(https://docs.python.org/3/library/functions.html#format).
+1. This is too broad, regex should be restricted by playlist id. 2. This captures duplicates.
+All these regexes are only used once thus make no sense as separate variables.
+Again: relax regex.
+This website uses JWPlayer. Use `JWPlatformBaseIE._extract_jwplayer_data` instead. Usually it's not a good practice to re-invent the wheel.
+Add `default=playlist_title` in order not to fail when `<title>` does not contain `- BBC`. Regex should match at least one characted and title should be greedy `r'(.+)\s*-\s*BBC'`.
+You should add support for this playlist-alike 3qsdn URLs in any non-breaking way.
+Non fatal, proper prefix id.
+Inline all these.
+There is no point to use `get` here.
+`clean_html()` removes newlines; also yt-dl expects a non-empty title: ```suggestion title = clean_html(data.get('full_body')) or self.generic_title(url) ```
+>`if...: ...; else: ...` is a better representation of the logic than `if: ...; continue; ...`. An `elif ...:` might need to be added in future. That's questionable and the matter of preference. Anyway one should avoid mixing fixes/new features and refactoring in the same commit.
+Code at lines 37-42 is similar to code @ 51-56. It should be moved to separate routine.
+default and fatal are not used together.
+This will prevent downloading http URLs with time pointers without ffmpeg in `PATH`. ffmpeg availability should also be checked here.
+Do not touch this.
+I suggest `default=video_id` in the `_html_search_regex` call.
+`re.search` is almost always incorrect in an extractor. Use `self._search_regex` instead, because the latter fails appropriately when the regexp isn't found.
+Should be cut down to couple of sentences. Possible arguments' values should be written all lowercase without quotes. See `--fixup` for an example.
+Network connections in your browser.
+Use ```audio_info['title']``` as this is a mandatory field. Check coding conventions
+This intermediate dict is completely pointless. Build formats directly.
+I guess there's no need to download the key to the dist and read it from the disk. Just `urlopen` should be fine.
+Usually display_id is used before the actual video_id is extracted.
+Rename to something else.
+Use the Python 2 and low 3 Time Machine: `'url too short: %s' % (video_pre_parts, )` or: `'url too short: %(video_pre_parts)s' % {'video_pre_parts': video_pre_parts, }` or: `'url too short: {video_pre_parts}'.format(video_pre_parts=video_pre_parts)` or: `'url too short: {0}'.format(video_pre_parts)` No doubt there are other ways (eg `....format(**locals())`
+The order of dictionaries is not deterministic before Python 3.6. For example: ``` $ PYTHONHASHSEED=0 python2 test/test_utils.py -v TestUtil.test_dfxp2srt test_dfxp2srt (__main__.TestUtil) ... /home/yen/Projects/youtube-dl/youtube_dl/utils.py:2629: FutureWarning: The behavior of this method will change in future versions. Use specific 'len(elem)' or 'elem is not None' test instead. ele = dfxp.find(_x('.//ttml:' + p)) or dfxp.find('.//' + p) /home/yen/Projects/youtube-dl/youtube_dl/utils.py:2630: FutureWarning: The behavior of this method will change in future versions. Use specific 'len(elem)' or 'elem is not None' test instead. if not ele: ok ---------------------------------------------------------------------- Ran 1 test in 0.004s OK $ PYTHONHASHSEED=1 python2 test/test_utils.py -v TestUtil.test_dfxp2srt test_dfxp2srt (__main__.TestUtil) ... /home/yen/Projects/youtube-dl/youtube_dl/utils.py:2629: FutureWarning: The behavior of this method will change in future versions. Use specific 'len(elem)' or 'elem is not None' test instead. ele = dfxp.find(_x('.//ttml:' + p)) or dfxp.find('.//' + p) /home/yen/Projects/youtube-dl/youtube_dl/utils.py:2630: FutureWarning: The behavior of this method will change in future versions. Use specific 'len(elem)' or 'elem is not None' test instead. if not ele: FAIL ====================================================================== FAIL: test_dfxp2srt (__main__.TestUtil) ---------------------------------------------------------------------- Traceback (most recent call last): File "test/test_utils.py", line 1093, in test_dfxp2srt self.assertEqual(dfxp2srt(dfxp_data_with_style), srt_data) AssertionError: u'1\n00:00:02,080 --> 00:00:05,839\n<font color="white" face="sansSerif" size="1 [truncated]... != u'1\n00:00:02,080 --> 00:00:05,839\n<font color="white" face="sansSerif" size="1 [truncated]... Diff is 663 characters long. Set self.maxDiff to None to see it. ---------------------------------------------------------------------- Ran 1 test in 0.005s FAILED (failures=1) ```
+this URL you have provided is not related to this part of the code(`RaiPlayLiveIE`).
+`_search_regex`, `_parse_json`. Again: read coding conventions.
+Each PR should be granular enough and solve some particular problem. For example, contain either only homogeneous changes (e.g. `_match_id` refactoring) across whole code base or heterogeneous changes for a single extractor.
+This is also available as JSON if `&type=js` is appended to the query. With JSON extra webm format is served, e.g. http://servix.idnes.cz/media/video.aspx?idvideo=V150730_150323_hodinovy-manzel_kuko&reklama=1&idrubriky=hodinovy-manzel&idostrova=play&idclanku=A150730_150323_hodinovy-manzel_kuko&type=js&element=video1439148852492. This is used by web player itself.
+`_search_regex` is enough here.
+Define a `thisvid:` URL scheme to be used as an API: ```suggestion _VALID_URL = r'(?:thisvid:|https?://(?:www\.)?thisvid\.com/(?P<type>videos|embed)/)(?P<id>[A-Za-z0-9-]+/?)' ```
+230-264 no copy pastes.
+This does not mean it should not be included.
+The idiomatic way to extract `id` is to use a group in `_VALID_URL`.
+What's the point of this? `canonical_url` is the same as `url`.
+All methods only used once should be explicitly inlined.
+Don't give a default, especially not of the wrong data type; just let it default to `None`. Also, perhaps move this down to l.129 where `duration` is further processed.
+Use `headers` parameter of `_download_json` instead. Also use `query` instead of stuffing it into the URL.
+There is no need in this method.
+1. This is too broad, regex should be restricted by playlist id. 2. This captures duplicates.
+try to reduce repetition(`https://gw.api.animedigitalnetwork.fr/`).
+Use single quotes consistently.
+Remove unused codes.
+46-47 code duplication.
+End users do not read source codes thus will never find this advice.
+Should be `fatal=False`.
+This should be just `return info`
+This link just gives a page whose source is `OK`, and obviously it won't be possible to extract anything useful from that `webpage`.
+You should actually keep this line and change https://github.com/costypetrisor/youtube-dl/blob/autonumber_start/youtube_dl/YoutubeDL.py#L296, otherwise it won't be incremented.
+Not quite sure. Currently it redirects to `pornhub.com`. Possibly this was not the case in the past.
+should not break the extraction here if a request fails or the `video` field is not accessible.
+Use `self.playlist_result` instead.
+This is determined automatically.
+no need to call compat_str if it's already as `string` and `title` field should be extracted before formats.
+The indentation is messed up here, it should be 4 instead of 2 spaces. You may want to get a better editor - a modern editor should take care of indentation automatically.
+Do not capture empty strings.
+Has no effect for url_transparent.
+Trailing /? is not necessary here
+Move on a single line.
+extract mandatory information(title and formats) first, and sort formats.
+Of course when it appears inside `script`.
+Request wrapping code can be moved to the base class.
+Lack of data is denoted by `None` not `0`.
+Should be `mp4`.
+Usually we don't use the URL as `video_id`. If `video_id` is unknown yet, it's OK to use part of the URL, for example "a-housecat-a-stray-god-and-a-tail".
+No way. Return value type must not change.
+This TODO needs work
+`quality` must be used for quality.
+``` python try: webpage = self._download_webpage(request, url) except ExtractorError as e: if isinstance(e.cause, compat_HTTPError) and e.cause.code == 403: raise ExtractorError('%s is not available in your region.' % self.IE_NAME, expected=True) raise ```
+This link just gives a page whose source is `OK`, and obviously it won't be possible to extract anything useful from that `webpage`.
+This will prevent downloading http URLs with time pointers without ffmpeg in `PATH`. ffmpeg availability should also be checked here.
+Remove all garbage.
+To access both groups from the URL match, use `mobj = re.match(self._VALID_URL, url)` (`import re`) and then access the matches as `video_id = mobj.group('id')`. In this case the fact that the extractor is running means that the `id` and `display_id` groups matched. If you had an optional group, like `(?P<display_id>.+)?`, something like `display_id = mobj.groupdict().get('display_id')` would be appropriate.
+Here (ll.77-9) you can use `try_get()` to simplify and enforce the `format_url`: ``` format_url = try_get(format_dict, lambda x: url_or_none(x['src'])) if not format_url: continue # now guaranteed: format_dict is a dict-like object, format_url is not None ```
+This is already imported and (in general) you should only use `import`s at the top level.
+This does not make any sense, you already have `url`.
+It's better to use `compat_urllib_parse.urlencode` in this line. One of the benefits is that there is no need to escape ep in `generate_ep()` anymore.
+Remove all garbage.
+`'id'` is required.
+For now this should not be printed or only printed in `verbose` mode.
+Breaks. Read coding conventions.
+Use `compat_urlparse.urljoin` instead.
+No `\W`. You must match arbitrary quotes and arbitrary whitespace.
+There is no point in `or None` since `None` is already default.
+Same here. And use `utils.int_or_none` instead.
+Should match from the beginning. It's senseless to replace mobile URL with itself.
+There should be an `'id'` and an `ext` key here. You can run the tests with `python test/test_download.py TestDownload.test_OCWMIT` (and `test_OCWMIT_1`). Due to an oversight, they were just skipped. I've fixed this.
+extract all formats.
+Such tests should be included as [only matching](https://github.com/rg3/youtube-dl/blob/master/youtube_dl/extractor/abc.py#L52-L53).
+Consistency, and `.` is a regex character: ```suggestion height = int(self._search_regex(r'(\d+)\.mp4', format_url, 'height', default=360)) ``` The default is a different type from the successful method return, but in the context it doesn't matter.
+Doesn't exist in yt-dl. See also: * parse_qs * srt_subtitles_timecode * traverse_obj In this case, it's simple function that you could implement locally.
+Should not be fatal.
+Must be separate extractor delegating to CNBCIE.
+Usually display_id is used before the actual video_id is extracted.
+3 is easily possible, say `Title` is renamed to `Song`. With proper fallback extractor continues to work. Without it - fails completely. Read coding conventions where the rationale clearly explained.
+Title is mandatory.
+Now `- BBC ...` part of regex here makes no sense since it's handled below.
+Do not capture groups you don't use.
+Part after `\?` should be removed since it's not used anymore.
+This is already fatal.
+Breaks on missing file key.
+You've forgot to pass `info_dict` to `supports()`.
+Do not mix unrelated changes in single PR.
+This is never reached cause sort formats will throw on `not formats`.
+`()` is a better 0-length iterable than `""`, which implies text.
+I've already suggested how to cover both scenarios without getting any error. > Looks like old videos with **5 digit length video id** are still available via xstream in much better quality than vgtv. New video ids are 6 digit length.
+Do not shadow existing variables.
+`args` may be `None` here.
+Regex should be relaxed. Dots should be escaped.
+Direct URLs should also be extracted.
+Thanks. It turns out that data-brightcove-video-id is a bostonglobe-specific usage, so a dedicated extractor is better.
+Pass `Referer` header to avoid 403: ```suggestion headers = {'Referer': 'https://www.duboku.co/static/player/videojs.html'} formats = self._extract_m3u8_formats(data_url, video_id, 'mp4', headers=headers) ```
+TODO: do ;)
+Broken python 3. Must be bytes. `urlencode_postdata`.
+This fails on Python 2. (duh!) Instead, we should fix SSL support in general.
+That's very brittle.
+do you have an example with subtitles.
+`parser.error` calls `sys.exit`, so simply `parser.error('....')` (without `raise`) should work.
+Should be more relaxed.
+this URL you have provided is not related to this part of the code(`RaiPlayLiveIE`).
+Move data and query into `_download_webpage` call.
+Code duplication in these three methods. Again they are only used once, so there is really no need in them.
+`\s*` make no sense at the end.
+Single quotes. `item` is already a string.
+There's no need to use `u` prefix given `unicode_literals` is declared.
+Breaks on None.
+`[]` is superfluous in group with single character.
+What's the point? It's not alphabetic altogether anyway.
+No newline at the end of file.
+You cache cookies for authentication but have no mechanism for invalidation. If this cached cookie expires or becomes invalid for some reason you'll get stuck trying to authenticate with it over and over again. And due to it is preferred over credentials, authentication won't work at all. This should be detected and cached data should be cleared.
+Best not to make unrelated changes in a PR. Same issue below. Also these changes often don't obey the linter
+You should **capture** error message and **output** it.
+Hi @beards, The variable name is hard to get the idea. It looks like I add the following before _download_json work. `Line 173: video_id = cid` But the downloaded filename title is not quite right after download.
+Just `video_url = urljoin('https://ndtvod.bc-ssl.cdn.bitgravity.com/23372/ndtv/', filename)`.
+Could check here: ``` if 'Este episÃ³dio nÃ£o se encontra disponÃ­' in title: raise ExtractorError('Episode unavailable', expected=True) ```
+There are more pages. All should be extracted and extractor should be renamed to `NPOProgramIE`.
+it better to extract all the urls in the `mpath` array.
+* Since you fixed the unicode_literals import, remove all u from explicit u'...', here and anywhere else. * relax the RE. ```suggestion video_url = self._html_search_regex(r'''<source\b[^>]+\bsrc\s*=\s*("|')(?P<src>(?:(?!\1).)+)\1''', webpage, 'video URL') ```
+`ExtractorError` is not raised when `fatal=False`.
+We may use proper XML parsing here and simply call `self._download_xml`
+There are three matching groups in here, one of which can evaluate to an empty string. That's unlikely to be correct.
+`/?` does not make any sense.
+Breaks on None.
+It should match at least one character.
+Probably this will work instead? `urllink = ''.join([str(urlcode[key]) for key in sorted(urlcode.keys())])`
+No hardcodes. Use API.
+`'id'` is required.
+Don't shadow built-in names.
+Use `self._html_search_meta()` instead.
+Remove all debug output.
+Never ever use bare except.
+`urls` is pointless. Build `entries` straightaway.
+This worked for me.
+since `list_type` can only be `top` or `global` you can change it to `else:` and safely remove `jsonp_url = ""` (which should have been set to `None`).
+1. Relax regex. 2. Do not capture empty dict.
+this will fail if `type` is not present.
+This is only used once.
+As you don't use mobj after the next line, replace the two by ```py video_id = self._match_id(url) ```
+`<h3>` is intentional.
+`{}` won't work in python 2.6.
+Move the capture group inside the quotes: then `_parse_json()` will work the first time: ``` data = self._search_regex( r'window.__APP_STATE__\s*=\s*["\']?({.+?})["\']?;</script>', webpage, 'app state') ```
+Do not escape quotes inside triple quotes.
+Nothing really changed. You construct the same structure two times.
+No such meta field.
+hd should be always tried to be extracted whether it's present or not. There is no need in this flag.
+Generally `fatal` and `default` are not used simultaneously. Also the default should be `None` to indicate this value is unavailable. Empty string may be confusing.
+```suggestion _VALID_URL = r'https?://(?:www\.)?samplefocus\.com/samples/(?P<id>[^/?&#]+)' ```
+`get` could return `None` resulting in, > AttributeError: 'NoneType' object has no attribute 'split'
+`utils.parse_iso8601` should be used instead and extracted as `timestamp`.
+Captures `?#&` ending as id.
+Later, you're going to rely on `function/0/...'.split('/')` having at least length 8 (2 + 5 + 1). Make sure it has: ```suggestion video_url = self._html_search_regex(r"video_url:\s+'(function/0/(?:[^/']+/){5,}.+?)',", webpage, 'video_url') ``` Or, as `function/0` is never used (I think?), ```suggestion video_url = self._html_search_regex(r"video_url:\s+'function/0/((?:[^/']+/){5,}.+?)',", webpage, 'video_url') ``` and later (l.66 currently) ```diff - urlparts = video_url.split('/')[2:] + urlparts = video_url.split('/') ```
+you should use md5 for long fields like this ```py 'description': 'md5:xxx', ```
+This should not raise a generic Exception, but an `ExtractorError`.
+why is 403 error catched? `expected_status` specify only allowed error codes, there is no need to specify 200 status code.
+Instead of this playlist extractor should be separated into `WrzutaPlaylistIE`.
+It's better to also include other fields (uploader_url, thumbnail, category, duration)
+This is not a generic embed.
+``` r'itemprop\s*=\s*\"ratingValue\"\s*> ``` ``` r'itemprop\s*=\s*\"ratingValue\"[^>]*> ``` So that the code can live even if new attributes are added to this element Also, there's no need to escape double quotes in strings encapulated by single quotes.
+`id` by no means should be `None`.
+Also looks like they redesigned the site so that extractor does not work any longer.
+No objections on that, you are absolutely correct. Looks like 32fd27ec982d3ba43bd4abe1cfe0dce9568f17b6 covers all the cases.
+since `list_type` can only be `top` or `global` you can change it to `else:` and safely remove `jsonp_url = ""` (which should have been set to `None`).
+It's fine to use it until it produces longer/more complicated code. You should also limit `try-catch` section to the code it's actually applies for.
+it would be preferable to parse the other metadata(`title`, `thumbnail`,etc...) for use with `--flat-playlist` option, otherwise just use the `url_result` method.
+Final bit, self._search_regex is better than re.search
+it would be better to order the function parameter based on their importance(i think the most important one is `m_id`).
+This parses JSON, we should use a [proper parser](http://docs.python.org/dev/library/json.html).
+This line is unnecessary, webpage is never used.
+metavar should be `FILE`. `type` is already string by default.
+Shouldn't be fatal
+Extractor should not return `None`.
+Capturing truncated `https://www.porntrex.com/get_file/` does not make any sense.
+Sorry: ``` python while True: try: info_dict['title'] = ... break except ...: trun_len -= 1 ```
+```dict_get``` makes codes even shorter
+Single loop for all sources without any unnecessary intermediates.
+Is there a case that 'url' is not in mobj.groupdict()? From _LIST_VIDEO_RE, the 'url' group is mandatory.
+87-90 code duplication.
+use single quotes consistently.
+- use `sample_mp3` as the primary source. - match only up to mp3 extension.
+yes, remove duplicate formats if the qualities are not available for all programs.
+even if `clip_info` exist, it's possibe that there is no format there(empty `contentUrl*` values).
+Right, that's fine for `display_id`.
+Playlist title is optional, description breaks.
+If `video_detail.get('spl')` should be `None`, or something else that can't have a `compat_str` added, this will crash. The extraction would have failed, but it might be better to crash in `_extract_sdn_formats() ` instead. Try (eg) `'%sspl2,3,VOD' % (str_or_none(video_detail.get('spl')) or '', )`. Or make sure it does crash here with `['spl']` instead of `.get(...)`.
+- you can just do `e.cause.read()` instead of `e.cause.fp.read()`. - extract `message` into a variable as it's going to be used either way.
+Seems you're trying to extract the first part after tv/ in the URL? Just put a named group in _VALID_URL.
+Carry long lines.
+Instead of such hacks you can name group differently and capture it without any issue.
+Support full playlist handling: * revert single video pattern * also, final `/?` is unnecessary. ```suggestion _VALID_URL = r'https?://(?:www\.)?thisvid\.com/(?P<type>videos|embed)/(?P<id>[A-Za-z0-9-]+)' ```
+This must be in a separate try-except so that it does not break renaming to correct name if any of these statements fails.
+Not tested, but `var\s+video\s*=\s*([^;]+);` may be better.
+Should be `--gnome-keyring` or so for symmetry with `--netrc`.
+3 is easily possible, say `Title` is renamed to `Song`. With proper fallback extractor continues to work. Without it - fails completely. Read coding conventions where the rationale clearly explained.
+This is pointless, you don't have any fallback.
+Read coding conventions.
+will return invalid URL if `search_url` is `null`.
+What's the point capturing `url` when you already have it in `url`. Rewrite with `_match_id`.
+We should use the various `compat_*` down below and delete these imports, so that the code also runs on Python 3.
+Do not shadow existing variables.
+The class name should ends with FD
+Again: relax regex.
+Same for re.search
+Not all URLs contain video id.
+the playlist description is not mandatory, if it's not supplied by the website, then do not fill it.
+Usually display_id is used before the actual video_id is extracted.
+No way. Return value type must not change.
+This introduces an ambiguity in case of several mso available. That's why it won't be accepted.
+Never use bare except.
+Shouldn't be fatal
+Do you even read what's addressed to you? If one explicitly wants to access via http you **must not** force it to https. Current code uses http because at the time of writing such URLs were not available via https at all. I'm not going to argue further - your either do what's requested or this will be rejected.
+`_search_regex` is enough.
+`if playlist_size:` is enough.
+use single quotes consistently.
+Bother to read >[adding new extractor tutorial](https://github.com/rg3/youtube-dl#adding-support-for-a-new-site) and [youtube-dl coding conventions](https://github.com/rg3/youtube-dl#youtube-dl-coding-conventions) sections
+Looks like, it's off then.
+Now you break extraction if any of these keys is missing.
+No trailing `$`, override `suitable`.
+`for k, v in flashvars.items()`.
+`audioUrl` may be missing.
+Use self._report_warning instead
+`ext` should be mp4.
+It's obvious from `'is_live': True`.
+If there's only one format, just use `'url'`.
+first_three_chars = int(float(ol_id[:3])) is cleaner
+I guess you misunderstand this completely. Simply speaking `(["\'])(?P<url>(?:(?!\1).)+)\1` regular expression means: 1. Match either `"` or `'` and remember it as `\1`. 2. Then match any character but `\1` until `\1` is found and remember it as `url`. Thus it will match everything between quotes regardless of quotes' type (double or single) found, e.g. it will capture `123` as `url` group of out `data-video="123"` as well as `data-video='123'` strings. This is applied in order to be future-proof in case of quotes' type change. So it's does not make any sense here and in most of other places in this PR.
+```suggestion '-c', 'copy', '-map', '0', ``` `-map 0` is needed to copy all streams from the source file.
+Could check here: ``` if 'Este episÃ³dio nÃ£o se encontra disponÃ­' in title: raise ExtractorError('Episode unavailable', expected=True) ```
+Use display id.
+Sure, that would be fine.
+Or at least, it's not `unicode`. In yt-dl `str` should almost always be `compat_str`, but as above it's not needed here.
+```IOError``` and ```OSError``` may occur here, too. For example, if I attempt to write to ```/root``` with as a non-user user: ``` $ youtube-dl -v --skip-download test:xiami:song -o "/root/%(id)s.%(ext)s" --write-sub [debug] System config: [] [debug] User config: [] [debug] Custom config: [] [debug] Command-line args: ['-v', '--skip-download', 'test:xiami:song', '-o', '/root/%(id)s.%(ext)s', '--write-sub'] [debug] Encodings: locale UTF-8, fs utf-8, out UTF-8, pref UTF-8 [debug] youtube-dl version 2017.04.28 [debug] Git HEAD: b5c39537b [debug] Python version 3.6.1 - Linux-4.10.11-1-ARCH-x86_64-with-arch [debug] exe versions: ffmpeg 3.3, ffprobe 3.3, rtmpdump 2.4 [debug] Proxy map: {} [TestURL] Test URL: http://www.xiami.com/song/1775610518 [xiami:song] 1775610518: Downloading JSON metadata [info] Writing video subtitles to: /root/1775610518.origin.lrc Traceback (most recent call last): File "<string>", line 23, in <module> File "/home/yen/Projects/youtube-dl/youtube_dl/__init__.py", line 465, in main _real_main(argv) File "/home/yen/Projects/youtube-dl/youtube_dl/__init__.py", line 455, in _real_main retcode = ydl.download(all_urls) File "/home/yen/Projects/youtube-dl/youtube_dl/YoutubeDL.py", line 1897, in download url, force_generic_extractor=self.params.get('force_generic_extractor', False)) File "/home/yen/Projects/youtube-dl/youtube_dl/YoutubeDL.py", line 771, in extract_info return self.process_ie_result(ie_result, download, extra_info) File "/home/yen/Projects/youtube-dl/youtube_dl/YoutubeDL.py", line 832, in process_ie_result extra_info=extra_info) File "/home/yen/Projects/youtube-dl/youtube_dl/YoutubeDL.py", line 771, in extract_info return self.process_ie_result(ie_result, download, extra_info) File "/home/yen/Projects/youtube-dl/youtube_dl/YoutubeDL.py", line 825, in process_ie_result return self.process_video_result(ie_result, download=download) File "/home/yen/Projects/youtube-dl/youtube_dl/YoutubeDL.py", line 1539, in process_video_result self.process_info(new_info) File "/home/yen/Projects/youtube-dl/youtube_dl/YoutubeDL.py", line 1717, in process_info with io.open(encodeFilename(sub_filename), 'wb') as subfile: PermissionError: [Errno 13] Permission denied: '/root/1775610518.origin.lrc' ``` It should report an error ```Cannot write subtitles file``` in this case.
+Title is mandatory.
+this URL you have provided is not related to this part of the code(`RaiPlayLiveIE`).
+`if height and filesh:`
+```suggestion _VALID_URL = r'(?P<base>https?://(?:www\.)?raiplay\.it/programmi/(?P<id>[^/?#&]+))' ```
+This link just gives a page whose source is `OK`, and obviously it won't be possible to extract anything useful from that `webpage`.
+Parse from flashvars JSON.
+You should capture a part of URL that represents a video in unique way...
+This can be moved inside `if chapters:` condition.
+These looks like candidates for generalization and extracting into a separate method.
+Capturing truncated `https://www.porntrex.com/get_file/` does not make any sense.
+surround only the part that will threw the exception.
+This will break extraction if no `id` present.
+Again: no, do not touch token extraction code. Just eliminate duplication.
+just use a hardcoded value for now.
+Just put original texts: æ§ããã«è¨ã£ã¦é å¼µã£ã¦ã
+No trailing $, override suitable.
+Bitrate should go to corresponding format meta field.
+Prefer '' where possible. Allow `.*` to match line breaks. ```suggestion media_server = self._html_search_regex(r'var\s*mediaServer\s*=\s*\{.*"vod"\s*:\s*"([^"]+)"', webpage, 'vod', 'ms02.w24.at') mp4_path = self._html_search_regex(r"(?s)src:.*\+ '([^']+)'.*type:'video/mp4'", webpage, 'mp4_path') m3u8_path = self._html_search_regex(r"(?s)src:.*\+ '([^']+)'.*type:'application/x-mpegURL'", webpage, 'm3u8_path') ```
+I've already suggested using `Downloading` as idiomatic wording.
+Do not mix unrelated changes in single PR.
+Can we save the trickery for later? In the first version, I'd expect ``` python from youtube_dl.extractors.youtube import YoutubeIE, YoutubePlaylistIE from youtube_dl.extractors.escapist import EscapistIE .... ``` That also makes it rather easy to move the extractors off one by one - just keep `InfoExtractors.py` as it is and import the newly moved classes.
+Const must be uppercase. Protected must be prefix with underscore. Single quotes.
+Sorry I didn't check it, it should look into `<div class='more_info'>`
+The whole code until here can be simplified to `page_id = self._match_id(url)`
+Again: it must contain `vbr or abr` if available.
+The may match something unexpected. `r'var\s+__desc_popup_d_\d+\s*=\s*({[^><]+});'` is better.
+Sorry, we actually request 10KiB, and `K` does stand for Kilobyte in head.
+As said it should be more relaxed allowing both kinds of quotes, attributes in between and reversed order of attributes.
+As this may need to be updated, consider 1. make the value a class var `_USER_AGENT` 2. import utils.std_headers and let non-null `std_headers['User_Agent']` override this value, so that `--user-agent ... ` or `--add-headers "User-Agent: ..."` take precedence (allows cli work-around if the site needs a new UA).
+Using preferences causes invalid sorting.
+`flashvars[k]` is `v`.
+Again: video URLs are already available on playlist page.
+1. DRY. Generalize with download sleep interval. 2. Do not sleep if interval is invalid. 3. There must be min and max intervals for randomization.
+`/?` does not make any sense.
+It's fine to use it until it produces longer/more complicated code. You should also limit `try-catch` section to the code it's actually applies for.
+`--rm-cache-dir` wipes the whole cache thus should never be suggested to use.
+This video is georestricted.
+Sure, but `strip_` **or_none**. The regex matches a whitespace title --> `None`.
+You've already did this with `videos` and `captions`: `int_or_none(vid.get('encodingOption', {}).get('height'))`
+Either `default=''` or, better, let it crash (no default), since nothing else can work if this fails. Otherwise failure leads to a mysterious attempt to append `None` to a `compat_str`.
+You should have only one single method for extracting info.
+You can leave note about video not requiring authentication but you should not repeat the code itself: >When no video_id is found >so just fall back to the generic extractor
+Page has changed: ```suggestion 'title': 'äº²ç±çèªå·± ç¬¬1é', ```
+It sends "userid" and "password" instead. `<input type="text" name="userid" id="nameBox" value="" maxlength="50" size="50" class="slidTxtbox" title="Userid" style="color: rgb(170, 170, 170);">` `<input type="text" placeholder="Password" name="password" id="pwdBox" value="" maxlength="50" size="50" class="slidTxtbox" autocomplete="off" title="Password">`
+Real id is in widget dict.
+Move on a single line.
+All these regexes should be relaxed.
+This could use `_og_search_thumbnail` instead: ```py thumbnail = self._og_search_thumbnail(webpage, default=None) ```
+Part after `\?` should be removed since it's not used anymore.
+Must be int.
+Simplify, harmonise with yt-dlp pt6: ```suggestion formats = self._extract_m3u8_formats( 'https://b-%s.%s/hls/%d/%d.m3u8' % (server, host, model_id, model_id), video_id, ext='mp4', m3u8_id='hls', fatal=False, live=True) self._sort_formats(formats) ```
+Yes, or `'%s/...' % self._HOST_URL`. Or even hide `self._HOST_URL` in a helper method.
+This can be simplified to just something like `<script[^>]+src=["\'].+?partner_id/(\d+)`. Also for better robustness additional pattern for `"partner_id":1529571` can be added.
+Don't capture groups if you are not going to use them.
+this can match outside the script element and can be easily broken if an attribute follow `data-json`.
+26-29, 32-37 code duplication.
+Do not shadow `url` variable. `fatal` has no effect when `default` is provided.
+No need to escape `#`. No need to capture groups you don't use.
+`/?` makes no sense at the end.
+Now you break extraction if any of these keys is missing.
+not finding formats should be an error, and it should be raised directly from `_sort_formats`.
+```suggestion _VALID_URL = r'(?P<base>https?://(?:www\.)?raiplay\.it/programmi/(?P<id>[^/?#&]+))' ```
+I guess something like `base_url` is a better name than `url`.
+It's better to fail instead of fallback.
+Any reason to have three full tests? If not, you could set two of them to `'only_matching': True`
+Could check here: ``` if 'Este episÃ³dio nÃ£o se encontra disponÃ­' in title: raise ExtractorError('Episode unavailable', expected=True) ```
+`re.search` is almost always incorrect in an extractor. Use `self._search_regex` instead, because the latter fails appropriately when the regexp isn't found.
+`id` by no means should be `None`.
+Playlist title is optional.
+This is expected behavior, you named it preferredinfo not preferredmetadatatoembed. `track` from info must be preferred over `title` from preferredinfo. Again: you merge `_preferredinfo` with `info` into separate merged info **not touching** the initial dicts then operate with old code on merged info instead of `info`.
+```suggestion _VALID_URL = r'(?P<mainurl>https?://(?:www\.)?daserste\.de/[^?#]+/videos(?:extern)?/(?P<display_id>[^/?#]+)-(?:video-?)?(?P<id>[0-9]+))\.html' ```
+Breaks. Read coding conventions.
+hd should be always tried to be extracted whether it's present or not. There is no need in this flag.
+Must not be fatal. Read coding conventions on optional/mandatory fields.
+These options should be kept and probably marked deprecated in order to avoid breakage of user configurations and code that uses them. `youtube_include_dash_manifest` logic should be expressed via `skip_protocols`.
+Here (ll.77-9) you can use `try_get()` to simplify and enforce the `format_url`: ``` format_url = try_get(format_dict, lambda x: url_or_none(x['src'])) if not format_url: continue # now guaranteed: format_dict is a dict-like object, format_url is not None ```
+Do not escape `/`.
+The most simple way is to use `utils.extract_attributes`.
+Unless it supports videos from other sites, the IE name already says for what it is.
+Such tests should be included as [only matching](https://github.com/rg3/youtube-dl/blob/master/youtube_dl/extractor/abc.py#L52-L53).
+Use `video_id`. Remove `.replace('\n', '')`.
+Use default. Read coding conventions and fix code.
+`default` implies non fatal.
+Also do not use double quotes for string literals.
+Do not remove existing tests.
+Prefer consistent using of single quotes when possible.
+No, it's not. If video_id extraction from page fails whole extraction fails.
+Weird. Yesterday it was working: ``` python -m youtube_dl http://mobile-ondemand.wdr.de/CMS2010/mdb/ondemand/weltweit/fsk0/75/752868/752868_8108527.mp4 [download] Destination: 8108527-752868.mp4 [download] 1.4% of 291.34MiB at 8.53MiB/s ETA 00:33 ERROR: Interrupted by user ``` But not now.
+The third parameter of `_html_search_regex` is name but not ID.
+Use `_download_json` with `strip_jsonp`. Need to change `strip_jsonp` so that the dollar sign is recognized.
+```suggestion for k in ('subtitles', 'subtitlesUrl'): subtitles_array.append({'url': video_data.get(k)}) ```
+Consistently use single quotes.
+1. This must only take place when it's not available from player JSON. 2. Query must be passed as `query`.
+1. This will try the same URL twice in case of embed URL. 2. Fallback must also apply when no formats was found at first try.
+Must also match https://zattoo.com/highlights?foo=1&channel=orf-1 and similar.
+it would be preferable to parse the other metadata(`title`, `thumbnail`,etc...) for use with `--flat-playlist` option, otherwise just use the `url_result` method.
+This should be recursively delegated to pbs extractor instead.
+Should not break if `published_at` is missing.
+No exact URLs here.
+Don't carry URLs. Read coding conventions.
+`re.search` is almost always incorrect in an extractor. Use `self._search_regex` instead, because the latter fails appropriately when the regexp isn't found.
+If `_search_regex` fails `None` will be passed to `_parse_json`.
+The issue appears to be distinguishing between codes sent over SMS (`[None, tfa_code, True, 2]`), and codes generated from an authenticator app (Google Authenticator, Authy, etc). which is sent using `[tfa_code, True]`. The list of available challenges is returned (default first) from `challenge_results`, with a corresponding ID (from the above code appears to be available as `select_tfa_results[8]`) and some extra information for each challenge. Rather than switching challenges after failure, you can switch only if the default challenge is not `6` or `9`, and similarly determine which payload to use. I'd very, very much recommend looking at [this code](https://github.com/omarroth/invidious/blob/6215259/src/invidious.cr#L1004-L1084) for reference, which is heavily based on youtube-dl's implementation.
+`(byte_counter / rate_limit) - elapsed` sometimes takes negative values (tested on python2). Negative delay to `sleep` results in `IOError` and failed download. There should be at least a check for that.
+Should not be fatal.
+no need for parenthesis(prefered way in python), unless it's needed. ```suggestion if not clip_info: ```
+Do not remove the old pattern.
+The (non-empty) matches succeeded (or an exception would have been raised) so the values are both truthy: ```suggestion headers['rfApiProfileId'] = api_token headers['rfWidgetId'] = widget_id ```
+Same here. And use `utils.int_or_none` instead.
+Breaks on missing key, breaks on download failure.
+It `md5` flag should not go here as an argument. Instead it should be extracted in particular downloader from `self.params`.
+```suggestion if not (season_id and video_id): ```
+This is already fatal.
+parentheses not needed.
+As already said: no trailing $. Override `suitable`.
+You have some unmerged lines here
+Use the original scheme and host.
+Inline everything used only once.
+This is the matter of **code reusage**, not personal preference. You should use the most generic solution available and not **reinvent the wheel**. Other code in this style was written before `update_url_query` was introduced.
+`utils.parse_iso8601` should be used instead and extracted as `timestamp`.
+It's not better in this way? ```python class RaiPlayLiveIE(RaiBaseIE): _VALID_URL = r'(?P<url>https?://(?:www\.)?raiplay\.it/dirette/(?P<id>\w*))' _TEST = { 'url': 'http://www.raiplay.it/dirette/rai3', 'only_matching': True, } def _real_extract(self, url): mobj = re.match(self._VALID_URL, url) url, channel = mobj.group('url', 'id') webpage = self._download_webpage(url, channel) re_id = r'<div([^>]*)data-uniquename=(["\'])[\w-]*(?P<id>%s)(\2)([^>]*?)>' % RaiBaseIE._UUID_RE video_id = self._html_search_regex(re_id, webpage, 'livestream-id', group='id') return { '_type': 'url_transparent', 'url': 'http://www.raiplay.it/dirette/ContentItem-%s.html' % video_id, 'ie_key': RaiPlayIE.ie_key() } ```
+In case of a single episode (or a movie) this fails as there's no episode information in the title. This can be tested with https://www.vier.be/video/trio/trio/trio-s1-aflevering-1 for example.
+Original regexes should be tested first.
+- - [ ]
+No such field.
+Python 3.2 doesn't like u-literals.
+Import `sanitize_url` from `..utils` and: ```suggestion thumbnail = sanitize_url(thumbnail) ``` Or just allow a scheme-less URL to be handled by `info_dict['thumbnail'] = sanitize_url(thumbnail)` in YoutubeDL.py: ```suggestion ```
+Capturing empty string is senseless. `\n` instead of `root[__env]`.
+> My guess is : > SD -> Super Definition(not Standard Definition) -> è¶ (means super)æ¸ (1080P) -> '' > HD -> High Definition -> é«(means high)æ¸ (720P) -> _mid > OD -> Ordinary Definition -> æ æ¸ (540P) -> _small i can confirm this from the AS code. - the player assume that all qualities are available when `stream_addr` is not present. - the first part of `plflag` is also used to determine the suffix and the second part change for the value `21`. ``` python plflag0, plflag1 = video_info['plflag'].split('_') plflag0 = int(plflag0) - 1 if plflag1 == '21': plflag0 = 10 plflag1 = '4' ``` if `pflag0 < 1` than `live_panda` will be added to the begining of the suffix.
+1. This does not work [properly](https://github.com/rg3/youtube-dl/issues/14814). 2. This is ad hoc micro optimization exclusively for pluralsight for reducing number of requests and overall sleeping time while downloading. Remove.
+I know that. If Youku merges the two API calls, we should do the same thing. EDIT: Sorry I didn't see the new commits below.
+Redo a confusing suggestion that was accepted: ```suggestion retval = '' for o in range(0, center + 1): for i in range(1, 5): retval += compat_str((int(license[o + i]) + int(modlicense[o])) % 10) ```
+Sorry for this Pull Request has long been reviewed. May I suggest adding referrer to the embed link, as suggested below? ```suggestion if mobj.group('id'): urls.append(VimeoIE._smuggle_referrer('https://player.vimeo.com/video/' + mobj.group('id'), url)) else: urls.append(mobj.group('url')) ``` I came across this Pull Request, since I was looking at Issue #24381. Adding vimeo-id tag support would help downloading video from Laracasts.com too. Although, we still need to implement an extra Extractor for playlist. Hopefully, your Pull Request can be approved.
+Even if all videos have a title the regex may stop to detect the title someday and I prefer getting all the videos in the playlist instead of missing some or all of them. Also, I haven't tested but titles could be empty or have only spaces (I don't know if YouTube checks that before allowing you to submit the video).
+fatal=True is default.
+1. Relax whitespace. 2. default and fatal are not used together. 3. Should not match empty string.
+Any test case using this approach? I can't find it.
+It should be robust in case of some missing fields.
+`default` and `fatal` are not used together. Prefix keyword arguments with their names.
+It's better to use `self._download_webpage(url, video_id)`
+Allow arbitrary whitespace and both quote types.
+160 is a video format.
+the extraction can work just by having the track URL, so the entry `id` is an optional field, and the extraction should proceed even if an entry id has not been found.
+>`if...: ...; else: ...` is a better representation of the logic than `if: ...; continue; ...`. An `elif ...:` might need to be added in future. That's questionable and the matter of preference. Anyway one should avoid mixing fixes/new features and refactoring in the same commit.
+There should be spaces between `%`.
+Conversion between different date formats is redundant. Just return Unix timestamps.
+What's the point of `.get('files', {})`? Use `for k,v in data.items()` instead.
+You should not call this yourself instead you should define `_GEO_COUNTRIES`.
+The site could randomly insert syntactically valid white space in the target JS expression: ``` r'processAdTagModifier\s*\(\s*(\{.*)\)\s*,\s*\{\s*"video"\s*:', ``` Also, consider these points: * `.*` won't match newlines unless you set the `s` flag (`r'(?s)...'`) * if the site should send several consecutive sequences like this `{...}, {"video: ...}, {...}, {"video: ...}, {...}, {"video: ...`, the pattern will match the entire string and not just the first `{...}, {"video: ...}, `: maybe use `.*?` so as to get the shortest match. And at l.65 below.
+You should use `self._request_webpage`, preferably with a HEAD request
+I've already pointed out: replacing one time-proven working data extraction approach with another is not an improvement and I will reject all such further PRs. All additional scenarios should be added as fallbacks. Again, this code is not PEP 8 compliant.
+Change double quotes to single quotes
+Part after `\?` should be removed since it's not used anymore.
+By the way, the pythonic way is to just evaluate `thumb_list`
+Don't capture unused groups./
+This is checked by `_search_regex`.
+This should be in `_real_initialize`. Same for all other occurrences.
+should be handled someway in `js_to_json`, at least add a `TODO` to indicate that this should be fixed in a general way.
+No brackets needed.
+This must be an id of the media.
+Selection by attribute does not work in python 2.6, use `find_xpath_attr` instead.
+then I think it would be better to use `fatal=False` instead of `default=None`.
+Eg: ```suggestion 'url': update_url_query(base_url + '/Pages/Viewer/Image.aspx', { 'id': obj_id, 'number': obj_sn, }), ```
+Again: it's not part of the video's title and must not be in the title.
+This does not match anything.
+No need to escape forward slash. Should be `https?`. Part after `(?P<id>\d+)` should be optional since `id` is only used for extraction.
+Any reason for not using helper functions like `_add_ns`? Codes look lengthy without that.
+Why did you remove this test? It does not work with your changes.
+Again: you should not bother with that. It will be automatically extracted from the download URL.
+Extractors should extract information of all possible formats, not the specified format only. Instead, `YoutubeDL` class handles format selection.
+As said it should be more relaxed allowing both kinds of quotes, attributes in between and reversed order of attributes.
+youtube-dl is wide targeted. Absence of any authentication is preferred since not everybody may have/want to bother to obtain an API key.
+should not return empty formats.
+Such cases should be handled, too. I guess a possible approach is creating a table with common video and audio codecs. If given codecs are not on the table, fallback to `video,audio` order.
+And this as well.
+This check is not necessary now as you test pathconf anyway.
+All similar tests should be `only_matching`.
+Read coding conventions on mandatory data.
+```suggestion _VALID_URL = r'https?://(?:www\.)?(?P<site>vier|vijf|goplay)\.be/video/(?P<series>(?!v3)[^/]+)/(?P<season>[^/]+)(/(?P<episode>[^/]+)|)' ```
+`[]` is useless.
+I guess you misunderstand this completely. Simply speaking `(["\'])(?P<url>(?:(?!\1).)+)\1` regular expression means: 1. Match either `"` or `'` and remember it as `\1`. 2. Then match any character but `\1` until `\1` is found and remember it as `url`. Thus it will match everything between quotes regardless of quotes' type (double or single) found, e.g. it will capture `123` as `url` group of out `data-video="123"` as well as `data-video='123'` strings. This is applied in order to be future-proof in case of quotes' type change. So it's does not make any sense here and in most of other places in this PR.
+Use `\s*` instead.
+no, as i said you would extract the metadata and return immediately.
+This is **changing of the name** because you've merged `IndavideoIE` into `IndavideoEmbedIE` (or simply dropped it) and then renamed it to `IndavideoIE` as a result you've **broken** all download archives made with previous versions of youtube-dl. Just do what is asked.
+You don't need anything but the `id` to match, but there might be other attributes ahead of it: ```suggestion next_data = self._search_regex(r'''<script\b[^>]+\bid\s*=\s*(['"])__NEXT_DATA__\1[^>]*>(?P<json>[^<]+)</script>', webpage, 'next_data', group='json') ``` As NextJS is a common feature, there should be a standard function for this. This method is in yt-dlp but not yet back-ported, but you could pull in a copy: ```py def _search_nextjs_data(self, webpage, video_id, transform_source=None, fatal=True, **kw): return self._parse_json( self._search_regex( r'(?s)<script[^>]+id=[\'"]__NEXT_DATA__[\'"][^>]*>([^<]+)</script>', webpage, 'next.js data', fatal=fatal, **kw), video_id, transform_source=transform_source, fatal=fatal) ``` Then: ```py return self._search_nextjs_data(webpage, video_id)['props']['pageProps']['media'] ```
+This regex does not make any sense.
+Use `compat_urllib_parse_unquote_plus` instead.
+Hi @beards, The variable name is hard to get the idea. It looks like I add the following before _download_json work. `Line 173: video_id = cid` But the downloaded filename title is not quite right after download.
+Move it right after `title = info['title']`.
+no, as i said you would extract the metadata and return immediately.
+All formats should be extracted.
+If `_search_regex` fails `None` will be passed to `_parse_json`.
+Original extractor classes (`ie_key`s) should be preserved. Otherwise you break existing download archives.
+What's the point capturing `url` when you already have it in `url`. Rewrite with `_match_id`.
+54-58, 71-75 code duplication.
+```suggestion spl_url = data['episode']['spl'] + 'spl2,3' ```
+You still hardcode the path schema. If it changes to, say, `/vrmedia2/<id>-clean.<ext>` the extraction is broken then. You need to capture the whole path: ``` for ext, path in re.findall(r"data-([^=]+)='([^']+)'", webpage): format_url = https://voicerepublic.com + path ... ```
+**Do not remove** `_search_regex` part.
+Usually we don't use the URL as `video_id`. If `video_id` is unknown yet, it's OK to use part of the URL, for example "a-housecat-a-stray-god-and-a-tail".
+Therehere could be a fallback to video/embed URL and extraction without metadata with a warning to use credentials for correct metadata printed.
+Does not match https://narando.com/r/b2t4t789kxgy9g7ms4rwjvvw.
+When we have an m3u8 download and no ffmpeg installed we'll get unhandled exception and crash with a traceback. Previously there were an additional check before this line that has been reporting an error and returning quietly so that `check_version()` were never reached thus no unhandled exception. For now lets just restore it and later think how to move these checks outside actual downloading routines to phase when we select downloader.
+Also pass `m3u8_id='hls'`.
+`.*` on both ends of regex make no sense. Also when capturing at least one character is required - there is no sense capturing empty video id.
+What's the point of this base class? It's only inherited once.
+Code duplication should be eliminated.
+Breaks if no URLs extracted.
+both are know beforehand, so there is no need to use `urljoin`.
+```suggestion r'''<a\b[^>]+\bhref\s*=\s*("|')(?P<url>(?:(?!\1).)+)''', next_page, 'next page link', group='url', default=None) if next_page else None) ```
+Query to `query`.
+Let's do it, then, if you like.
+About ```default``` parameter: for required fields (title, ...) there should be no default, and for optional fields (thumbnail, ...) use either default=None or fatal=False. The former fails silently and the latter reports a warning.
+Prefer consistent using of single quotes when possible.
+Read coding conventions on optional and mandatory data extraction.
+Breaks. Read coding conventions.
+No, it's not. If video_id extraction from page fails whole extraction fails.
+Does not match `var IDEC='`.
+I think it's better to directly include `'?v_id=%s'` in `_VIDEO_INFO_BASE_URL`.
+Sorry it took me so long to get to this, but I just tested #25216 and it works for me as-is. So my theory above is completely wrong.
+Use single quotes consistently.
+> Umh... this is a breaking change. @phihag should we add a hidden backwards compatibility `--write-srt`, or just specify the change in release notes? > Please stay backwards-compatible.
+Single quotes. `item` is already a string.
+It worth adding a doc string.
+No trailing `$`, override `suitable`.
+We use single quotes as much as possible.
+It's not an album id.
+the extraction can work just by having the track URL, so the entry `id` is an optional field, and the extraction should proceed even if an entry id has not been found.
+`vcodec` to 'none'.
+It looks like you want to make the extension optional. If so, please move the dot into the group of extensions - otherwise, it's not obvious what is getting matched here.
+Original regexes should be tested first.
+`parse_duration()` should work.
+This should be removed.
+I've already pointed out: replacing one time-proven working data extraction approach with another is not an improvement and I will reject all such further PRs. All additional scenarios should be added as fallbacks. Again, this code is not PEP 8 compliant.
+I've already pointed out - title **must be fatal**.
+Breaks extraction if no `followBar`.
+`{}` does not work in python 2.6
+The latter is simpler. The `fatal` parameter can be added to `get_element_by_id` later if there are more similar use cases.
+Should not break if there is no `resolution` key.
+variable names like ```json_obj``` is not good. It doesn't describe what's the purpose of this variable.
+`<span[^>]+class="name">...` is better.
+Should be cut down to couple of sentences. Possible arguments' values should be written all lowercase without quotes. See `--fixup` for an example.
+Invalid syntax at all.
+Use `\s*` instead.
+Code duplication should be eliminated.
+There is no point in before and after parts. Matching one capturing group from `<source` to `index` is enough.
+Real id is in widget dict.
+I suggest `default=video_id` in the `_html_search_regex` call.
+No brackets needed.
+Do not capture groups you don't use.
+Make it match URLs from the first post obviously.
+There is really no need in that at the moment. The need will arise when this download archive v2 based on standalone db or whatever is about to be implemented. For now I'd prefer changing couple lines in existing code over premature refactoring even though it may not meet best OOP practices.
+1. `v` may not be dict. 2. `v.get('slug')`.
+Wrong fallback value in `thumbnail`, `description` and `creator`.
+Mandatory. Read coding conventions.
+It should be robust in case of some missing fields.
+`id` by no means should be `None`.
+Regex should be relaxed. Dots should be escaped.
+`note` and `errnote` of `_download_json` instead.
+Breaks if no URLs extracted.
+Since this is an adult website, I think it is prudent to add: ``` 'age_limit': 18 ```
+Just modify mimetype2ext rather than introducing hacks in individual extractors
+Breaks if not a list.
+That's OK as long as `json_data['sources']` (no need for `.get()`) is just a dict of media formats. The `_check_formats()` method, which I think is called later, will strip out any formats with null `url`. In case they start sending, say, '4k' rather than '2160p', this would be better: ``` ... for source in media_sources: format = { 'format_id': media_format, 'url': source.get('src'), } format.update(parse_resolution(media_format)) # next line only if height should sort ahead of bitrate, etc (see _sort_formats()) format['quality'] = format.get('height') formats.append(format) ```
+`video_data` is totally useless. Write directly to id variable when found.
+`_match_id`. Do not shadow built-in names.
+don't use both `fatal` and `default`.
+will return `https://medal.tv/users/None` if an `author id` couldn't be extracted.
+instead of: ```python tracks = data['tracks'] for track_type in tracks: for video in tracks[track_type]: ``` you can just do something like: ```python for tracks in data.get('tracks', {}).values(): for video in tracks: ```
+Better to use integers for supported_resolutions and use str() here
+Whether it has changed or not does not mean there should be a format with invalid URL.
+Well, the helper method can be smart about when to call `cleanHTML`
+There is no point in `get()` here. You will fail anyway if there is no corresponding keys in dict.
+You should be able to replace those 2 lines with ```python3 subtitles[s['language']].extend({'url': s['url'], 'ext': s['category']} for s in ysubs) ``` . Untested but it should become a generator which gets implicitly iterated, which should be faster than appending 1 by 1.
+This breaks streaming to stdout.
+Oh, ok. That makes sense. Shoulda read the statement above it.
+Must be `int`.
+This must be done right after title extraction.
+`{}` won't on python 2.6.
+If ```options[0]``` _is_ ```{```, options should be returned.
+Make `www\.` part optional.
+The latter is simpler. The `fatal` parameter can be added to `get_element_by_id` later if there are more similar use cases.
+Empty string capture does not make any sense.
+This is not matched by `_VALID_URL`.
+Forward slash does not need escaping.
+No trailing `$`. Override `suitable`.
+It's a function in ```..utils```. For example: ```data = urlencode_postdata({'foo': 'bar'})```. Basically it does the same thing as ```urlencode({'foo': 'bar'}).encode('ascii')```, just a more meaningful name.
+Use ... instead of â¦ here. Non-ascii outputs may break random things.
+```suggestion for k in ('subtitles', 'subtitlesUrl'): subtitles_array.append({'url': video_data.get(k)}) ```
+"" -> ''
+Alternatively you can just restore it after this PR is merged.
+Doesn't exist in yt-dl. See also: * parse_qs * srt_subtitles_timecode * traverse_obj In this case, it's simple function that you could implement locally.
+As said it should be more relaxed allowing both kinds of quotes, attributes in between and reversed order of attributes.
+Yes, it should accept any variation of whitespace.
+i think you should not remove the formats, it's possible that they would be served from different server, protocol, etc...
+Single quotes. `item` is already a string.
+`xrange` is not defined in Python 3.x
+Unnumbered placeholders are not supported in Python 2.6.
+Hi @beards, The variable name is hard to get the idea. It looks like I add the following before _download_json work. `Line 173: video_id = cid` But the downloaded filename title is not quite right after download.
+don't use both `fatal` and `default`.
+Title is mandatory.

@@ -1,0 +1,934 @@
+It's a tricky question actually. I like the fact that Spring Boot is a one-stop shop for opinions like this one, and Michael is right, there are already 2 such implementations in Spring Boot (for JPA and Mongodb). But on the other hand Spring Data Couchbase is a relatively new project if I understand correctly, and if is not GA by the time we want to release Boot, then this code could not be included there.
+Same here really. If you can get a GA release out then we can merge this whenever that happens.
+What about it? (I usually let Eclipse take care of formatting, so if you are using Eclipse just import the settings, as described in the CONTRIBUTING.adoc.)
+Understood. I've bumped the version to 4.0.0.RELEASE in my modified version of your commit: https://github.com/wilkinsona/spring-boot/commit/f0089a40bc95c16dc9b386c63530f4c80f49f1eb. I'll merge this tomorrow (assuming the JFrog issues have been resolved by then)
+Thanks, Artem. Dropping the `groovy-xml` dependency makes sense. I think we should stick with using the starter (as part of this change at least). I'll take care of that when I merge this in.
+Should be 1.1.0
+Should be upper-case, i.e. NETTY
+Should be upper-case, i.e. EMBEDDED
+How about making `HornetQProperties.setMode` take a String and mapping it to the enum manually: ``` java public setMode(String mode) { this.mode = HornetQMode.valueOf(mode.toUpperCase(Locale.ENGLISH)); } ``` Alternatively, assuming that you can get at the `ConversionService`, you could register a custom converter Either way, having something that doesn't care about case feels more in keeping with Boot's relaxed binding
+As a general convention inner classes are at the end of the file in Spring Boot
+Wouldn't "application.port" be a better default? There's already "application.pid", "application.properties", "application.yml" etc.
+Rather than using a boolean, I think @philwebb's suggestion of taking the event class that should be listened for would be a more flexible approach. Depending on the type of the event, the environment can then be used it it's available. If the environment's not available or it doesn't contain the property to configure the pid file location, the default location could be used.
+I still don't like doing this in Java. It makes the log config files dependent on a very specific code path in the framework. It would be nice for users to be able to copy paste those files and use them as is.
+Do we really need to use the Java API for the loggers here? I was hoping this would be in a config file. What happens if the user sets additional logger levels later, do they inherit from their parent or something? If so why do we need to iterate here (can't you just set the handler for the root logger).
+should be setIncludes not setIxcludes
+That makes the checkLocation thing a bit useless isn't it? We can translate this code by "if ehcache is on the classpath, then we try to create a config based on the specified location". So if you have ehcache on your classpath and no plan to use it (because you don't want any cache) then your application will not start because said file won't be found. We need to put that in perspective with other caching infrastructure. Maybe this thing should be opt-in after all.
+It's better but we're not there yet. I think the trigger should also be the presence of a Spring `CacheManager`. If one is configured we should just back-off
+We shouldn't use top level namespace like that for configuration. Let's go for `spring.cache.ehcache`.
+I would use `EhCacheManagerUtils` and I'd expose the `CacheManager` directly and not the factory bean.
+Same thing here. Should be the actual ehcache's `CacheManager`.
+Looks like a code refactoring that was half applied. should probably be `createMailHealthIndicator`
+Well, that's bad. The `Transport` instance is never closed. `JavaMailSenderImpl#connectTransport` looks like a good fit for what you're doing (relying on the plain `connect` does not seem such a great idea either). Unfortunately it's protected but not rocket science either. I guess you need a `Transport#close()` class in a guarded finally block code.
+I get why you want that but I'd like to commit that separately. I'll push that to master in a minute, please rebase.
+You need to add a meta-data entry for this key in `META-INF/additional-spring-configuration-metadata.json`. Look at the others for an example.
+There isn't. I prefer a separate commit for that. Don't worry about it.
+That "Set" prefix seems wrong. _Filename prefix for scripts._ looks good to me.
+The compiler uses `MustacheResourceTemplateLoader` internally and that one is configured to use the configured charset.
+There is already a property in `MustacheProperties` (in the parent class, actually).
+boot uses tabs
+You should deviate from the service's default here otherwise you're not testing anything.
+Can we reorganize these options so that they fit a more natural order please? (not adding them "at the end")
+I don't think it's worth a separate auto-config class. After all you are configuring something that is related to mail in a different flavour. How about moving that class as a nested static class of `MailSenderAutoConfiguration`. Please look at `JmsAnnotationDrivenConfiguration` for an example that does the same thing with `DestinationResolver`.
+Mail Session JNDI name. When set and JNDI is present, takes precedence to manual configuration.
+I am confused. This auto-config only runs if `spring.mail.jndi-name` has a value and then you check if it has a value? The else part and default `JNDI_NAME` should go away.
+Please push without those code formatting. Add only your change. Thanks!
+I'd put that at `@Bean` level.
+The `Class` argument is redundant (we extract that from the method signature)
+Please don't use commons lang
+Turns out it's still called `ActiveMQConnectionFactory`, seems they've just renamed the pacakges.
+It'd be better to check for `profileNames.length == 0` rather than creating and immediately throwing away the list
+That feels weird to me. I'd rather have an `AutoConfiguration` that does not inherit from anything and register a `@Bean` definition for the `AbstractCouchbaseConfiguration`. You may want to add a `@ConditionalOnMissingBean` on that one as well.
+There is `.data` package. You should probably move that stuff over there.
+We're in 2015 in case you didn't notice :stuck_out_tongue:
+Ah, scratch that. I just realized it was the spring data support.
+Key description does not start with "The" - Please check other `XyzProperties` in the project for example (the idea is that the phrasing should be consistent).
+typo there method name should be `couchbaseOperations` :wink:
+Should be a `Locale` object so that the IDE gets a chance to be smart about the value (no need to act on it, we'll take care of that).
+`metric1` first? you have `metric2` twice.
+Please don't use Commons Lang. Spring's `ReflectionUtils` or `DirectFieldAccessor` are our preferred alternatives.
+Actually, that's wrong. `static` is not required for an interface
+Yes, `arrayContaining()` is for ordered checks, `arrayContainingInAnyOrder()` not. But I see that it has been closed. Have a good day!
+Not sure if it's a known limitation, but due to the fact that it uses `Object jobInstance = super.createJobInstance(bundle);` which is implemented with: `bundle.getJobDetail().getJobClass().newInstance();` from `AdaptableJobFactory` constructor injection in Job beans is not possible. To make it work, could we simply do: `Object job = this.beanFactory.createBean(bundle.getJobDetail().getJobClass());` and then apply properties population from `SpringBeanJobFactory` ? It seems to work.
+constructor injection is not something that is supported currently so that seems quite unrelated to this PR. If you want to support construtor injection, then please raise an issue in the Spring Framework issue tracker. The whole quartz support works currently with properties injection and I don't think that's something we could/should fix in Spring Boot. @vpavic that factory is indeed a bit more opinionated. It's fine to put it here for the time being since it's hidden. We can revisit this if we integrate the feature in the framework. I'll discuss that with @jhoeller
+Please test this in a dedicated test. I'd like also to see a test that checks what happens if the MBean has already been registered (using the `<jmxConfigurator />` option).
+In terms of being overridable, there's not much point in this method being `protected` when there's no way to access the publisher. A getter for `publisher` seems appropriate.
+This doesn't compile as there's no `isFalse` method on `org.springframework.util.Assert`.
+We don't use star imports. Please make sure to only change the code that you intend to.
+I am afraid we can't do that. Plain cassandra support may work without Spring Data Cassandra. I just had a chat with @philwebb about this and it can be tricky. I think our best option is to create a meta-data entry manually (that's what we usually do when we need to retrieve a value type that may not be on the classpath). I also noticed that we don't really have a service that would wrap the converters that are being used by the `ConfigurationPropertiesBindingPostProcessor`. I've created #4890 to track that.
+`EhCacheCacheConfiguration`? Looking at some of the other Configuration classes, it seems like maybe this should be `@Conditional(CacheCondition.class)` unless I'm missing something.
+Also, if I don't want all of the HealthIndicator beans pushed into my custom registry, the post processor will do so anyway. If a custom registry is provided, it needs to be possible to have complete control over its contents.
+Sorry, I still don't see the need for the post-processor. It feels more complex than the current code which is essentially doing the same thing
+This problem would go away entirely if the registry wasn't also responsible for calling the indicators.
+This isn't thread-safe. To be safe, it shouldn't just be wrapped in a synchronised block. We should avoid calling a health indicator while holding a lock as it's code that we don't control and could result in deadlock if someone does something a bit daft in their indicator and calls back into the registry.
+This isn't thread-safe
+This isn't thread-safe
+Typo: give â given
+The current implementation provides a view onto the keys of the underlying map so its contents may change if an indicator is (un)registered.
+`@EnableWebSecurity` will have switched off Boot's web security configuration so I don't think the order matters. I think we need either `@EnableWebSecurity` or `@Order`.
+I don't think this should be using `@EnableWebSecurity`. That's the purpose of `spring-boot-sample-web-secure-custom`.
+Don't bother, that was FYI. We can do that with the merge commit ;)
+@snicoll > you lost me with the SLIGHTLY_TRICKY part to be honest. Is that ironic? Sorry about that. I was trying to point out that other stores do not use their complexity to determine the annotation. Instead the name reflects the actual data store used. When I use `SIMPLE` this is _subjective_ adjective of the data store and does not clearly define the store. There are likely multiple ways to implement a simple data store. I'd like to ensure that the enum describes exactly what is being used so there is no confusion. In this instance, `HASH_MAP` describes this well. Perhaps it could be even better defined as `CONCURRENT_HASH_MAP`.
+FWIW, I prefer `HASH_MAP` and I'd be in favour of deprecating `CacheType.SIMPLE` in favour of `HASH_MAP` there too (assuming it is a HashMap which illustrates the problem with calling it simple)
+@rwinch I am not a native speaker: you lost me with the `SLIGHTLY_TRICKY` part to be honest. Is that ironic? `SIMPLE` means exactly what that store type is IMO. I favour consistency above all and `SIMPLE` is [exactly the name we chosen for the "hash map" cache manager option](https://github.com/spring-projects/spring-boot/blob/master/spring-boot-autoconfigure/src/main/java/org/springframework/boot/autoconfigure/cache/CacheType.java#L77).
+@snicoll I do not think `SIMPLE` is ideal for a few reasons: - It does not align with the other configuration options. We didn't name the Redis configuration `SLIGHTLY_TRICKY`. Why would I call the HashMap implementation `SIMPLE`? - It does not give a clear indication what the implementation is. What do we do when we have other `SIMPLE` options? - `SIMPLE` is subjective.
+It's within a `session` package so I wouldn't mind too much.
+I like simple as well: it denotes the fact that it's not using any of the 3rd party back-ends.
+As of 1.4, we prefer to use constructor injection. If you don't need to inject optional components (that's not the case here), please switch to constructor injection. Check the codebase for samples.
+Maybe it could just be `StoreType`. We don't to qualify everything.
+Actually we could go crazy and add couchbase to the list.
+Exactly the kind of the thing you shouldn't be doing there.
+I think I would prefer something like `spring.session.store.type`. I am sure we'll have other store-related properties in the future.
+Not necessary (at least the flavour without a target type)
+I would prefer `IN_MEMORY` here.
+It looks like we have a `local` and `remote` split for configuration so it would be nice to have that reflected in the namespace as well. How about a `spring.data.cassandra.local` and `spring.data.cassandra.remote`. We also tend to avoid lengthy property names so maybe there's room for improvements there.
+This logic means that only the last callback will be used. A test that verifies that multiple callbacks are called, and that they're called in a well-defined and predictable order would be useful.
+We'll still need something that's the equivalent of this to ensure that Flyway migrations have been run for Hibernate is initialized.
+We actually need this. We use it to not execute the migrations on startup by providing a noop `FlywayMigrationStrategy` as described in #4295.
+That's wrong. This should be`@EnableConfigurationProperties(SampleDataGeodeProperties.class)` and you should define that class with the list of keys that the sample needs.
+Let's not use `@Value` please. We have `@ConfigurationProperites` and meta-data support for showcasing custom key assistance in the IDE. Let me know if you need help to configure that.
+The reason why it works is because you have _nothing to do_ for `@Value` resolution to work ;) We are discouraging users to use `@Value` so we shouldn't use it ourselves. Thanks!
+I could see a `spring.task.pool.max-size` in there to avoid multiple related properties in the root namespace.
+We probably want a better default for this. Not sure what it should be.
+Yeah I meant to add that as a reminder. I don't have a better idea myself. Maybe we should be adding a configuration option.
+We should just do it by default, something like `springBootBanner` (see what was done in `LoggingApplicationListener` for the `LoggingSystem`).
+Ah, right. I didn't look carefully at the type, sorry.
+I've attempted to fix that one in a different way. I'm still hitting other Windows issues at the moment but I hope to get our Windows CI green again tonight.
+It may be wise to make this always sensitive
+I wonder if it makes more sense to use a mock of `FindByIndexNameSessionRepository`
+In my opinion it would be a better REST-style to turn username into a `requestParameter`. I personally would expect a `/{sessionId}` to get a specific session and a `?username={username}` to search for sessions asscoiated with the user.
+IMO the representation of session should be modeled with more care considering the needs of potential consumer: - `creationTime` and `lastAccessedTime` should be converted to `Date` - is `maxInactiveIntervalInSeconds` really needed here? - consider providing at least _some_ info about session attributes
+I think we should probably have an `Exclude` that pairs with the `Include` above. I don't know if having a bunch of well-known excludes is the way to go though. I have no better idea at this point.
+`info.getProperty(â¦)` can return `null` when using `redisNode.asString()` because of the execution of the `INFO` command. `INFO` is executed only on master nodes, not on slaves. `clusterGetNodes()` returns all nodes. Passing `null` into `withDetail(key, value)` leads to an `IllegalArgumentException`. I'd not put too much knowledge about cluster execution in here but rather iterate over the `info` keys (e.g. filter on suffix `"." + VERSION`) and use the keys from `info` to retrieve data. I'd also propose adding nodes as list to the Redis info as topology details are valuable in a health indicator.
+I'm not too keen on the structure of the JSON, both because the keys vary and because it's not very extensible. I'd prefer something like this: ``` json { "status": "UP", "nodes": [ { "address": "127.0.0.1:7001", "version": "3.0.7" }, { "address": "127.0.0.1:7002", "version": "3.0.7" }, { "address": "127.0.0.1:7003", "version": "3.0.7" } ] } ``` The keys are the same for every node and we can also easily add extra information about a node.
+Slots aren't nodes in Redis Cluster. Slots are logical partitions, so `slots_up` and `slots_fail` would fit better.
+The linger time for a socket is very different to the time it'll wait for a connection before being closed. When the socket is closed, the linger time causes the socket to block waiting for acknowledgement of the close from its peer.
+`REQUEST_PARSE_TIMEOUT` is described as "The maximum allowed time of reading HTTP request in milliseconds.". Should this not be `NO_REQUEST_TIMEOUT` which is described as "The amount of time the connection can be idle with no current requests before it is closed"
+This should be a call to `setIdleTimeout` instead. It is described as "sets the maximum Idle time for a connection, which roughly translates to the `Socket.setSoTimeout(int)` call.
+There is no exclusion. if you have both `spring.mvc.locale` and `default-locale` on the classpath you end up with two `LocalResolver` beans which is probably not what you want. I guess you need to move those to two inner class that you import explicitly. Look at `DataSourceAutoConfiguration` that has a package protected class for the connection pools we support. We should have a test that if both these properties are set, `spring.mvc.locale` is used. Also I am wondering if we shouldn't have a boolean flag instead. Let me raise that on the issue.
++1 - And the use of such expression for the JMX stuff always bugged me.
+How is the `path` value handled? I don't think this will support relaxed binding, e.g. if someone sets `spring.integration.graphControllerPath` or `SPRING_INTEGRATION_GRAPH_CONTROLLER_PATH` the configuration will be ignored.
+Not sure I like that, you're changing the semantic a lot (and it's wider than the intent of this PR IMO).
+I think it might too. I don't think such a change belongs in 1.4.1.
+Not sure you need to initialize the factory every time there.
+Changing to `List<List<FlywayMigration>>` breaks backwards compatibility without any benefit. I think we should either keep the old format, or change to a Map<String, List<FlywayMigration>> where the string somehow indicates which DataSource the migrations were run against. The JDBC URL of the DB would be ideal, but I'm not sure we can get that.
+You need to close the `Connection`.
+I think we should use `@ConditionalOnEnabledEndpoint` here
+I think we should use `@ConditionalOnEnabledEndpoint` here
+I don't. If you specify both, then we're just going to initialize the schema as before. I already wrote that.
+We don't know if it's going to fail or not. I might have that custom table in my database init script. There is no way to know. What @vpavic suggested initially is that a user would have to explicitly disable the initializer flag to prevent the exception. Doesn't feel right to me. It will fail down the road if you configure a custom table name and you have no script to create said custom table name.
+If we know it's not going to work then I'd throw an exception as early as possible rather than logging the warning. If we can't be sure if it'll work or not then the warning seems potentially misleading and we should just continue and let it throw an exception later on if it turns out that it doesn't work.
+you need to wrap that in a new `ArrayList` otherwise access by key won't work (the initial collection is immutable).
+Can we have a `ssl` namespace for these (see `RabbitProperties` for instance)
+Could you please push force an update of your PR without those formatting changes please? (there are more below)
+That's not what I mean. Shouldn't that condition above be `@ConditionalOnBean({ CacheFactoryBean.class, GemfireCache.class,...` rather than `@ConditionalOnBean({ CacheFactoryBean.class, Cache.class,...`
+I still see a bunch of them with formatting changes...
+The beginning year should actually be 2012. We can fix that when we merge, though.
+should be Copyright 2017-2017, same on all other files
+Ah, yes. It's a different map. Well, if nothing else, this discussion has shown that the code's confusing to me at least. I also think that the PR has shown that we're missing some tests. You've changed the behaviour, but haven't had to change any tests. That's bad. I'd like to see some tests around this before we change anything.
+Just to be clear, I was saying that the current code and tests are bad, not your PR. Given that it would appear that the optimisation is faulty in its current state, and no one has raised it as a performance problem, I'm very tempted to remove it and simplify the code. If the optimisation is worth having then it's worth testing. To do that, the filter will need to be refactored. I would create a separate package-private class that's sole responsibility is mapping from a status or exception to an error path and implement it in such a way that it can be spied on or whatever to verify that the optimisation is working as intended.
+The classname should not be changed to `CouchBase`.
+Since this works for all DataSource implementations, the name of the method (and thus the bean) would be better without `tomcatJdbc` in it.
+Afraid not, we generally use Spring's `Assert` class. I can change this when we merge it.
+SSL has no property in `RedisProperties` yet. You can set whether to use SSL with [`JedisConnectionFactory.setUseSsl(â¦)`](http://docs.spring.io/spring-data/data-redis/docs/1.8.0.M1/api/org/springframework/data/redis/connection/jedis/JedisConnectionFactory.html#setUseSsl-boolean-).
+It would make sense to distinguish between plaintext (`redis://â¦`) and SSL (`rediss://`) connections.
+We usually use the `ExpectedException` `@Rule` for this to make sure the exception is thrown exactly where it is supposed to. There are plenty of tests that use that stuff in our codebase.
+How about throwing a dedicated exception for this so that we can have a `FailureAnalyzer` that goes with it. Maybe going a tad too far ... If we don't, I think the error message should state why they couldn't be excluded (because these are not auto-configurations or something).
+If that's the case, that's what the test should assert then. And you should have a test that filters out the client (see that JUnit rule) to restore what happens when the client jar isn't on the classpath.
+I don't like that. You shouldn't mess with this in the general `CacheAutoConfiguration`. Is it because the client is now on the classpath and the JCache support doesn't know what to do? If that's the case, we should fix the JCache implementation to set the right flag based on the `HazelcastInstance` that is available.
+Rather than having two distinct auto-configuration, I'd like that we merge those in the same `HazelcastAutoConfiguration` with a `HazelcastClientConfiguration` and a `HazelcastServerConfiguration`. It would be nice if we could have a `spring.hazelcast.mode` enum (`HazelcastMode`) that could either be `CLIENT` or `SERVER`. The default value would be to detect what would work in practice at runtime.
+How do you feel about retrieving the URL of the `DataSource` from the meta-data (like you did in that other PR). This avoid injecting another collaborator and would work for things where the url isn't defined (that's typically the case for auto-configured embedded databases).
+You should move that up and back-off if the `DatabaseDriver` is `UNKNOWN`. Also, we need a better link between `Database` and `DatabaseDriver`. when I gave some thought to that issue, I was considering creating a mapping between a `DatabaseDriver` and a `Database`. I think it's better than relying on the fact they share the same name... We probably need a test that iterates over `Database` values to make sure everything is covered somehow.
+to avoid extra memory taken by toArray() (it does copy array to new array object), we could create primitive array like: ```java String[] argsWithoutDebugFlags = new String[args.length]; ``` and then copy values in proper index by maintaining running index e.g. ```java int index = 0; for (String arg : args) { ... argsWithoutDebugFlags[index++] = arg; ... } ... return argsWithoutDebugFlags; ```
+As `properties` and `applicationContext` are only used by a single bean, I'd inject them into the `dataSourceInitializer` method directly rather than the configuration class constructor.
+Rather than using a `String` there you could use a `Resource`. That way the binder will do the work of making sure that resource is valid (if set).
+That's not going to work. That code expects the String to point to a File. I've opened an issue to get an `InputStream` variant so I'd rather wait for that.
+Must be public
+You can't really do that I am afraid. `Resource` is an abstraction and it may not return a file. The only reason why the tests currently pass is because you are running them with `target/test-classes` so resources effectively point to a file. If you use the same inside a repackaged jar, `getFile` will return `null`. I am not super keen to introduce a feature that requires to point to `java.io.File`. Looking at the code for `Schema`, there isn't an easy way to read a `Schema` from a `InputStream`. IMO that feature should be available before we proceed with this PR
+Good point. I'll take care of that once I've merged this PR.
+Nested configuration properties can be (and should be) `final`. You don't need a setter since the object instance for this properties object is always there.
+That test does nothing. Verify that the repository was called with the right argument would be in order: ``` verify(this.repository).deleteById(session.getId()); ```
+You can't use `HttpStatus` here as this class may not be available when running with Jersey. That's why that object is taking the raw `int` code.
+Thanks for the feedback. I've created #10348
+I think we should do this in such a way that we can log a warning that `application.properties` is deprecated and that `loader.properties` should be used instead. We can then remove support for `application.properties` in 2.0.
+Thanks. Perhaps I've misread the change, but won't this warn if your app uses `application.properties` at all? For example, if there's one in `BOOT-INF/classes` in the jar that's configuring properties that don't affect `PropertiesLauncher`? I think we need to warn only if `application.properties` is found and it's used to configure one of the launcher's properties.
+It's irrelevant to log the message ,e.getMessage(), because he will be logged by passing the entire exception to the logger. Instead you could log a more specific message for this case
+for code cleanup: ``` if(! StringUtils.hasText(prefix)){ return null; } String trimmedPrefix =prefix; while (trimmedPrefix.endsWith(".")) { trimmedPrefix = trimmedPrefix.substring(0, trimmedPrefix.length() - 1); } return trimmedPrefix; ```
+This appears to be untested
+This appears to be untested
+Should be Copyright 2012-2017 the original author or authors.
+Do we want to expose all that? You are introducing a customizer so you're giving the ability to a user to pretty much change the builder any way they like. I'd focus on the most used properties.
+it should be `final`
+Please rework the PR from `master` (and not the `1.4.x` branch as you did).
+Should be `boolean` (see other implementations).
+Looking at the implementation there are a bunch of items you can log. You've chosen to include cookies only. why? Perhaps this can be extended as ``` accesslog.log.cookies=false accesslog.log.server=false accesslog.log.latency=false ```
+"flag" is redundant since it is a boolean.
+The point I am trying to make is that if you set a property to check that it is created properly, you don't need to test all the possible values. If you do you are testing the binder, not your code.
+That's a lot of code to check that `Neo4jProperties` behave as expected. You could just as well create the object by hand, create the configuration and then check it has done the expected thing (plain unit test that is).
+I don't understand the purpose of this. Are you trying to test that the binder is able to properly map that value? If that's the goal, then you're testing the binder, not your code. I'd have two tests. One that validates that the mode is none if you don't do anything. And one that overrides the value to one of the other values. But you should do that in separates tests (load does not close the context you've created previously). It would be much better to do something and validate that it has the expected impact. But you can't do that if neo4j isn't available.
+There is no reason to move `Embedded` at the top. Please move it back where it was.
+This should be `final` like the embedded one and does not require a setter.
+I appreciated the creation of a namespace but that leads to a weird property name. Hibernate has a `ddl-auto` that's quite explicit. `spring.data.neo4j.auto-index` is interesting if we forget about the two other property.
+please don't modify existing code if that's not necessary
+There's not much use in having four tests that check that the four value are set in the right place.
+How often are you going to use that feature? I am asking because it complexifies the configuration setup quite a lot.
+I tend to use a `Class<?>[]` for this. This prevents the translation from list and is as easier to read.
+This is redundant because of `@Conditional(IntegrationSchemaCondition.class)` below. Or that one should be pulled here.
+Doh... This is `@ConditionalOnClass`. So, never mind ð
+Great! Let's raise a PR there and link here for the tracking!
+Please, add one more assertion for one more `INT_CHANNEL_MESSAGE` table.
+Should be `@ConditionalOnSingleCandidate`
+> since bean class may be DataSource.class You mean the bean definition exposes a raw `DataSource` and the condition fails to actually find out what type it is.
+Now configuration classes support constructor injections, we don't do this anymore. You could inject an `ObjectProvider<MBeanExporter>` and a `List<HikariDataSource>` to reduce those manual steps.
+We have a few places where we've avoided referencing `RequestDispatcher` directly to help with Servlet 2.5 compatibility. My preference would be to take care of all of them in a single, separate change.
+Against `master`, please. But only if you're feeling particularly generous; it's not the most exciting of changes :)
+That looks like an unrelated change to me.
+It would make sense to keep `testOnBorrow` `true` because you don't want to get broken connections from the pool. For all other properties, it would make more sense to accept a `JedisPoolConfig` bean, if a bean is configured externally. `testOnCreate`/`testWhileIdle`/`testOnCreate` are very specific and not required to set by the majority of users. Pooling config can be sometimes very specific so it makes no sense to include the more advanced properties as it increases mostly complexity.
+Is the transactional part really intended? Is it supported at all? In any case, there's no `@Transactional` on this annotation.
+Let's go for `private final Log` please. We can think about exposing it to subclasses separately if/when the need arises.
+To avoid ambiguity, I think it'd be better to use `getName()`
+I think it'd be better to include the whole exception by using `warn(String, Throwable)` rather than just the message, particularly as the message is already part of the health's detail
+It probably would, however I don't think we'd done that anywhere else in the codebase. If the logger's non-static we probably need to think about exposing it to subclasses.
+Wouldn't it be better to have a non static logger and use `getClass()` as the source? That way the classname of the health indicator would show up in the log entry by default.
+I am a bit confused. How is that supposed to work? If jaas support is enabled you don't want to make that a hard requirement do you? There is no test for that validation rule and we don't use the annotations ourselves anyway so I think we should go with dedicated logic for this.
+While Tomcat uses a `String` for this it's coerced to a `boolean`. I think it'd be better if we made this more strongly typed and used a `Boolean`.
+Why using StopWatch? this create many short live objects for not resean.
+What does this test do? Perhaps you should check that the customizer has been invoked? The method name could be improved as well.
+`clusterBuilder` is probably a wrong name :)
+I am confused. If the dialect is something mandatory (you have to provide it to be able to use Jooq), you can't just ignore that. You usually have a dialect in configuration with your database but you introduced a change with this PR that the database can be replaced by an embedded datasource. So, if that is mandatory, it must have the right value without you having to specify that property. Let's put that from a different perspective. If you support JOOQ in slicing, users are expecting that if the database gets replaced, things will follow along nicely (the dialect). If they customize the overriding so that the datasource is NOT replaced, same thing. So IMO, that assertion must be there without the `@TestPropertySource` and we need another issue to auto-detect the dialect.
+Why do you have to do this? If your integration test has a `TestPropertySource` it is a smell IMO that either the auto-configuration or the test support should do something more for you.
+jOOQ can detect dialects from JDBC connections. Is that an option here? I guess not, but just wanted to point this out.
+I have no idea but this shouldn't be there. Again, that's probably a separate issue.
+I don't think it makes sense to make any reference to JPA here.
+Please keep your change focused, that line shouldn't go away
+I don't know what this is but we don't use `@Value`. Check the codebase for similar use cases (there are other health indicators that expose configuration keys).
+I don't think that complexity is warranted. Just keep constructor injection please.
+`NEO4J` is not needed. `neo4j` entry will be inferred from `Neo4jHealthIndicator`, can be replaced by `nodes`? Additionally, all entries in the result shouldn't be added to the detail.
+`Collections.emptyMap()` instead of this.emptyParameters
+getter and setter should be removed
+it should be final
+In order to publish `cypher` as a property annotation should be annotated by `@ConfigurationProperties(prefix = "management.health.neo4j", ignoreUnknownFields = false)`. This will allow to use the `management.health.neo4j.cypher`
+the entry will be something like ``` { "neo4j" : { "neo4j" : 8 } } ``` IMHO, the name should be `nodes` for this proprosal.
+But then it needs to have getter/setter @eddumelendez (which you asked to remove).
+FWIW, I think we should change this. `run` is rather generic.
+Such change on the other hand is really what I originally meant.
+I know this goes against what is stated in the original issue but I am wondering if this should be changed. The fact it starts with `run` is _a_ qualifier on its own. Changing this will impact users for sure so I am wondering if we should do it.
+4.0.1 is also release so if this code is merged then that version should also be taken care
+There seems to be a lot of shared functionality between `WsdlDefinitionBeanFactoryPostProcessor` and `XsdSchemaBeanFactoryPostProcessor`. I think it would be better to merge these two into one class, giving the varying parameters (property name, file extension, and bean class) as constructor arguments. `ensureTrailingSlash` and `createBeanDefinition` could then also move to said class.
+> Without it recovery manager is started automatically when any transaction logic is executed for the first time Wouldn't that be a good thing? It would address my earlier concern about recovery perhaps being performed too late. But I'm confused about that now as those changes seem to have disappeared.
+I was thinking of a user's integration tests for an application using Narayana where multiple application context's may be started and stopped. From your description of what the delay does, it sounds like that won't be a problem though.
+There is no check on user/password there so perhaps we could rationalize the check altogether? (i.e. remove the first if)
+I'd rename that class so that it's more explicit what it simulates. `CustomerBuilderConfig` for instance.
+You can make it final there and there is no need for a setter
+That is not what I had in mind. Your report is about a `Properties` object that you set in the factory via `setProperties` and the reason why this issue exists is that because binding doesn't do its job. What am I missing? Can't you just call `setProperties` with the properties object that you have there? It's not the same thing as binding on actual java bean properties (and, in effect, any side effect that could happen due to the automatic binding _will_ occur here as well since that same code runs effectively with `@ConfigurationProperties`).
+That removes silently a feature isn't it? It's probably for the better but I just want to double check.
+We can't assume that 9000 will be always free.
+There's really no reason to remove that.
+`while(ChronoUnit.MILLIS.between(started, Instant.now()) < TIMEOUT)` looks more sensible to me.
+This could be moved outside the `try` and handled in the `if` above: ```java if (this.jarFile == null || this.jarEntryName.isEmpty()) ```
+Could you please revert this part of the change as it's unrelated to the last modified time
+it's better to initialize instance variables inside constructors instead of at the declaration level
+We could probably replace the filter with `hasLength` from `org.springframework.util.StringUtils`. A `forEach` might also be a bit more concise than the collector: ```java Arrays.stream(args).filter(StringUtils::hasLength).forEach(this.args::add); ```
+I think I'd be more in favour of a `protected getLogger()` method.
+Ah, yes. Of course. I'd forgotten that we still bind directly to the `Flyway` instance. You're right. Let's keep the `SpringBootFlyway` class please.
+This could become a `Map<String, String>` and remain as `NO_CONTEXT_MESSAGE`.
+Sorry, you're right. It'll need to be changed to `properties` as you've proposed.
+This could become a `Map<String, String>` and remain as `PROPERTIES`.
+This could become a `Map<String, String>` and remain as `SHUTDOWN_MESSAGE`
+I don't think adding a logging statement here is part of what is discussed in the issue you've referenced.
+I am not entirely convinced that this is required. This looks quite verbose with not a lot of benefit. Surefire has an [argLine parameter](http://maven.apache.org/surefire/maven-surefire-plugin/test-mojo.html#argLine) that matches what `jvmArguments` does so I'd keep that (no need for deprecation).
+@acogoluegnes Using 5.1.x seems like the best option purely from Boot's perspective. Is 5.1 backwards compatible with 5.0 or is it likely to cause problems for Spring AMQP do you know? /cc @garyrussell @artembilan
+I just tested master against 5.1.1 with no problems.
+I think we can't upgrade Spring AMQP 2.0.x to the AMQP Client 5.1.x, but Spring Boot 2.0 still can do that and therefore replace Spring AMQP's one.
+There is nothing yet for Spring AMQP 2.1. More over we only talk about a compatible dependency. So, if you don't use Spring Boot but only Spring AMQP, you should override dependency manually. That's all. Otherwise with the Spring Boot everything is transparent for you. And yes: that is really too much to support...
+If the version police will allow it, I wouldn't mind changing to 5.1.x in 2.0.
+I guess I'm (one of) the version police :). I have no objections to doing that.
+Same idea here, if we support multiple connection factories, there should be a way to identify them.
+Configuration key descriptions do not start with `The`, `A`, etc. Please look at [existing keys](https://docs.spring.io/spring-boot/docs/current/reference/html/common-application-properties.html) for inspiration
+I am not sure what you mean by "non-null" here.
+Configuration properties must be JavaBean properties (the type must match) and we don't support `Optional` here.
+Please refrain from making unnecessary formatting changes.
+The default exchange is `""` so it would be nice if the property would say that rather than `null`
+Configuration properties description do not start with"The", "A", etc. Please look at the appendix to harmonize them.
+OK; that makes sense. As discussed offline; if we expose the `channelTransacted` flag on the template, we should do the same for the listener container factories so that any rabbit template operations performed on the container thread will participate in the same transaction.
+A test should cover this. If we go with the route of flagging `""` a the default value. We should have a test that this value is consistent with what happens by default.
+I would prefer the use of null checks rather than "mirroring" the current defaults in the template - if we ever change the defaults in the template they will be undone here. See the properties above (reply timeout etc) for examples; so `channelTransacted` should be `Boolean` so we can check whether the user has explicitly set the property. While it is unlikely those defaults will change, this is the general pattern used by Boot's auto configuration.
+This feels like a brittle way to support nicer `Duration` parsing. I'm worried that we're going directly to the `Environment` and possibly bypassing the relaxed binding rules. I'm tempted to pull that out and create a nice general way to bind Durations with a simple format.
+Scrub that, yes you can.
+This is an unusual enum format. Any reason for `Cumulative`, `Step` and not `CUMULATIVE`, `STEP`? Binding should work regardless I think.
+@dheld-expedia are you the original author for this? Any chance you could consider submitting it as a PR for Boot so the CLA bot confirms that you've signed the CLA.
+I don't think you can use `@Order` on `@Bean` methods.
+Has the author signed the CLA? We can't accept this if not.
+This one's redundant and can be removed entirely.
+What does this test tests exactly? If we offer a way to specify a custom cyper, I'd rather have a way for the user to configure that via a key then (`management.health.neo4j.cypher` or something like that).
+So those properties must be set on the builder when `CouchbaseMock` is active but they don't need to be exposed for the general use case? Again, that's calling for making those changes internally rather than exposing them.
+you mean `DefaultCouchbaseEnvironment.Builder` ? yes, that would be much better. thank you
+Thanks it's much better but that's not what I have in mind with "make that its own class with the necessary parameters that you need". This change is better as you're not relying on the order of processing of `CouchbaseProperties` but you're still changing its state and it is a singleton. What I have more in mind is to apply those customizations to your extension of `SpringBootConfiguration`, either via a protected method of some sort or any other suitable means.
+I don't think we should change that there. If the boostrap hosts aren't set, it should return `null` as before. Adding a logic of a "default" host while the property has no default value is wrong.
+When CouchbaseMock is initialized on a random available port, these 2 ports are also changed from defaults to available ones. For a couchbase-client to be able to connect to CouchbaseMock we need to set these properties to the ports on which CouchbaseMock is actually listening.
+That's quite fragile IMO. There is no guarantee that `CouchbaseProperties` won't be processed differently in the future.
+This is fragile and should be avoided. It looks like that this auto-configuration should expose a `CouchbaseConfiguration` rather than augmenting the Environment so late in the game. If we opened `CouchbaseConfiguration` a bit (make that its own class with the necessary parameters that you need), then we could expose one here and leave the original auto-configuration unchanged (it would simply backoff as it does already prior to this change).
+That assertion on something that returns a `Map` is wrong (it will always be non null). The purpose of this test is to check that the auto-configuration backs off as soon as there is a custom directive for the repositories.
+While the copy/pasted annotation there was wrong, I think the intend was to `@EnableCouchbaseRepositories` and check that no reactive repositories were enabled. Changing that breaks that test so we need to investigate a bit more what is going on.
+I think so, yes. It feels less noisy to not be wrapping `INVALID_KEYS` each time.
+`new HashMap<>(tokenKeys)` mutates the map prior to returning it. There's no locking in `HashMap` so I don't think there's any guarantee that the mutation that's done in the constructor will be visible to another thread. I think we should use `ConcurrentHashMap`.
+That import doesn't look right.
+That check should be reversed: we assert that it's not null, the `else` part dealing with the case when it is.
+Why a "configures a" all the sudden? Please look at existing descriptions for guidance
+The filter is really what makes the extension an extension atm so exposing it is a bit weird. You could have a `EndpointWebExtension` with the jmx filter :) I've created #11428 to discuss this further. With the current state of affair, you change is definitely legit so I'll merge that.
+I am confused, it returns `Mono<WebEndpointResponse<Health>>` which definitely makes it a web specific concern. I haven't properly looked at the new naming since the recent refactoring but that doesn't seem right to me.
+Thanks but as it is not related to the purpose of this PR, I've polished this separately in https://github.com/spring-projects/spring-boot/commit/1962cbb6234dd9029bf6a4bb6374d793ba5de959
+Hi, I could not find the method setClientId for my ContainerProperties, I think it caused some issues
+If you do, you are overriding the managed version for Spring Kafka in your application. Please remove the override or upgrade to the snapshot for the time being. Spring Kafka `2.1.1.RELEASE` will have this property.
+Constructor should be at the top.
+We can't use hardcoded ports.
+1s should be enough.
+Rather that parsing the json yourself, it would be nice to configure Kafka to do that for us automatically.
+This application doesn't do anything if you run it with an existing broker.
+Please do not use field injection.
+It's not 100% mandatory but I liked your idea of having a POJO using JSON to serialize its content. Spring Kafka has actually support for that and you can configure the `JsonSerializer` in Spring Boot (even though I don't expect this to be required).
+This assertion is very wide (since kafka is running, the log will contain kafka for many other reasons).
+Such a loop in a test is not acceptable. You could send a message and wait a bit. There are similar samples in the JMS area you can reuse.
+I don't think so. Running the app is ok, we have other samples that do that.
+Can you please get the context back there and close it at the end? It is probably useless now but it's better to make sure we actually trigger a shutdown.
+Can we please have a test that exercises this behaviour. You can use the `FilteredClassLoader` for that.
+Also, given that we use Liquibase 3.5.x in 1.5, it would be worth looking to see if thereâs a class thatâs new in 3.5 that we can check for. We should review the auto-configuration conditions too.
+I think the new check is in the wrong place. Iâd expect it to replace the existing check above.
+Can be harmonized to `NEW_LINE`.
+FWIW, I like the change as @izeye has proposed. I see no need for the constant now that there's a method we can call instead.
+Thanks for the feedback. Yes, that makes sense.
+We usually use the term `Customizer` for this.
+This empty class seems suspicious.
+There is a mixed of concept here. Usually a customizer is something that applies something extra. It doesn't get the configuration properties object in argument (as it is an auto-configuration concern).
+This code doesn't is not equivalent right? `RabbitListenerRetryTemplateConfigurer()` does more than what you removed as far as I see.
+It looks like this PR offers a way to customize the retry template and to set it at all. To me, these are two separate features that deserve a separate commit. I've just done that in #13529 (calling the auto-config that way isn't something we do, see the commit for more details).
+I've started a separate discussion (#13530) but I wonder if a `Consumer<RetryTemplate>` wouldn't be enough here.
+Can the refactoring of the test be done in a separate commit please? First that with the test unchanged and then an extra commit on top with the feature.
+This will be a 2.0 enhancement so this is fine.
+That's fine. We deal with formatting issues all the time when we merge things. No need to resubmit the PR just for that.
+I think that's pretty bad. We should let the condition infra does its job rather than failing as you've done instead.
+That's a regression isn't it? Previously we'd just backoff.
+This will close the `InputStream` before it can be retrieved from the `ConfigurationSource` and used. Log4j2 makes it the responsibility of the user of the `ConfigurationSource` to retrieve the `InputStream` and close it so this change is unnecessary.
+This will close the `ServerLocator` before the connection factory can use it. It is eventually closed when the connection factory is closed so this change is unnecessary. I'll address this when merging.
+This will close the `ServerSocketChannel` before it can be used by the `ServerThread`. The channel is eventually closed when the thread is closed so this change is unnecessary. I'll address this when merging.
+This will close the `SocketChannel` before it can be used by `TimeoutAwareChannel`. It's eventually closed when the `TimeoutAwareChannel` is closed so this is change isn't needed. I'll address this while merging.
+This will close `fileOutputStream` before it can be written to via `this.jarOutput`. It's eventually closed when `JarWriter` is closed so this is change isn't needed. I'll address this while merging.
+Bah, I am an idiot. I read your change backwards. You did what the intent was, not the other way around. Sorry :(
+The intent here is to replace the link with the text "servlet endpoints". I prefer that than your proposal.
+That's a protected method and an extension might use that parameter
+The message should probably specify that the **banner** resource must not be null, since the other two resources can be null.
+Again, best to clarify the resource in the message since there are multiple resources now.
+Since it's a public class with new optional fields, keep the original Constructor and delegate to this one.
+I don't think that's what I had in mind. What we need to do here is check if "NONE" is active and change the description accordingly.
+You can't expose such thing in an exception.
+No that's not what I meant. I think we need to take a step back. Can you rework your PR to change the exception to expose the `EmbeddedDatabaseConnection`? Then you can adapt the message when it is NONE. The change to fix that issue must not be that large. Let me know if that works for you.
+If you want to pursue this, the message should be provided by the caller, you can't hard-code it like that.
+We're trying to make sure descriptions are harmonized. Please look at other boolean flag descriptions in the same area.
+Unnecessary extra space.
+I think only the latter is necessary here.
+See also #12001
+This doesn't need to be a field
+Please rebase your PR rather than changing something that has already been changed.
+We don't use this construct, please mock the template in the test as you've done for the rest.
+It's too late in the day to be doing anything sophisticated here. We'll stick with Micrometer's default for 2.0 rather than trying to be clever and override it with something else and probably getting it wrong.
+The Bus id is structured as `{app/host}:{port/index}:{guid}`. If Spring Boot was supplying the first two we could add the ârandomâ bit. Or maybe the whole thing would be useful for micrometer (donât know).
+Spring Cloud Bus uses the following: ``` "${vcap.application.name:${spring.application.name:${spring.application.name:application}}}:${vcap.application.instance_index:${spring.application.index:${local.server.port:${server.port:0}}}}:${vcap.application.instance_id:${random.value}}" ``` Note the use of `random.value` at the end. I think that makes it unsuitable for this purpose as the id will potentially change across restarts.
+missing new line
+Oops. Thanks for the catch. I did a quick review and found a couple of other mistakes. I've taken care of them all in 83626c7c12bf9ff0a5d2910b558f7f493f34feaa.
+Could this be a `URI`? The same question applies to Atlas, Influx, New Relic and SignalFX but I missed those previously.
+`StatsD` -> `Wavefront`
+Whatever we decide to do with SignalFX's source, we should do the same thing here.
+Let's go with `URI` for this one, and then make all the others use `URI` in a separate commit/PR.
+The default value here should be true. And we shouldn't have a property at all since it's not used anywhere in the code.
+I think that's a bit misleading and we should rephrase that.
+Yes please. Using that rather than locations looks sensible to me.
+The user may have already manually configured the connector with a statistics handler. We need to be sure that we don't end up with two such handlers. I think checking for an existing handler using `getBean(StatisticsHandler.class)` will do the trick.
+We need to avoid adding a second `StatisticsHandler` to the server. I think it should be possible to get the `Handler` from the server and then walk down through all the wrappers by checking for instances of `HandlerWrapper`.
+There's no need to use a `HandlerCollection` here. A `Server` only ever has a single `Handler` and `getHandlers()` just wraps that single handler in an array.
+This still doesn't look quite right to me. A handler in Jetty can be wrapped any number of times. The code that looks for an existing statistics handler needs to work its way down through all of the wrappers to make sure that it doesn't add a duplicate statistics handler.
+I'm not sure that this needs to be conditional on a property. The auto-configuration can be disabled to remove the functionality completely. Alternatively, the property-based filtering can be used.
+@wilkinsona You are correct, I mistook it
+No, I don't think so. AFAIK, you can't create an array using that syntax. Even if you could, it would presumably give you a 0-length array which would defeat the purpose of the change that @izeye is proposing.
+This may throw a `SecurityException`. I think we should set the TCCL on a best-effort basis so any `SecurityException` that's thrown should be caught (and logged) and we should then proceed with the `invoke`.
+I believe a null-pointer check is necessary here.
+Why are you doing this to me? ð­
+I've removed my clone in 6f7501f
+Looks like you are already listed 2 lines up. Double Stephane ð
+I don't think this is necessary. The overriden method does this: ```java public URI getURI() { try { return getURL().toURI(); } catch(Exception e) { throw new RuntimeException(e); } } ```
+Looking at the code, you fix the wrong `Long`. `Duration` only works with timers.
+I don't like this pattern. If you call the setter several times, you'll append this customizer and rely on the fact the last one called will set the expected value. I guess you've done this that way to avoid adding too much parameters to the builder? I think we need to find a different option for this.
+there are too many flavours to set a `WebServiceMessageSender`. Specifying a vararg of instance and a `Class` looks wrong to me. I've removed that in my fork.
+I haven't looked in detail but I am wondering why you need to resort to reflection for a builder pattern that should "just" do what the regular template can do. Perhaps this feature should be removed in benefit from something more advanced? I don't like the idea to use reflection in production code.
+Considering that we may have multiple `WebServiceMessageSender`, I don't think we should expose this method here. You can provide a configured `WebServiceMessageSender`, this feels weird to me that all of them are reconfigured behind the scenes.
+This should also go away.
+This should be the last step
+I prefer if we keep the same style as what we're doing with `RestTemplate` (i.e. `interceptors` and `additionalInterceptors`). I've already started a polish on my fork so need to act on it.
+IMO that's one more argument to remove that feature.
+In the meantime I've seen we're doing that with `RestTemplateBuilder` and I see you're using a separate collection. Retrospectively, it's not that bad at all.
+Got it but I think the reason why a `Supplier` was added is wrong.
+I've removed the Supplier in my polish commit. I didn't found a single use of it and would argue that it is something you can determine when you build the template
+@vkiriushkin Does Liquibase require this class to be public? If it doesn't, I'd prefer that it were package-private.
+HttpClient is optional, might be better to use RestTemplate.
+That test is testing by side effect. Perhaps it should test what the expectations are instead.
+On a second thought, that doesn't sound right at all that we set username/password/host when we already have a `Session` from JNDI that should give us that stuff
+Oops. Looks like we have a test missing as well there.
+You don't but I certainly did ð
+That change in `ExecuteListenerProvider` is unrelated to the purpose of this PR. Please revert it so that this change is properly focused.
+That's not what I have in mind, please keep your change to a minimum. I expect two new methods passing a `Duration` to the existing customizers with the deprecated methods delegating to them.
+The format we use is `@deprecated since 2.1.0 in favour of {@link #setConnectTimeout(Duration)}`.
+I'd put the method taking `Duration` above the deprecated one, not below.
+Those two tests are new right? You could do the same with one that takes a `Duration` and one that takes `null` afteR. No need for the deprecation. Besides, I'd appreciate a separate PR for this as they are unrelated.
+Don't concern yourself with dots. If they aren't an acceptable character for a particular monitoring system, it is the responsibility of Micrometer's `NamingConvention` for that registry to strip or escape them.
+Should use `Timer.start(meterRegistry)` so that you are using the registry's clock for this sample.
+From the spec, it appears that action could potentially be a high cardinality tag: ![image](https://user-images.githubusercontent.com/1697736/40988408-96a7bae0-68b0-11e8-91e7-dd24f5108dcc.png)
+If `MessageContext` is the same instance in both `handleRequest` and `afterCompletion`, we may be able to employ a `Map` rather than `ThreadLocal`. Not sure if there is any advantage to this.
+That works, I guess (using `ObjectUtils.isEmpty`)
+This change appears to be unrelated.
+This change appears to be unrelated.
+We'll need to think carefully about this. The proposed change could break some tests that had multiple DataSources. Previously, if there was no primary DataSource, no DataSources would be replaced and if there was a primary DataSource, only that DataSource would be replaced. This change will result in all DataSources being replaced which may not be what someone wants. Perhaps we need another mode for `replace`, I'm not sure yet.
+This change appears to be unrelated.
+This change appears to be unrelated.
+This change appears to be unrelated.
+I mean that the description can be more informative.
+Can we do two passes instead (`\r\n` then `\n`)? Technically speaking that would replace `\r`
+I missed that ð
+How about simplifying the CQL call to: ```java Mono<String> version = template.getReactiveCqlOperations().queryForObject(select, String.class); ``` This requires less mocking in the tests. Would be also good to improve `CassandraHealthIndicator` to call `queryForObject(â¦)`.
+Rather than a copy/paste, this should call the other constructor you've created with `SpringBootConfiguration.class`
+We need a `@since` tag now this class is `public`
+typo? "Customizable" or "Custom" ...
+Thanks @kopa I am polishing this contribution and I've already rephrased this.
+To mirror `NoSuchBeanDefinitionException`, you could call that `NoSuchCacheManagerException`
+And this one could be `NoUniqueCacheManagerException` extending from the other exception (again to mirror `NoUniqueBeanDefinitionException`)
+You can do `ObjectProvider<Map<String,CacheManager>>` instead of injecting the context
+please refrain from doing unrelated changes.
+Configuration keys do not start with `The` or `A`. Please inspire yourself from [the appendix](https://docs.spring.io/spring-boot/docs/current/reference/html/common-application-properties.html).
+You got a valid point in any case. I'll reword that exception message
+This assertion passes which means that the caching using `#seed` is working
+These three verifications are verifying the wrong method. They should be checking that `getRandomDate(long)` has only been called once: ```java verify(this.dateService, times(1)).getRandomDate(1234L); ``` With this change in place, the test passes.
+All the methods above should go away please. There is really no need to start with something that complex/complete. The purpose of the enhancement is to have a data type to represent a "data size" for binding purposes.
+I'd use `of` to be consistent with `Duration` and have a value with a unit rather than those dedicated methods. The surface area of this object has to remain small given where it is actually going to be used.
+We don't use `@Nullable` in Spring Boot yet and I am not keen to introduce it at this point. This `print` method should go away in benefit of `toString`
+Let's call that `DataSize` and move that to `org.springframework.boot.unit`.
+All those `to` can go away in benefit of a generic `public long to(Unit unit)` (more on that later).
+Please move the logic of that class in a simplified version of `parse` on DurationSize` itself. There is no need to expose such open option at this point.
+I think we should keep this constructor and then call the new constructor proposed below with `this(inputStream, new Inflater(true), size)`;
+Yes please, `Properties` is way to generic to be exposed as a bean. Ideally this should be done in spring-kafka itself as I imagine this would be larger in scope.
+We don't do property placeholder in properties. Yes please.
+Key descriptions do not start with "The", "A", etc.
+That requires Kafka streams to be on the classpath and, as I understand, this is an optional dependency on top of Kafka
+Is that supposed to be SpEL? I'd prefer if we perform that detection elsewhere (in the caller with access to the `Environment`).
+I am confused. Is that streams specific? Yet this property doesn't indicate that's the case.
+We don't add default values to descriptions.
+I am not super fan of this construct (you're not really mapping anything on the target object).
+For those that aren't used to seeing the difference in significant digits between nanoseconds and milliseconds, it might be more clear to write `Duration.ofMillis(5000).toNanos()`
+I guess that ship has sailed with the `sla` property (or we can make this compromise only there). The problem by having two target types depending on the meter type is that we can't really get proper IDE support for this. I am not sure how we could find a proper name for those and the convenience of doing it on a per meter id is quite appealing. So a `String` to long or `Duration` looks like the way to go. @alexanderabramov are you interested to revisit the PR short term? RC1 is due soon.
+It's unfortunate that the ideal type is either a `long` or a `Duration`. Separate properties for distribution summaries (`long`) and timers (`Duration`) would offer more type-safety in the configuration and could also simplify the property descriptions. I'm not sure what those properties would be called though. Failing that, I'd type the value as `String` and then convert that to a `long` or `Duration` using the conversion service. That should ensure the same conversion behaviour as if the properties themselves had been more strongly typed.
+I frankly have no opinion as I am not sure I've grasped those concepts fully just yet. I've flagged for team attention to get this one more visibility. We have a call today so we should provide a smarter feedback soon. Thanks for your patience.
+Thanks for the feedback. There are but the proposal condition is a big fat IMO. I am not really leaning one way or the other actually, let me checkout the code in an IDE.
+Can we keep the two ifs please? (and combine the two conditions for the second if). It reads better IMO
+Missing a `@since`. I wonder if that wouldn't be something of interest for the library (ping @jkschneider)
+Actually I prefer the former. I'd rather keep the auto-configurations explicit and only add what's strictly necessary for the task at hand (anyway, to be discussed in a separate PR anyway).
+We don't use `@Nullable` in the code base (yet).
+Rather than doing that, could you please inject an `ObjectProvider` and use its API. That would prevent from calling the `BeanFactory` directly.
+I think we should make it explicit that `jwk-set-uri` should take precedence by adding a custom condition that checks that `spring.security.oauth2.resourceserver.jwt.oidc-issuer-location` is present and `spring.security.oauth2.resourceserver.jwt.jwk-set-uri` is not present.
+The property should not use the `jwk` group as this configuration isn't related to it. The property should be more like: `spring.security.oauth2.resource.jwt.oidc-issuer-location`
+We should make up our mind about a default if that makes sense. If it does, it should be reflected here (and tested).
+That's a bit unusual for the description of a key (see other descriptions around for inspiration). The first sentence must be a concise summary of the purpose of the key as it's the one showing up in auto-completion popup in an IDE.
+> Do you mean change the type of maxHttpHeaderSize from int to DataSize ? Yes > How about other "in bytes" properties, do we also need to change their types to DataSize ? Yes and we have a separate issue for that (we need to align their default value first and when we'll merge forward we'll do the change. I've added a note in #13821 (in any case this PR is about a specific task and should not be expanded to cover unrelated changes). Thanks!
+`8KB`, not `8MB`. The property must be deprecated and that method as well to offer a transition. If you don't know how to do this, I can take care of it in a polish commit.
+Please use `DataSize` and `DataSize.ofKiloBytes(8)` for the default value. The description should no longer mention "in bytes" since that's inferred by the type. The updated description and the value for that property should also be aligned to `8KB` in the appendix.
+I'd be tempted to rename this `getJobName()`
+I think this should be a private or package private class. It seems like we wouldn't expect people to use it directly.
+You can drop `final` from here, we generally don't use it for local variables.
+I think you can drop `havingValue` and `matchIfMissing` from this line. The defaults should suffice.
+I think it'd be good to mention that application context initialisers will have been called, something like: ApplicationContext is prepared and ApplicationContextInitializers have been called but before any bean definitions are loaded.
+This should be 2012-2018.
+> These should be constant values or an enum since they are used in multiple places Perhaps. In terms of main code, they're used once on the MVC side and once on the WebFlux side. Sometimes duplication is preferable to creating an artificial construct that would allow them to be shared.
+These should be constant values or an enum since they are used in multiple places
+I'd rather research if we couldn't apply this behaviour when `server.use-forward-headers` is set rather than requiring a new property.
+Logging here could be useful, particularly if it indicated when the restarter hasn't been initialised, but it doesn't meet the requirement described in #14492. That issue is specifically interested in the case where `restartOnInitialize` is false because an agent reloader is active.
+Please refrain from doing unrelated changes. This change to `order` is unrelated to the task at hand.
+I have no opinion has whether this should be changed but we should have this discussion in a separate PR.
+I'm not too keen on the repetition of `distribution.getPercentilesHistogram()`. I think it would be better to have a `lookup` method and another method that's something like `lookupWithFallbackToAll`. Both could delegate to another method to do the actual lookup and could then either just apply the default value, or could fall back to looking for `all` and only then applying the default value if needed. That would change this code to look something like this: ```java return DistributionStatisticConfig.builder() .percentilesHistogram(lookupWithFallbackToAll( distribution.getPercentilesHistogram(), id, null)) .percentiles( lookupWithFallbackToAll(distribution.getPercentiles(), id, null)) .sla(convertSla(id.getType(), lookup(distribution.getSla(), id, null))) .build().merge(config); ```
+The defaults are out of sync here. One it `true` and the other is `null`. This means we're missing a test as, with these changes, the following test will fail with a `NullPointerException`: ```java @Test public void acceptWhenHasNoMatchingEnabledPropertyShouldReturnNeutral() { PropertiesMeterFilter filter = new PropertiesMeterFilter( createProperties("enable.something.else=false")); assertThat(filter.accept(createMeterId("spring.boot"))) .isEqualTo(MeterFilterReply.NEUTRAL); } ```
+This test should be kept and should continue to pass.
+This test should be kept and should continue to pass. We only want to drop support for `all` when configuring the SLA. It should be kept for controlling which meters are enabled.
+This doesn't look quite right as `defaultValue` is never used.
+This test should be kept and should continue to pass.
+`sMaxAge` looks like a typo here - if the current tests are not breaking with that, they're probably not testing it right.
+This may be overkill but classes and resources predicates are being applied to both use cases with no way for an implementation to know what type of "resource" needs to be filtered.
+There's a `s` missing there (`Tests`).
+It's missing a s in the resource as well. All is fine, it's just a naming issue :)
+I would do the agent-related logging here too rather than in `ClassPathFileChangeListener`. I think it's better if both messages about restart being disabled appear at same point during application start up and only appear once. I think the message should say something like "Restart disabled due to an agent-based reloader being active".
+I think we need a bit more than that. Hibernate may throw that exception when it cannot access the database. Pointing the user to the potentially wrong fix would causing more harm IMO. There's no way to prove that our auto-configuration lead to this so pointing to the property may be misleading as well. We usually try to throw dedicated exception whenever we can.
+The intent is to group status codes into the ranges 1-199, 200-299, 300-399, 400-499, and 500+. The exclusive upper bound for the 1-199 range is 200. That happens to be `OK`, but that isn't important and I think it makes the code harder to read. You have to know that `OK` is 200, `MULTIPLE_CHOICES` is 300, etc to understand the bounds of the ranges.
+Thanks, @vpavic. The scenario that you've described is the one that I needed to refresh my memory about. I like the custom condition approach that you've implemented. This looks ready to merge to me. Thanks for the PR.
+We could probably use the `PropertyMapper` here: Something like: ```java PropertyMapper map = PropertyMapper.get().alwaysApplyingWhenNonNull(); map.from(cookie::getName).to(cookie::setName); ... ```
+Those are the gotchas that I was referring to in #15139 and that we started to discuss in #10440 before we went with the `SessionCookieConfig`-based approach. I'll need to spend some time refreshing my memory.
+Removed in the legacy module for consistency in https://github.com/micrometer-metrics/micrometer/commit/659ac962cdb920d0c1f50533075360c1b2646765, which will be included in micrometer-spring-legacy 1.2.0. We can close this issue I believe.
+I'd prefer to keep things consistent across registries rather than doing something that's Graphite-specific. A change needs to be made in the Spring Boot legacy support regardless as it's currently too weakly typed.
+Thanks, @jkschneider. So we could type the injection into the `@Bean` method more strongly by using `GraphiteHierarchicalNameMapper` or we could just not do anything and let people configure their own registry. Either way, you're declaring a single bean (your own name mapper or your own registry). I'm tempted to say that it's not worth making a change here and recommending that people just configure their own registry.
+This should declare that `GraphiteHierarchicalNameMapper` is returned to provide as much type information to the bean factory as possible.
+I believe all other hierarchical implementations don't have a specialized type `GraphiteHierarchicalNameMapper`. At one point, we had this in the configurations but removed it because injecting one name mapper affects them all and it was easy enough to wire your own registry including a custom name mapper.
+Same for this one.
+I see you've fixed this one in the latest commit. Thanks.
+If this test passes then this assertion isn't quite right as `TomcatContextCustomizerConfiguration` doesn't define a `TomcatContextCustomizer`. The assertions needs to be written such that if you remove `.withUserConfiguration(TomcatContextCustomizerConfiguration.class)` the test will fail.
+This configuration should have a `@Bean` method that returns a `TomcatContextCustomizer`. The customiser implementation doesn't need to do anything so it could be implemented with an empty lambda.
+This might cause a port clash if something else is used port 9001. It would be safer if the customizer didn't do anything to the connector.
+This should be `AnnotationConfigReactiveWebServerApplicationContext::new`
+This should be `AnnotationConfigReactiveWebServerApplicationContext::new`
+If this test passes then this assertion isn't quite right as `TomcatContextCustomizerConfiguration` doesn't define a `TomcatContextCustomizer`. The assertions needs to be written such that if you remove `.withUserConfiguration(TomcatContextCustomizerConfiguration.class)` the test will fail.
+This might cause a port clash if something else is used port 9001. It would be safer if the customizer didn't do anything to the connector.
+This configuration should have a `@Bean` method that returns a `TomcatContextCustomizer`. The customiser implementation doesn't need to do anything so it could be implemented with an empty lambda.
+This new method should replace the method above with the same name.
+This new method should replace the method above with the same name.
+I see you've fixed this one in the latest commit. Thanks.
+That's not really what I mind for this. I think that it is safer to disable that behaviour if no property is set so we shouldn't expose a property for this at all.
+If the property is not set by the user, we should set it with the disabled scanner implementation.
+We need two tests here. One where we show this is set by default and one where we customize the property (for instance setting the standard implementation explicitly and then asserting we're using that.
+Thanks for the update but that's not what I meant. There shouldn't be any property at all.
+That's not checking if a user has set the property
+those additional lines aren't necessary
+I don't think this method is needed. The existing `toInstance(Function<T, R> factory)` method should do what we need when given a method reference to one of `Mustache.Compiler`'s configuration methods that return a new `Compiler` instance.
+This needs to be an implementation of the `Mustache.Escaper` interface. Unless we require that implementation to have a default constructor and treat the property as the fully-qualified name of a class that we instantiate, I don't think it can be configured using properties.
+This needs to be an implementation of the `Mustache.Formatter` interface. Unless we require that implementation to have a default constructor and treat the property as the fully-qualified name of a class that we instantiate, I don't think it can be configured using properties.
+This ignores the input `value` and always returns the value of the `spring.mustache.escaper.value` property.
+This ignores the input `value` and always returns the value of the `spring.mustache.formatter.value` property.
+I'm not sure that it does. Typically, a security manager will only be in use in a production environment. At that point, `src/main/webapp` is of no interest.
+The scope of this `try` block is broader than necessary. It only needs to contain this line.
+We don't use `ReflectionTestUtils` for such basic assertion but assertJ (`assertFieldOrPropertyWithValue`).
+Let's try to keep a consistent ordering in things. Adding those two properties at the end looks ok to me as they are logically grouped. Let's keep the same here and add them after the thread-name-prefix
+Ditto. The sentence should stop at the current comma IMO.
+Configuration properties descriptions do not start with "The", "A", etc. The first sentence must be much shorter as it's used by IDEs on auto-completion.
+That's not what that test is supposed to do. It should test that when no defaults are set, the defaults in the properties object are consistent. So you should configure a `RestClient` manually (i.e. without the auto-config) and query its timeouts and validate they are the same as the one defined in the configuration by default to ensure our defaults match the ones of ES if that's the plan.
+I think we should deprecate this constructor in favour of the new one added below.
+I think we should deprecate this constructor in favour of the new one added below.
+This should have a `@DeprecatedConfigurationProperty` with the replacement key
+I don't like the idea of referring one property from another property. The canonical format is not camelCase anyway.
+Unfortunately that's not very consistent with what we want in the metadata. The default should be in code rather. Let's go with a `ClientRequest` that hardcodes the value as it used to in the field.
+Idem as above with a `ServerRequest`
+This should have a @DeprecatedConfigurationProperty with the replacement key
+With 2.2 this will break as the binding will consider you want to use constructor binding with a single property. Please remove that constructor.
+This PR is intended to be merged on `master` only so that should be deprecated as of `2.2.0`
+We can't really do that as the sole purpose of the field init is to express a default value that isn't dependant of the environment. I'll remove that as part of the polish.
+We prefer not to use `Optional` for internal `null` checks such as this. If the readability of the ternary is a problem it could be pulled out into a method that's something like this instead: ```java private static String asString(InetSocketAddress socketAddress) { return (socketAddress != null && socketAddress.getAddress() != null) ? socketAddress.getAddress().toString() : null; } ```
+I don't think we need to do `Objects.toString(url, "")` since the property has a default value of `localhost:9091`.
+That probably wasn't what I was talking about. I meant the fact you remove the `PushGateway` variable and therefore changed this constructor. I see no good reason for doing so.
+That's not what I am talking about and what you pushed force in the meantime is addressing it, thank you.
+Rather than `hasCompositeMeterRegistry` it might be better to be straightforward about what this controls. Something like `onlyBindToCompositeRegistry`.
+The behaviour doesn't match the name of the variable. When set to `true` it's OK as meters will only be bound to the composite. When set to `false`, I'd expect meters to be bound to both composite and non-composite registries but they're only bound to non-composite registries.
+I'd prefer that this was injected into the constructor. The field could then be `final`.
+This will trigger factory bean initialization. We need to use the overloaded variant that allows eager init to be disabled.
+@alimate I don't think we need to change anything related to `ExampleWebExceptionHandler`. The fact that a `WebExceptionHandler` can be configured with a higher precedence than the one provided by Spring Boot doesn't need to be tested in a test for `@WebFluxTest`. This issue is about ensuring that `ErrorWebFluxAutoConfiguration` is imported by `@WebFluxTest` and I think the only tests you need to change for that are `WebFluxTestAutoConfigurationIntegrationTests`.
+Thanks, @izeye. I do prefer it as currently written rather than as proposed here.
+I think this reads better before the proposed change
+I don't think we can make this `private` in case someone else is relying on it.
+Can we flip those two methods? Required dependencies are defined before so I'd like to keep it that way.
+This looks like you're checking for the wrong bean there.
+Ideally, we should configure `ReactiveGridFsTemplate ` with `DataBufferFactory` to share potentially resources.
+Unfortunately, we can't safely use `isTypeMatch()` either. If a bean is a `FactoryBean`, Framework may instantiate it to determine the type of the object that it produces.
+I believe this may lead to factory beans being instantiated so we need to avoid it. We probably need something that's somewhat similar to `BeanTypeRegistry`. Making that class public doesn't feel like a good idea, but it's also complicated enough that copying it doesn't feel like a good idea either. In short, a change is needed here but I don't know what it should be. I wonder if Framework could provide an API for getting a bean's type that gives up and returns null rather than instantiating a factory bean that lacks a generic type.
+We considered `spring.factories` (it has some notable benefits over beans being created very early) but preferred the `@Bean`-based approach that allows the predicate and the auto-configuration to which it relates to be defined together in the same class.
+Rather than having a field initialization, I'd create a private method that returns the `Config` instance.
+Thanks. I'd missed that `JedisPoolConfig` sets the property already and, therefore, has a different default to Lettuce. Unfortunately, this creates a problem as the `Pool` class is shared between Jedis and Lettuce configuration properties. As currently proposed here, the changes will result in a `spring.redis.jedis.pool.time-between-eviction-runs` property that has no effect. We need to figure out how to avoid that while also coping with the different defaults. I think our best option is to declare the `timeBetweenEvictionRuns` property with a `null` default value and only map it onto the Lettuce or Jedis pool config if the value is non-null.
+As with the existing description for `maxWait`, the description shouldn't mention the unit (milliseconds in this case). Using `Duration` means that you can specify the time in any unit you want.
+I think this name should align more closely with the setting that it maps to. Something like `timeBetweenEvictionRuns`, perhaps.
+Here is a further simplification https://github.com/rstoyanchev/spring-boot/commit/fc5a2cb89243e1cf109c22cb6dae7482e692cf60.
+Oh I see the `write(Object)` method which handles Publisher values. Still isn't it all collected/aggregated before `response#writeAndFlushWith` is called? So it could be a `List<Object>` (either String or Publisher) which can then be handled through a combination of `Flux.fromIterable` and `concatWith`.
+For efficiency I guess, accumulating vs composing with a new operator for every write. If there are a lot of writes, this could end up with a lot of unecessary objects and an unnecessarily long pipeline.
+I think it's a bit more complicated than that. What that check was doing before your change was checking a case where a user tries to repackage an archive that was already repackaged with a replacement of the source jar. If the source and the destination are different and the source is already repackaged, I think there's something to be done (like adding a warning to indicate we can't repackage as the source is already a fat jar.
+`ConfigurationStrategy` would be the logical name there but it fees a bit odd so a bit more brainstorming is required I think.
+Having in mind the purpose of `ConfigureRedisAction`, naming this property `configurationStrategy` would be more appropriate.
+As this is only used in one place (`JavaLoggingSystemTests`), I'd prefer to manage it in `@BeforeEach` and `@AfterEach` methods in the class rather the pulling out an extension in a separate module.
+This line can be reverted now that the JUnit 4/5 split is gone.
+I'm not sure about the unchecked class cast here. If something were to change in Spring Security where it no longer returned a `NimbusJwtDecoder`, this would break.
+Failing would potentially be a breaking change if the `JwtDecoder` was no longer a `NimbusJwtDecoder`. Let's see what the rest of the team thinks.
+We discussed this today and like the style that you've adopted. Going forward, we'll not have unnecessary public methods.
+I don't think we've yet defined a good code style for these kinds of methods. Obviously there's nothing wrong with dropping `public` but I don't think we're very consistent across the codebase. We should probably come up with a standard and start to enforce it with checkstyle.
+AFAIK, there is no enum for `ConsumerConfig.AUTO_OFFSET_RESET_CONFIG` (certainly not used there) which is why it's handled that way. The isolation level enum is used in `ConsumerConfig` so it's best to use that.
+Actually, they have to lower case the enum anyway, so maybe this is the best solution after all. `IsolationLevel.READ_UNCOMMITTED.toString().toLowerCase(Locale.ROOT);`
+Still would be better to be based on enum. That way, when they introduce a new level, we are going to be covered automatically together with content assistant in the IDE.
+It may make sense if it is mapped as an `org.apache.kafka.common.requests.IsolationLevel` enum type. Otherwise this one indeed can be mapped as all other generic properties in the `spring.kafka.consumer.properties` container. More over I think such a property description is too long. Essentially there is just enough to mention that it is mapped onto `ConsumerConfig.ISOLATION_LEVEL_CONFIG)`.
+`BeanUtils.instantiateClass` will create the instance and throw a `BeanInstantiationException` on error.
+I deliberately used byte-based checks when I wrote this as the archive is predominantly binary data. I think I'd prefer to keep it that way here and in the cases below as well.
+I suppose it doesn't hurt to trim it but I don't think it's possible to have whitespace at the end of the `registrationId` since it's a key in the map.
+IMO not at this time, no.
+As some of these mocks are test specific, I wouldn't initialize them at class level but rather in the test that uses them.
+Curious as why this needs to run in a transaction.
+I would stick to `name` and `uuid` for now. Not denying that extra information might be useful but I'd start with a lighter surface area for a start.
+We could use a dedicated `HikariDataSource dataSource = createDataSource(0, 2);` in the test itself. If there is a setting that we could set to increase the time an idle connection stays in the pool, that would be nice too as we ensure that our test is asserting the conditions as we expect them.
+We should configure the pool explicitly so that the idle connection stays in the pool indeed.
+Indeed, time for me to remind [this tweet](https://twitter.com/relizarov/status/1152535099424104448) ð¤¦ââï¸
+How about moving those two bean definitions to a dedicated class? Can be an inner class here. That way we could move the condition on the `SessionFactory` there and limit the change to a minimum. The name of that inner class would also convey the use case we're trying to bring here.
+@garyrussell and I had a little chat offline and I shared having two properties for the same feature was a bit odd. Gary said he'd add an enum in Spring AMQP instead so we'll have to rework this PR to use that. Wondering if switching a property's type in a feature release is acceptable so flagging for team attention.
+The values here are the default of the embedded servers and we don't deviate from that unless necessary. If you want to pursue this idea, I'd raise an issue against the Jetty project.
+I don't think this is a breaking change as you have to opt in to looking in the new location by setting that system property or environment variable.
+It seems a breaking change. When `PropertyFile` of `HomeFolder` have a property which not exist in `ProjectRootFolder`, after this change the property will be invalid.
+I find personally the previous version more readable: nesting the method call in the constructor parameter makes it harder to read.
+I find personally the previous version more readable: nesting the method call in the constructor parameter makes it harder to read.
+I find personally the previous version more readable: nesting the method call in the constructor parameter makes it harder to read.
+I think the intention of the current code is clearer. We want to set the port to `0` if it's null or negative. My brain has to parse the `.max` so I am not keen to merge this change.
+I prefer the proposed change. I find it no harder to read than what we currently have, with the advantage that `getPort()` is only called once so it doesn't make me pause and wonder if the value could change between calls.
+Thanks both. I am not feeling strongly against it so I'll go ahead and process with the merge.
+I'm happy with the change as well
+This should be named `Ansi256PropertySourceTests`
+This should be named `Ansi256ColorTests`
+`(parameterPosition == -1) ? 0 : parameterPosition` maybe more readable
+Does ordering matter here? The providers are used in a first wins manner. For the ordering to be important there would have to be overlap between providers.
+The ordering doesn't matter as Flyway orders them itself based on `MigrationVersion` returned from `getVersion()`.
+I don't think the ordering is important here.
+When merging, I think we should leave this as-is so that it matches the original source.
+There's no functional difference, but the source code is different. This code is a copy of code authored elsewhere and we don't want to diverge from its original form.
+OK, thanks for clarification! :)
+it should be just `return this.remoteIpValve.getHostHeader();`
+I think `jettyMaxHttpPostSizeMatchesDefault` can be removed now.
+This mapping and its corresponding `customizeMaxHttpPostSize` method can now be removed.
+I like the new mapping as the method names are better. The old mapping can now be removed.
+This can be updated to return `maxHttpFormPostSize`.
+This can be updated to set `maxHttpFormPostSize`.
+This can be updated to set `maxHttpFormPostSize`.
+This can be updated to return `maxHttpFormPostSize`.
+`maxHttpPostSize` above can be removed in favour of this new field.
+This field can be removed in favour of the new `maxHttpFormPostSize` field below.
+There's no need for a reason when a replacement is provided.
+There's no need for a `reason` when a `replacement` is provided.
+This will cause `TEXT` frames to be unexpected when debug logging isn't available.
+Unfortunately, that's not what the code should be doing. If constructor binding is to be used, only the parameters of the matching constructor should be used to determine the properties. Accessors (getters) shouldn't be checked at all.
+This is unrelated to the task at hand, please refrain from polishing code even if it's in the same class.
+I think that's a bit fragile. I think the plan is more to stop binding the property as a String[] but rather introduce another one that we would map to the command-line property. Existing plugins use a space-delimited feature and I haven't checked how they skip spaces within valuesL
+All other changes look good. Thanks!
+We always use `ex` for caught exceptions.
+There's often a GC impact when using streams, but I think it's pretty safe to use `forEach` here. I'm not sure why we'd want to change it.
+Why not replacing the both `forEach` loops? if there is a benefit of doing that (I might think of performance reasons)
+I think we'd have to do this for any characters that are not alpha-numeric or `-`.
+You could implement `ApplicationListener<ApplicationPreparedEvent>` instead and avoid the if check in the listener implementation.
+I am not sure what you're trying to achieve here. The context may provide an exception with additional context it has when it throws the exception (besides the `beanName`) so I am not in favour of creating such low-level exception here.
+Sorry but I don't understand the question. The bottom line here is that test containers does not have a product name and as such the first argument of that enum should be `null`. Tests should be updated accordingly.
+is `Testcontainers` the product name of this driver? The way I understood it was that it is a wrapper for the actual underlying database container
+FYI the driver **does not** return a product name property from `getPropertyInfo`. I would highly recommend to write a test that checks it with the TC's driver (no need to start a container, just the lookup part), especially given that it is already on classpath
+That doesn't sound right.
+It would be better to change this to `Integer` (default `null`) and add `.whenNonNull()` to the mapping; that way, if they decide to change the default in the client library, we won't need a corresponding change here.
+Getter/Setter should be co-located.
+I don't have any bright idea right now but this introduces a potential inconsistency combination where you could specify a connection type for HSQL and then an URL for H2. I wonder if there's a way to structure the config to avoid that.
+I am not sure this brings us much to mention that. One might argue that using its own URL means that another feature is lost (unique names) so perhaps we should do something about it.
+As the alternative is to change the mock maker for the whole project, I'd prefer to load an actual `KeyStore`.
+`containsAlias` will throw an exception if you call it on a `KeyStore` that hasn't been initialised. I think you could test the exception handling with the following: ``` KeyStore keyStore = KeyStore.getInstance("JKS"); assertThatThrownBy(() -> SslUtils.assertStoreContainsAlias(keyStore, "alias")) .isInstanceOf(IllegalStateException.class) .hasMessage("Could not determine if keystore contains alias 'alias'").hasCause(keyStoreEx); ```
+Indeed, thank you @stevedonie. FTR, Spring Boot "merely" instruments `SpringLiquibase` which is part of Liquibase itself.
+I think that is pretty good. Maybe even call out that there are two different uses: > Tag name to apply when applying database changes. Tag name to use as a target when rolling back already applied changes.
+Thanks very much for the pointers, @SteveDonie.
+When rolling back, you don't have to generate a rollbackFile. I'm not sure how it works in spring boot, but from the command line there are two commands - rollback, and rollbackSQL. One does the actual rollback, and the other generates the SQL to perform the rollback and shows it on the console (or sends it to a file).
+It feels to me that this is the wrong approach to the problem. Looking at the reported issue, setting `spring.datasource.schema-username` should not have any impact on an embedded database that we've created. Rather, we should detect such case and ignore the username and password.
+That test looks wrong to me. If a test setup has replaced the production database by an embedded one, then the credentials of the production database should not impact the ability to initialize the embedded database. These settings have been introduced to perform the initialization of a "production" database with different credentials (and only for that step). That shouldn't apply to an embedded database IMO.
+Unfortunately, the fact the database is embedded is not exactly the same as us replacing the database with an embedded database. In theory, I'd very surprised if an embedded database would require different credentials for schema initialization so that approach would work but not really semantically correct IMO.
+Looking at the code I am wondering now if `pool` wouldn't be better and more consistent with other properties of the same nature. @bono007 no need to act on that now, I'd like to get some more feedback before asking you to change anything.
+Not a single answer here. When it's about fixing a PR review (as you did), we prefer a single squashed commit rebased on top of the latest state of the target branch (here `master`). When there is a discussion and you'd like to suggest something, a separate commit is better in case we don't pursue with the suggestion.
+`io` is a bit odd on its own. I don't have bright ideas but perhaps we should add something in the property name that better conveys it's a number of threads for a certain "type" of threads.
+That replacement value is wrong.
+That replacement value is wrong.
+Can be replaced by `Boolean.parseBoolean`
+Yeah, you're right there. Maybe not the best idea. I'll make up my mind as part of polishing this.
+I'd find this easier to read as `assertThat(environment.getActiveProfiles()).containsExactly("profile1", "profile2");` rather than calling the method, but that might just be me and I have no idea what the rest of the team might prefer.
+We should rename this when merging. Something like `ExplicitDataSourceTypeOrUrlCondition`.
+Isn't that making `HazelcastInstanceFactory` effectively deprecated? For the reason above, I don't think we should do that and rather research how to improve the existing class to account for the customizers.
+@AaronTraas you can configure IJ not to do that in Preferences (Editor > Code Style > Java > Imports and increase the class/name count to something ridiculously high :) )
+Now that the settings are shared by the two API, we can apply the same customizer consistently which is great. I've removed that in the case of the upgrade though as I'd prefer adding this in an isolated commit.
+By restoring the code as it was before in my polish, this test fails. The replicat set is erased by the connection URI. I don't know if that's a new behaviour of the driver or if I messed up the change but I'd appreciate some help there.
+I don't think we should be making that change as part of the upgrade to the new driver unless this use case is no longer supported.
+I am not sure if we want to ship our license or something a bit more complete as the one [Spring Framework use](https://github.com/spring-projects/spring-framework/blob/master/src/docs/dist/license.txt).
+I don't think the Framework one matches our needs as it includes information about CGLib and ASM which Framework jarjars. The file in the root of our repo looks like a better fit to me for most of our modules at least. We may need to do something different for `spring-boot-configuration-processor` as it shades some JSON stuff.
+I think this'll break up-to-date checking for the jar. Creating a text resource from a string results in the creation of a temporary file with a random name. As that random name varies from build-to-build, the jar tasks will never be considered up-to-date as it'll look like its inputs have changed. We had this problem when adding the classpath index support to `BootJar`. The solution was to get the text resource's file and rename it before adding it to the copy spec rather than as part of the spec.
+Thanks. I should have linked to the relevant code earlier. It is the following: https://github.com/spring-projects/spring-boot/blob/16111f126e707fb5064bab6150df7a77f54850ee/spring-boot-project/spring-boot-tools/spring-boot-gradle-plugin/src/main/java/org/springframework/boot/gradle/tasks/bundling/BootJar.java#L113-L119 This will result in a `NOTICE.txt` and `LICENSE.txt` file beneath each project's `build` directory. An alternative could be to access the files in `buildSrc/src/main/resources` directly from the filesystem.
+I would move that to the assertion rather than creating a variable for that.
+Please remove the extra new lines.
+We don't format method name that way. Please look at the rest of the codebase for inspiration.
+I don't think an explicit check is needed.
+We don't use static import in production code.
+I find this harder to read
+We prefer multi if statements to stay separate for better readability.
+We should double-check that it's safe to remove this. The [original change](https://github.com/spring-projects/spring-boot/commit/333bc3e8425b0cd36bc93224e6fb2ab810ffe141) suggests that the problem exists with Java 7 and later.
+Alright, let's revert that part then please. Thanks!
+I find the curent version more readable.
+oh dear ð
+I prefer no to refer to a concept if we can avoid doing so. This test could be put in the main test with a special `ClassLoader` that returns the expected resource and shows the hazelcast instance is not created.
+I'd prefer to keep these in the same class as the other Java-related conventions.
+Ah that's good to know, I've polished that in https://github.com/spring-projects/spring-boot/commit/04544f98428cae4c3083f0ee58410eea3591f066
+To be consistent with other customizers, the method shouldn't return anything but be `void` instead.
+`SimpleMetricsExportAutoConfiguration runs before `CompositeMeterRegistryAutoConfiguration` so I don't understand why both of them have to be defined here. If you run after `CompositeMeterRegistryAutoConfiguration`, `SimpleMetricsExportAutoConfiguration` should have been processed too.
+I'll apply the same fix to the other patterns that we define.
+That was accident that came about because I copy/pasted some code from `Period` :)
+I'm happy to see this! My little grain of sand. You don't need to escape `+` and `-` (if it's at the end) in a character class ``` SIMPLE("^([+-]?\\d+)([a-zA-Z]{0,2})$") ```
+remove empty line
+it is `PeriodToStringConverter `
+change `duration` to `period`
+change `duration` to `period`
+since `Period` doesn't support time I think we can change `10s` to `10m`
+I think the username in the URI should win so the name of the principal should be `user`.
+Similarly, I think the password in the URI should win so it should be `password`.
+Sorry, I'd missed that there are two URIs being configured, one with credentials and one without.
+Sorry, ignore this. I'd missed that there are two URIs being configured, one with credentials and one without.
+Alright, thanks for the feedback. Flagging for team attention to see what the rest of the team thinks.
+I'm not sure what reference.conf is but this does not seem like a useful description, in my opinion. Descriptions may be published to metric backends, which almost certainly won't have access to the mentioned reference.conf. Even accessing the Actuator endpoint does not mean that person has access to this reference.conf file.
+Again, not monotonically increasing (except for max) so should not be a FunctionCounter.
+Counters, including `FunctionCounter`, in Micrometer are expected to be monotonically increasing, which is not the case with these rates, I believe. If you were to convert these, they would be gauges in Micrometer.
+Small typo here: Guage -> Gauge.
+The rate is per second; not counting seconds, which is what this ends up seeming like - a count of seconds.
+You're really close. Thank you. This needs to be an `OffsetTime` rather than an `OffsetDateTime`: ```java OffsetTime offsetdate = OffsetTime.of(LocalTime.of(12, 45, 23), ZoneOffset.ofHoursMinutes(1, 30)); ``` With this change in place I think your test will pass.
+I think that could confuse users as it can be read what the default behaviour of adding the annotation does. I'd rather keep it simple and we can handle the rationale in the reference guide rather.
+It would be nice if it didn't have to surface that way. this should register a customizer implementation that does the necessary thing. And if no listeners are present then the customizer does nothing.
+Yeah I think that's ok.
+I don't think we should do this. Perhaps as a fallback if `getCanonicalName` is empty? It's a change of format so it's a breaking change. Or perhaps we could adapt the test? I haven't looked in details yet so thinking out loud.
+I think we need to keep this call to `stop()`.
+I think we need to keep this call to `stop()`.
+Thanks for the suggestion. Rather than assigning `rtn` on 117 and then again on line 118, the two could be combined: ``` boolean rtn = ObjectUtils.nullSafeEquals(getExceptionName(), other.getExceptionName()); ```
+I guess the check for `IS_XML_ENABLED` could be the first to avoid any class lookups inside `isGroovyPresent` here.
+This seems too broad to me. I don't think that a `spring.xml.ignore` property should have an effect on whether or not `.groovy` bean definitions can be loaded.
+I think this could use AssertJâs extracting too.
+I think we could use AssertJâs extracting here and we prefer to do so where possible.
+Rather than using `@Value` field injection, we prefer to use a `@ConfigurationProperties` class enabled with `@EnableConfigurationProperties` similar to how `DiskSpaceHealthIndicatorProperties` is defined and used. In this case it would be called something like `DataSourceHealthIndicatorProperties`. It would have the prefix `management.health.db` and a single property, `ignoreRoutingDataSources`.
+I think this property could be initialised with the value `{baseUrl}/saml2/service-provider-metadata/{registrationId}` as that's the default in `RelyingPartyRegistration.Builder`
+If we give the property a default value as proposed above, this can always be applied without checking if it's `null`.
+Thanks for updating the tests.
+If we change the `localEntityIdTemplate` property to have a default value of `{baseUrl}/saml2/service-provider-metadata/{registrationId}` this assertion will have to change to match. I would also be good to test that the default in the properties matches the default in the builder. That could be done with something like this: ``` assertThat(RelyingPartyRegistration.withRegistrationId("id")).extracting("localEntityIdTemplate") .isEqualTo(new Saml2RelyingPartyProperties.Registration().getLocalEntityIdTemplate()); ```
+This description is unusually long and you can't use `{@link}` here. Please move this to the reference guide and make sure the description of this property is succinct.
+We don't use `@Nested` anywhere else. I am personally not keen to introduce this style as part of this PR. I also think it makes the diff very hard to read.
+None of the other stores have such a variant and I am not keen to introduce it as part of the upgrade. We can reconsider once the upgrade is done of course.
+We could perhaps include the available processors check too: ```java private static final boolean ENABLED; static { ENABLED = System.getProperty("org.graalvm.nativeimage.imagecode") == null && !Boolean.getBoolean(IGNORE_BACKGROUNDPREINITIALIZER_PROPERTY_NAME) && Runtime.getRuntime().availableProcessors() > 1; } ```
+Considering the use case of scanning abstract classes is quite specific, I would not surface such an option.
+Rather than doing all of this, I would expose a `protected` method where the `ClassPathScanningCandidateComponentProvider` can be tuned. You'd then be able to change its behaviour without having to duplicate the logic.
+I mentioned in my review "I would expose a protected method where the ClassPathScanningCandidateComponentProvider can be tuned.". There is nothing wrong having to extend from `EntityScanner` for your use case. I don't think exposing the provider as a parameter is warranted for your use case either.
+We cannot change the signature of a protected method since someone may be overriding it.
+No. I mean that we don't enable authentication based on a flag but based on the fact that the `username` property is set.
+Yes. As I mentioned, this is what we usually do so you should find a number of similar cases searching the codebase.
+Please remove this.
+I am not sure if "basic auth" is really important here.
+We usually use a plain `username` for this.
+We don't have such `enabled` flag. What we usually do is to check that the username is set, something like `StringUtils.hasText` can help you with that.
+Thanks @bono007. We've decided to go ahead with the property so if you have time to update your proposal to use an enum that would be much appreciated.
+I'd use an enum with `Jedis` and `Lettuce` here rather than a raw string. This also improves the developer experience in the IDE.
+The `null` initialization here is unnecessary. The AP will figure out the right default for a wrapper type.
+LGTM. `EnversRevisionRepository` would have been my first choice too. `EnversRevisionRepositoryFactoryBean` seems like a good alternative to me.
+That's not an uncommon problem due to `spring-boot-autoconfigure` being a bit monolithic. It should be fine but it is worth thinking about a bit. Thanks for raising it.
+Having thought so more, the scope of this is pretty narrow as most of our auto-configuration tests use `ApplicationContextRunner` where we choose which auto-configurations to be included. There are a handful of tests that use everything, and those being affected should not be a problem.
+Spot on. Thanks.
+These assertions succeed without `@DurationFormat` and `@PeriodFormat` on `ConstructorParameterWithUnitProperties`. I think that's because the converter successfully infers the style to use from the value that's being converted. To verify that the format annotations are working as expected, I think it would be necessary to trigger a failure by trying, for example, to bind an ISO-8601 value to a property that requires the simple style.
+The `packager` can be moved below the `if` as it doesn't seem to be used when the jar exists already, I guess.
+These are public methods of a public class, so we must maintain backward compatibility. Your changes do clean up the interface, and the methods are unlikely to be used outside of the Boot build plugins, but in the interest of compatibility we should leave the existing method signatures in place.
+I was a bit confused by that. The `waitStrategy` runs some CQL requests as well, doesn't it? That makes this test a bit fragile IMO.
+I'm not very familiar with Cassandra driver specifics, but it's probably only metrics on specific queries which might have high cardinality or privacy concerns (if query parameters/values are tagged, for example) that we wouldn't want to enable by default, I think. Connection pool or node or session metrics seem generally useful and probably safe from the aforementioned concerns.
+> Are you concerned with how metrics are enabled in the driver? Or should I be enabling metrics automatically in the Actuator? If we provide first-class support for metrics here, the user shouldn't have to write code to enable it ideally. Looking at other metrics we have, they are usually enabled by default, sometimes with a flag that indicates if metrics for that particular `CqlSession` is enabled or not. Concretely we should then have a `enabled` property somewhere in the `spring.cassandra` namespace that user can set in `application.properties` the usual way. I don't have an opinion as whether the flag should be enabled by default or not but listing the metrics seem a bit tedious and inconsistent for an "out-of-the-box" scenario. Paging @shakuzen to get some more feedback on this.
+If that represents what users have to do in order to get metrics support, I think something is missing.
+Unrelated but rather than copy/pasting this, I wonder if it wouldn't be better if Testcontainers had some sort of support for this. Feel free to chime in [in the issue I've just created](https://github.com/testcontainers/testcontainers-java/issues/3224).
+This should be reverted
+This should be reverted.
+Would that make sense to move that to a `metadata` sub-namespace the way we do for `singlesignon` and `verification`. Not sure if this could be extended in the future though.
+The use of `PropertyMapper` adds a lot of noise to what this PR actually changes. I'd prefer if we did that separately (if at all).
+There is only one test that uses this. An argument could be made that we could make this local to that test only.
+Sorry I missed that. PropertyMapper it is then!
+I don't think we should do that. Rather we should set whatever has been set by the user.
+The enum should be exposed rather as it provides better metadata
+Rather than a parametrised test, I think we can go with two tests. One that doesn't set anything and make sure defaults are properly honoured and one that sets both the timeout and the connect timeout and check the override has been customized.
+Same, I don't think a parameterized test is warranted here.
+Rather than adding two now configuration properties, let's reuse the existing timeout for the read timeout.
+As far as I can see `timeout` is not longer honoured, that's a problem.
+It's a sample application so I don't think the performance argument applies here.
+@pierre-sion the default is already ms so need to change the unit. In the original PR, no default value was set (`null`) and the mapping only applies if a non null value is provided. The default of 10 minutes is preserved but I've made that more explicit in a polish commit.
+I think we'd need a public specifier here.
+Oh Sorry, my bad... Just checked other files in this package, they don't have `public` specifier, so I guess we'd be fine :)
+Rah. Of course I overlooked that when we've decided to revert it.
+`2012-2021` is correct here.
+```suggestion * Copyright 2020-2021 the original author or authors. ```
+Thanks for taking the time to test this so comprehensively.
+Small typo here. Should be "store" rather than "stroe".
+This field's initial value should be `"SunX509"`, aligning it with Spring AMQP's default.
+The initial value of this field should be `SunX509`. This aligns it with Spring AMQP's default for the property.
+Small typo here. Should be "Valid" rather than "Validate".
+Small typo here. Should be "Valid" rather than "Validate".
+Small typo here. Should be "store" rather than "stroe".
+Small typo here. Should be "store" rather than "stroe".
+This field's initial value should be `"SunX509"`, aligning it with Spring AMQP's default.
+The initial value of this field should be `SunX509`. This aligns it with Spring AMQP's default for the property.
+Small typo here. Should be "store" rather than "stroe".
+The ordering could be changed with an auto-configuration that does nothing other than influencing the ordering. Something like this: ``` package org.springframework.boot.actuate.autoconfigure.metrics.integration; import io.micrometer.core.instrument.MeterRegistry; import org.springframework.boot.actuate.autoconfigure.metrics.CompositeMeterRegistryAutoConfiguration; import org.springframework.boot.actuate.autoconfigure.metrics.MetricsAutoConfiguration; import org.springframework.boot.autoconfigure.AutoConfigureAfter; import org.springframework.boot.autoconfigure.AutoConfigureBefore; import org.springframework.boot.autoconfigure.EnableAutoConfiguration; import org.springframework.boot.autoconfigure.integration.IntegrationAutoConfiguration; import org.springframework.context.annotation.Configuration; /** * {@link EnableAutoConfiguration Auto-configuration} for Spring Integration's metrics. * Orders auto-configuration classes to ensure that the {@link MeterRegistry} bean has * been defined before Spring Integration's Micrometer support queries the bean factory * for it. * * @author Andy Wilkinson */ @AutoConfigureAfter({ MetricsAutoConfiguration.class, CompositeMeterRegistryAutoConfiguration.class }) @AutoConfigureBefore(IntegrationAutoConfiguration.class) @Configuration(proxyBeanMethods = false) public class IntegrationMetricsAutoConfiguration { } ``` This improves the situation but it doesn't fix the test. It fails as the tag hasn't been applied to the `spring.integration.channels` meter. The tag is missing due to a number of beans not being post-processed: ``` 2020-11-10 10:10:07.483 INFO --- [ main] trationDelegate$BeanPostProcessorChecker : Bean 'integrationChannelResolver' of type [org.springframework.integration.support.channel.BeanFactoryChannelResolver] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying) 2020-11-10 10:10:07.484 INFO --- [ main] trationDelegate$BeanPostProcessorChecker : Bean 'integrationDisposableAutoCreatedBeans' of type [org.springframework.integration.config.annotation.Disposables] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying) 2020-11-10 10:10:07.497 INFO --- [ main] trationDelegate$BeanPostProcessorChecker : Bean 'org.springframework.integration.config.IntegrationManagementConfiguration' of type [org.springframework.integration.config.IntegrationManagementConfiguration] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying) 2020-11-10 10:10:07.521 INFO --- [ main] trationDelegate$BeanPostProcessorChecker : Bean 'simpleMetricsExportAutoConfiguration' of type [org.springframework.boot.actuate.autoconfigure.metrics.export.simple.SimpleMetricsExportAutoConfiguration] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying) 2020-11-10 10:10:07.535 INFO --- [ main] trationDelegate$BeanPostProcessorChecker : Bean 'management.metrics.export.simple-org.springframework.boot.actuate.autoconfigure.metrics.export.simple.SimpleProperties' of type [org.springframework.boot.actuate.autoconfigure.metrics.export.simple.SimpleProperties] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying) 2020-11-10 10:10:07.537 INFO --- [ main] trationDelegate$BeanPostProcessorChecker : Bean 'simpleConfig' of type [org.springframework.boot.actuate.autoconfigure.metrics.export.simple.SimplePropertiesConfigAdapter] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying) 2020-11-10 10:10:07.538 INFO --- [ main] trationDelegate$BeanPostProcessorChecker : Bean 'metricsAutoConfiguration' of type [org.springframework.boot.actuate.autoconfigure.metrics.MetricsAutoConfiguration] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying) 2020-11-10 10:10:07.538 INFO --- [ main] trationDelegate$BeanPostProcessorChecker : Bean 'micrometerClock' of type [io.micrometer.core.instrument.Clock$1] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying) 2020-11-10 10:10:07.558 INFO --- [ main] trationDelegate$BeanPostProcessorChecker : Bean 'simpleMeterRegistry' of type [io.micrometer.core.instrument.simple.SimpleMeterRegistry] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying) ``` I think this is a bug in Spring Integration. `SimpleMeterRegistry` isn't eligible for post-processing due to the following dependency chain: - `integrationManagementConfigurer` (a `BeanPostProcessor`) - `managementConfigurer` - `integrationMicrometerMetricsCaptor` - `simpleMeterRegistry` Generally speaking, injecting dependencies into bean post-processors isn't safe and should be avoided. In this case, it's causing `simpleMeterRegistry` to be ineligible for post-processing which prevents the meter filter that honours `management.metrics.tags` from being applied.
+I think we'll need to find another approach if we can. The conceptual relationship is backwards if the general metrics auto-configuration knows about Integration auto-config.
+Ah, didn't realize the cross module bit
+We change the date whenever the file is updated. This should be 2020 but don't worry we'll take care of that when merging.
+How about this transport configuration that we se to `NettyConnectionFactory`? @wilkinsona mentioned that on the original issue and we'd like some feedback on that.
+> What exactly is the concern with losing the explicit NettyConnectorFactory setup? That's most probably the source of the confusion. When a URL is set, no specific transport is set. When a host and port are set a `NettyConnectorFactory` transport is set. Looking a bit more `NettyConnectorFactory` seems the default implementation anyway so we'd use that as well. That wasn't clear hence why we asked explicitly.
+> That's not accurate. Sorry, poor choice of words. I meant that the auto-configuration doesn't do anything special when a broker url is set while it does something explicit (in code) when a host is set. We're very cautious to not introduce any inconsistency and the reason why I asked you here. Thanks for the follow-up and the feedback !
+Sorry, I thought the URL could be used to provide the username and password.
+As far as I can see you did not hence why I am asking here. The code I've referenced makes an explicit setup using `NettyConnectorFactory`. As far as I can see we'd lose that as soon as an url is set.
+Have you run the test before pushing an update? As I've explained several times in this issue, we do not expose a RestClient so requiring a RestClient bean is never going to work.
+This should go away. `@ConditionalOnClass` already does that.
+missing `this.`. This sort of things can be easily spot if you ran the build locally before pushing your changes.
+Configuration property description ends with a dot. Please consider reviewing the description to better explain what that does.
+Those properties should be in a `public static class Sniffer` inner class. Check other `@ConfigurationProperties` for an example.
+The `builder` in the name sounds unnecessary.
+A single test shouldn't run the context twice ideally.
+Two tests are missing here. One that assert what happens when the library is not on the classpath, as I've indicated in [my previous review](https://github.com/spring-projects/spring-boot/pull/24340#discussion_r546777503). One that assert that a custom `Sniffer` instance is used rather creating one here. This custom instance should probably have a dependency on the high level client we auto-configure to make this a bit more realistic.
+This isn't necessary. The duration gives you a way to get the ms directly.
+This doesn't check that the sniffer library is on the classpath. If it isn't, this bean should not be defined at all. It's also missing a `@ConditionalOnMissingBean` in case the user has created their own.
+Could you please update the PR to use commons-logging rather than SLF4J
+> I also hope it willl make it earlier to master than #22632. Sorry but it won't. This issue or the other one is going to be superseded and I already have some work on a branch when I was working on #22632.
+Should this be debug or warn ? Since the app is not un up state, warn sounds more logical to me
+I wonder if this should be a `LinkedHashSet` or similar? Assuming that the ordering is preserved elsewhere, losing it here by switching to a `HashSet` could, in theory, have an effect on the beans that are defined as it'll change the order in which they're processed during refresh.
+A 404 feels right to me. That's what we do in the `env` endpoint for a property that doesn't exist. It too can match multiple entries as the same property may be defined in multiple property sources.
+> Since this ticket is about setting the HBM default value from the JPA value, I think the above grid gives us what we want to use. What do you think? Unfortunately, I don't think this statement is accurate. IMO, this issue is about not setting a default ddlAuto value if the JPA spec property is set. I think translating one to the other is also a completely different feature that I am not convinced we want to provide.
+I don't think this test is correct. The [spec](https://docs.oracle.com/javaee/7/tutorial/persistence-intro005.htm) states that `drop-and-create` is a valid value. If you'd rewrite this test with this, you'd have to assert that ddl auto was set with it, which is not a valid ddlAuto. Rather, we should check the ddl auto isn't set (but the spec property is).
+The problem here is that `ddlDatabaseAction` is not, strictly speaking, a `ddlAuto`. The values are close but not the same. Considering that, I don't think that change is correct. Rather, I think we should review this method altogether and set a ddl-auto only if necessary, calling the supplier if need to be. This could prove tricky as we've had a few regressions in this area.
+You can use `PropertyMapper` for this too. There is a way to invoke a method.
+`@DirtiesContext` on the test method is another option.
+FTR, if we decide to pursue with this, I am not keen to use the annotation model for this. Rather I'd clean the test `Cache`by an explicit call to its API.
+If that's a comma separated list, it can't be a `String`. We should offer a way for users to also use yaml list if they want to.
+Thanks Tommy. I've created: https://github.com/spring-projects/spring-boot/issues/25723
+I think we already cover the active and include case in [this test](https://github.com/spring-projects/spring-boot/blob/65c00f373a5520bac27a7b9a2fc99535189f5756/spring-boot-project/spring-boot/src/test/java/org/springframework/boot/context/config/ConfigFileApplicationListenerTests.java#L452).
+Instead of just checking if the environment contains the additional profiles (which it does even today because `SpringApplication` configures them in `configureAdditionalProfiles`), we should check if the profiles are actually processed by `ConfigFileApplicationListener`).
+This test doesn't seem to be giving us much either and I don't think it is required.
+I don't think we need this test as it is essentially a duplicate of the test below.
+This test also seems unrelated to this change.
+It would be good to have a test or two that asserts that `AZURE_APP_SERVICE` isn't active when only one of the environment variables is set.
+I prefer it as currently proposed.
+Thanks for the considering.
+Shouldn't the code be called like below for it to actually run? ```suggestion this.contextRunner.run(validateBaseJvmMetricsBeansArePresent()); ```
+Shouldn't the code be called like below for it to actually run? ```suggestion validateBaseJvmMetricsBeansArePresent().accept(context); ```
+I wouldn't overuse `ContextConsumer` like this. The essence of the assertion is to show that a single bean of a given type is present, and the one with the custom name we've added there as well (hence it's used). By moving this to a method that takes "a bean name", the link between the two is less obvious so I don't think this abstraction improves readability.
+Given how easy it is to expose it, I am not sure I would make it configurable (at least for a first version). However the disk space health indicator uses the current path (i.e. `new File(".")`) so I'd rather use that.
+I think this is OK without the "by".
+Jedis should be updated as well I think.
+Rather then exposing `LettuceClientConfigurationBuilder` as a bean, we should rather apply a `LettuceClientConfigurationBuilderCustomizer` to it when the pool library is on the classpath (and that new `enabled` property is not `false`).
+Isn't it more clear that method names start with a verb? like`evaluatePoolingFailureAnalyzer()`
+There's no need for that. If the pool is not available, then no pool should be configured as before.
+This should be a `private static final boolean` field
+Is there a reason to change the signature of this method? This is unrelated to this PR so I'd like this to be reverted.
+It might be better to use `ObjectUtils.identityToString(Object obj)`.
+I don't think this is safe. Over the lifetime of the JVM, there's no guarantee that every `identityHashCode` will be unique.
+This doesn't address my earlier concern. `ObjectUtils.identityToString` uses the object's class name and its identity hash code. That's still insufficient to guarantee uniqueness for the lifetime of the JVM.
+The JMX port that is used to start and stop the app can't be different so exposing two properties for this doesn't feel right to me.
+the JMX name that is used to start and stop the app can't be different so exposing two properties for this doesn't feel right to me.
+For consistency, it would be good to use `ObjectProvider` rather than `@Autowired(required = false)` here. `getIfAvailable()` can then be used to get the provided ID resolver.
+Thanks very much. I'll mark this as a draft for now so that we know it's not quite ready to be merged.
+`IllegalStateException` is unchecked so it doesn't need to be declared either. It'd be nice to get rid of those too if you have the time.
+Flyway teams properties are all aggregated at the end.
+I would move this property next to the currently deprecated one rather than after all other properties
+Flyway teams properties are all aggregated at the end.
+```suggestion private boolean failOnMissingLocations; ``` Because boolean's default value is false.
+This also changes behaviour as any exception thrown from `close(context)` will no longer be caught.
+This changes behaviour as any exception from the `close()` call will no longer be caught and logged as a warning.
+Maybe we can maintain the minimum changes, so here we can go back to the original state.
+I think this could be an overload of `configure` that takes the `RabbitProperties` as well. That would remove the need for the getter. I'll make this change as part of merging.
+As the properties are required, I'd prefer for them to be a constructor argument. I'll make that change as part of merging.
+A breaking change here is fine as we don't consider the `@Bean` methods on an auto-configuration class to be public API.
+No, it should be package-private so your change here is a good one.
+```suggestion */ @Configuration(proxyBeanMethods = false) @ConditionalOnClass(EnableRabbit.class) @ConditionalOnProperty(prefix = "spring.rabbitmq.listener", name = "type", havingValue = "stream") class RabbitStreamConfiguration { ```
+```suggestion ObjectProvider<ContainerCustomizer<StreamListenerContainer>> containerCustomizer) { ``` I think this makes sense given that the setter is singular.
+```suggestion containerCustomizer.ifUnique(factory::setContainerCustomizer); ```
+```suggestion RabbitProperties properties, ObjectProvider<ConsumerCustomizer> consumerCustomizer, ``` I think this makes sense given that the setter is singular.
+```suggestion consumerCustomizer.ifUnique(factory::setConsumerCustomizer); ```
+This should have a description like the other fields.
+There's a description missing here as well.
+That should be `paths`, I think with "Comma-separated list of paths..." for the description.
+This should be named `Diskspace` to avoid the `-` in the configuration property.
+I still think it'd be good to rename this to `Diskspace`. That'd be consistent with what we've done elsewhere. See `org.springframework.boot.autoconfigure.web.WebProperties.Resources.Cache.Cachecontrol`, for example.
+I'm not too worried about it. We might try some "extract variable/method" refactoring when we merge.
+I would add a space before "This".
+We've decided to fail.
+It sounds like it's calling for a `RabbitStreamTemplateConfigurer` to be consistent with what we're currently doing with `RabbitTemplate`.
+This should be updated to indicate that it can also be used to provide the password of the key store key provided by the new `key-store-key` property.
+We could also do with some tests for the new support. That would help us to make an informed decision around what to do when the type is and is not set and when it's set to a contradictory value.
+My understanding from the KIP and Kafka docs is that only PEM is supported; I wonder if we should indicate that here and/or enforce it in `buildProperties()`? OTOH, leaving it like this will make it future proof.
+I think it's confusing to mention `ssl.keystore.type` here as I would expect users to assume that it's referring to a Spring Boot configuration property rather than a Kafka property. I don't think there's much to be gained by trying to future proof. If more formats are supported in the future, it should be fairly straightforward to add support. In the meantime, I'd prefer that we just assume PEM here.
+Ah ok, right. I understand now. Yes, so we should have to consistent indeed but we need to deprecate them.
+I thought we were going to support both camelCase and kebab-case until we've improved the output of `spring init --list` so that it converts the server's output from the camelCase that it expects to the kebab-case that the CLI prefers. That improvement to `spring init --list` was to be handled separately.
+The plan is to use kebab case consistently, not introducing a mixed case for new properties.
+The plan is to use kebab case consistently, not introducing a mixed case for new properties.
+The plan is to use kebab case consistently, not introducing a mixed case for new properties.
+Possibly "be applied" instead.
+I don't think a space should be added here.
+I think "be registered" would be better here.
+I think this should be "yet".
+Sorry, my example included this initializer but it isn't needed. This is just for information: we can tidy up my mistake when we merge your changes.
+Sorry, my example included this initializer but it isn't needed. This is just for information: we can tidy up my mistake when we merge your changes.
+This shouldn't be changed as the release in which the class was added hasn't changed.
+This shouldn't be changed as the release in which the class was added hasn't changed.
+This shouldn't be changed as the release in which the class was added hasn't changed.
+This shouldn't be changed as the release in which the class was added hasn't changed.
+Sorry, my example included this initializer but it isn't needed. This is just for information: we can tidy up my mistake when we merge your changes.
+Sorry, my example included this initializer but it isn't needed. This is just for information: we can tidy up my mistake when we merge your changes.
+This mock endpoint isn't needed.
+`Cache2kCacheMetrics` doesn't need to be fully qualified unless I am missing something.
+New public classes should have a `@since 2.7.0` (assuming we're going to accept this PR).
+This is at odd with all the other implementations. Customizers run after cache names have been set. Properties or bean defined in the context are used to customize how caches are created by default. Because cache names are properties-based as well, it is expected to be processed before the customizers run and I am not keen to change that order for Cache2K only. Cache2K has a `defaultSetup` function but I don't think exposing that as a bean is a good idea. I am tempted to expose this: ```java public interface Cache2kBuilderCustomizer { void customize(Cache2kBuilder<?, ?> builder); } ``` And call `defaultSetup` with a function that would invoke those. This makes `CacheManagerCustomizer` less useful but that is already the case for anything that changes the default setup. The name doesn't really imply that it changes the default setup so we may want to rename this.
+I am not keen to do that either. If a cache name is set we will create it. It won't be relevant anyway once we find a solution for the other issue and this is invoked prior to the customizer.
+This can be replaced on the original test with `withBean`
+This can be replaced on the original test with `withBean`.
+We don't inject `List`. Please use `ObjectProvider#orderedStream`.
+If I change the name of the property source to be something else than this, the test fails. The `PropertySource` implementation and its name are irrelevant for this, it could be anything.
+I don't understand what this is doing. `MapPropertySource` is an implementation detail and you shouldn't be looking at it. It has nothing to do with a deprecated property that is of type `Map`.
+@dominiccroce do you want to get another look at it? `filter` takes a predicate and should lets you filter the propertysource with only the keys that are relevant. I haven't tried but I think it's worth exploring.
+Until we have a concrete need for other customisers, I'd prefer to minimise the surface area of the public API.
+This is a good suggestion, thank you. I'm not sure at this point that we need to support multiple beans, but avoiding the need for `EMPTY_CUSTOMIZER` is a good goal. Our style is the achieve that via Spring Framework's `ObjectProvider` and its `getIfAvailable()` method.
+```suggestion @FunctionalInterface private interface ConfigurationCustomizer { ```
+I guess the trick is to use a separate configuration class, take a look: https://github.com/spring-projects/spring-boot/blob/main/spring-boot-project/spring-boot-autoconfigure/src/main/java/org/springframework/boot/autoconfigure/jdbc/DataSourceAutoConfiguration.java#L66-L72
+I think the intent would be clearer if we checked for one of the classes that `SpringSecurityDialect` depends upon such as `org.springframework.security.web.server.csrf.CsrfToken`.
+Consider the spring-cloud-gateway scenario, I suggest to use `List<String>` instead of `String`. ``` client -> spring-cloud-gateway -> resource-server-1 -> resource-server-2 -> etc.. ``` When spring-cloud-gateway validate the access-token, the valid audience is a list of string.
+And rename variable from `audience` to `audiences`.
+Can you share why you're switching the test to use H2 instead of HSQL? If the purpose is to test that Spring Batch works with their H2 scripts, that's something that should be done as part of a Spring Batch release.
+There's no guarantee that resolvers is not null since there is no assertion in the constructor.
++1. I suspect we'll need longer than two seconds as well for it not to be flaky on CI.
+The second sentence should be removed as discussed above.
+This handling of the default here doesn't feel right to me.
+There's no need to assign the fieds here. keeping the `Spec` object should be enough.
+There's no need to write "by default" in the description as we harvest defaults and process them separately.
+This field should be initialized with `65536` then. Currently the advertised default is `0`.
+It's not particularly easy. There's a `BuildLog` interface that's used to do all the logging. I think Gradle outputs it to a `PrintStream` and maven has a `MojoBuildLog` class that send the text to the standard maven logger. Probably the easiest option here is to slightly abuse the `LogUpdateEvent`. I think you could do perhaps throw an exception from `read` and catch it in `readAll` then construct a `LogEvent` with a sensible message and pass that to the `consumer` before exiting.
+We prefer forward merges to back-ports, however, if switching the base branch to 2.7.x is proving tricky, please leave it as main and switch to Spring Retry 1.3.3-SNAPSHOT in your PR. We can then take care of getting the changes based on top of 2.7.x as part of merging the contribution.
+I won't mind, but I don't know Spring Boot development process in details, so I'll defer a decision for a proper validation and its place to respective Spring Boot team members. Thanks
+Please change it in the PR for now. We can straighten things out as part of the merge.
+I think that's a great idea as it'll avoid any drift between the two projects with how the four settings are mapping to a policy. Let's wait for that API to appear in Spring Kafka and then we can update the proposal here to use it.
+I don't think it is OK to say this: the maximum what end-user can provide are exactly those props you use for `BackOffPolicyBuilder`. So, we might need to ensure that only `SleepingBackOffPolicy` is created. Perhaps just ignore some props which are not sufficient...
+@tomazfernandes this PR targets the `2.7.x` branch and we've switched to snapshot there https://github.com/spring-projects/spring-boot/blob/f96efa72abbc8ab4abd6f5378ebc9574a84c30b1/spring-boot-project/spring-boot-dependencies/build.gradle#L1783-L1787
+If we don't support a `delay == 0`, then it has to be rejected as a configuration properties validation, before calling this builder. What I mean, if we don't support anything else in the builder, then we need to ensure the props provided for it are in the valid range. The message you say now is fully misleading: end-user does not create instances of this, so the message (if any), must really point what is wrong with end-user config.
+A description for these configuration properties must be as short as possible: https://docs.spring.io/spring-boot/docs/current/reference/htmlsingle/#appendix.configuration-metadata.format.property
+This does not have any metadata at the moment and it should. See `META-INF/additional-spring-configuration-metadata.properties` for other enabled flags
+This would create a `retry-topic` group and we don't use dashes in group parts. Perhaps a `Retry` inner type with a `Topic` if that makes sense to separate them. This would give `spring.kafka.retry.topic`.
+I doubt this util from spring-kafka is acceptable in Spring Boot code. See other similar auto-configuration classes which use something like this: `PropertyMapper map = PropertyMapper.get().alwaysApplyingWhenNonNull();` The `IntegrationAutoConfiguration` is good one to look into.
+The SLF4J logging system shouldnât know anything thatâs Log4j2- or Logback-specific. If thereâs a need for the two logging systems to use different bridge handlers then this class should be reworked and the handler logic pushed down into the two system-specific sub-classes.
+I think the first `true` here will cause a regression of the changes for https://github.com/spring-projects/spring-boot/issues/8933. Logic similar to `removeDefaultRootHandler` on `Slf4JLogingSystem ` needs to be used instead. That makes me wonder if we need to take a slightly different approach overall, possibly moving the bridge handler-related logic out into a separate class that can then be used by the different logging systems. I'm not yet sure quite how that would look so I'll need to experiment a bit before I can make a more concrete suggestion.
+Ah, i didn't see the change. Then it's fine :)
+Please revert this line-break change.
+We've avoided using `@Nested` thus far.
+Given that `HandlersObservationRegistryCustomizer` is package-private, users won't be able to define a bean that exercises this condition. We either need to make `HandlersObservationRegistryCustomizer` public (and that would require `ObservationHandlerGrouping` to remain public) or we should remove this condition. I am tempted to go with the latter for now and keep things locked down. We can relax things in a subsequent milestone if someone needs it and we'd then have a real-world usecase to help us to determine exactly how things should be opened up.
+I think this could be package-private.
+As it's a new major release, I think we can just break this without deprecation.
+As it's a new major release, I think we can just break this without deprecation.
+I don't think this is needed. All inner `@Configuration` classes will be implicitly imported. If it's for ordering purposes then I think things will need to be restructured to ensure that they're processing in the right order. Something that is structured like org.springframework.boot.autoconfigure.thymeleaf.TemplateEngineConfigurations may be needed.
+I wonder of this relationship should be inverted. I think it would be better for `BraveAutoConfiguration` and `OpenTelemetryAutoConfiguration` to know about general `MicrometerTracingAutoConfiguration` rather than the general auto-configuration knowing about the more specific Brave and OTel stuff.
+It does, but in a somewhat complex manner. The two conditions can also be processed in different phases, with `@ConditionalOnClass` going first. If that first check matches, there's potential for something else then looking at the class and falling over as `WavefrontSender` isn't on the classpath. What you have now may well work, but I'd find it easier to understand what's going on if the class condition for `WavefrontSender` was still in place.
+I wonder if this will break if `WavefrontMeterRegistry` is on the classpath but `WavefrontSender` is not. The previous conditions seemed to be protecting against that.
+Across Boot, we're a bit inconsistent in this area. In `PrometheusPushGatewayConfiguration` we fall back to `spring` but in `KafkaStreamsAnnotationDrivenConfiguration` we require `spring.kafka.streams.application-id` or `spring.application.name` to have been set. We also have `ContextIdApplicationContextInitializer` which sets the context's ID using `spring.application.name`, falling back to `application` if it hasn't been set. This is probably fine as it is at the moment, but I think it would be worth opening an issue to review the use of `spring.application.name` and seeing if we can make things more consistent.
+"this backend" could be more specific, I think, as we know it's Wavefront.
+Is white box a recognised Wavefront term? We try to avoid white box and black box if we can as they're jargon that can confuse people, particularly those with English as a second language.
+Tiny nit: no need for `{` and `}` here.
+For consistency with other `org.springframework.boot.actuate.autoconfigure.*` packages, this should probably be something like "Auto-configuration for Micrometer Tracing".
+Auto-configuration for tracing with Wavefront.
+Application name again :)
+Auto-configuration for tracing with Zipkin.
+This could be just "Classes shared between Wavefront tracing and metrics."
+This should be 2.7 please.
+This should be 2.7 please.
+I think this advice is still too specific. For example, a dependency on `spring-boot-starter-webflux` could be in place but the user's set `spring.main.web-application-type` to `servlet`. Another example could be that they have a dependency on `spring-boot-starter-web` with an exclude on `spring-boot-starter-tomcat` but they've forgotten to add a dependency on `spring-boot-starter-jetty` or `spring-boot-starter-undertow`. As I said previously, I don't think we can do much more than suggest that a user: - Checks their dependencies for a supported web server - Checks their configuration of web application type. This can be done via a property or programatically so we shouldn't be too prescriptive here either.
+I think it was better when this was passed into the constructor of the exception. The thrower knows the type so thereâs no need to make the analysis figure it out.
+As we now have a specific exception, we have the opportunity to ensure that the message is specific. To that end, I wonder if `ReactiveWebApplicationContext.class` and `ReactiveWebServerFactory.class` (or `String`) equivalents should be passed to the constructor and it can then create the message.
+As we now have a specific exception, we have the opportunity to ensure that the message is consistent. To that end, I wonder if `ReactiveWebApplicationContext.class` and `ReactiveWebServerFactory.class` (or `String` equivalents) should be passed to the constructor and it can then create the message.
+I think it would make the intent clearer if we checked for `MustacheViewResolver`. That will check that the class and all the classes on which it depends can be loaded.
+We don't need any of these `build*Properties()` methods; all the kafka specific properties are already handled by parts of `KafkaProperties`.
+I have the same thoughts as above for commit time.
+How would you use this? I'm not sure this is very usable with other metrics but it might be useful for setting up an alert to detect apps that were build against a commit before a certain date (e.g.: we made a company wide change that everyone needs to adopt and if your last change is before this date you did not).
+How would you use this? I'm not sure this is very usable with other metrics but it might be useful for setting up an alert to detect apps that were build (or not) against certain branches (e.g.: everyone needs to build against `main`/`release` all the time).
+If you do this, you can also simplify things above. ```java Gauge.builder("git.info", () -> 1L) .description("Project Git information").strongReference(true); .tag("branch", getOrDefault(props.getBranch())); .tag("id", getOrDefault(props.getShortCommitId())); .tag("time", getOrDefault(props.getCommitTime())); .register(registry); ```
+Opinionated, but I would just remove the null values. Some combination of return input.stream.filter.collect(toMap) would also be more succinct IMO.
+I don't think this change is necessary. Within the context of the two tests that use the listener, events are only ever delivered on the main thread.
+I thinktThis should be deprecated with the original signature and a getter style should be added (considering the wrapper type).
+A bit odd. I'd rather have two separate tests (and the one using the deprecated form should be marked as deprecated so that we can clean things up once we remove the deprecated feature that it tests.
+Actually maybe that without deprecating it since we're going to roll back to that once the support of the old format is removed.
+TIL that US English doesn't use a z here.
+I think we need `OpenTelemetryConfiguration` here so that `@ConditionalOnBean(OpenTelemetry.class)` on `OpenTelemetryConfigurations.TracerConfiguration.otelTracer(OpenTelemetry)` is satisfied and the test is then checking the `@ConditionalOnMissingBean`.

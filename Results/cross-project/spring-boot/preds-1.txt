@@ -1,0 +1,934 @@
+Perhaps something like "Represents a pattern that is used by ACLs to match zero or more Resources"
+Perhaps something like "Represents a pattern that is used by ACLs to match zero or more Resources"
+nit: one too many line break? :)
+That's a good idea. Note: Kafka does not use this JUnit functionality yet (i.e. no use of ExternalResource, ClassRule, Rule as far as I can tell). @ijuma: Would it ok for us to introduce this? There's no additional dependency etc., it's just using a new JUnit feature that was introduced in 4.7 (we're on 4.12).
+That's a good idea. Note: Kafka does not use this JUnit functionality yet (i.e. no use of ExternalResource, ClassRule, Rule as far as I can tell). @ijuma: Would it ok for us to introduce this? There's no additional dependency etc., it's just using a new JUnit feature that was introduced in 4.7 (we're on 4.12).
+minor: unused import now that WINDOWS is a static import below
+It's not necessary to have `PENDING_VALUE`, `RUNNING_VALUE`, etc. since you can just call `PENDING.name()` to get the string `"PENDING"`
+It's not necessary to have `PENDING_VALUE`, `RUNNING_VALUE`, etc. since you can just call `PENDING.name()` to get the string `"PENDING"`
+It's not necessary to have `PENDING_VALUE`, `RUNNING_VALUE`, etc. since you can just call `PENDING.name()` to get the string `"PENDING"`
+Good idea to add this safety net.
+Nit: unnecessary new line.
+we should probably consolidate the error messages from the results so that we don't only present the first (from a seemingly arbitrary check order) error that was encountered to the user
+I think this is the same as `Strings.toString(this)`? Otherwise I think this looks fine.
+I think this is the same as `Strings.toString(this)`? Otherwise I think this looks fine.
+In my dreams, merging would either throw an exception or return a new independent mapping so that we wouldn't need this validation phase :)
+Can we also assert that the state gets to `RUNNING` after the new thread has joined
+I would omit this (not the test, just the sentence) and put examples into the web docs.
+Can remove if initialize above
+This shouldn't be possible, right? It wouldn't make much sense to put a topic in the result if it didn't have a corresponding `TopicListing`.
+I would omit this (not the test, just the sentence) and put examples into the web docs.
+I was thinking something similar to how we use [addValidationError](https://github.com/elastic/elasticsearch/blob/master/server/src/main/java/org/elasticsearch/common/ValidationException.java)
+yeah, I was thinking we could validate the input with a regexp first, but maybe it's easier/safer to reimplement the parsing logic
+I think this is the same as `Strings.toString(this)`? Otherwise I think this looks fine.
+To get `retryBackOffMs` config, we will need to add it explicitly with prefix `admin.` in `StreamsConfig#getMainConsumerConfig()` similar to retries: ``` consumerProps.put(adminClientPrefix(AdminClientConfig.RETRIES_CONFIG), adminClientDefaultConfig.getInt(AdminClientConfig.RETRIES_CONFIG)); ``` Nit: fix indention (similar below) -- there should not be any tabs, but spaces only.
+I think this is the same as `Strings.toString(this)`? Otherwise I think this looks fine.
+This seems to defeat the purpose... If we really want to skip this test in this environment, we should rather put it in the beginning and do ``` if (isUnix) { return; } ```
+Hmm, why did we do this? I thought we'd have a try/catch block.
+Use `Collections.singletonMap` here and `Collections.singletonList`
+This logic is not exactly the most straightforward. What about something like this? ``` if (pluginKlass.isAssignableFrom(Versioned.class)) { Versioned versioned; if (pluginImpl != null) { versioned = (Versioned) pluginImpl; } else { versioned = (Versioned) pluginKlass.newInstance(); } return versioned.version(); } return "undefined"; ``` or ``` if (pluginKlass.isAssignableFrom(Versioned.class)) { if (pluginImpl == null) { pluginImpl = pluginKlass.newInstance(); } return ((Versioned) pluginImpl).version(); } return "undefined"; ```
+I don't know that we care about closing the handler. It probably does not matter too much, but there should not be any resources hanging around if we properly consume all the requests.
+I think it would be easier to read if we use the string representation to create these: http://docs.oracle.com/javase/7/docs/api/java/nio/file/attribute/PosixFilePermissions.html#fromString(java.lang.String)
+We only applied for `ElementType.METHOD`, so `ElementType.ANNOTATION_TYPE` can be removed.
+This seems to defeat the purpose... If we really want to skip this test in this environment, we should rather put it in the beginning and do ``` if (isUnix) { return; } ```
+We only applied for `ElementType.METHOD`, so `ElementType.ANNOTATION_TYPE` can be removed.
+I think this is the same as `Strings.toString(this)`? Otherwise I think this looks fine.
+I think this is the same as `Strings.toString(this)`? Otherwise I think this looks fine.
+nit: one too many line break? :)
+a logger should always be private -- if classed extend `KTableSource` the should create their own logger with the corresponding "child" class name.
+We should limit this suppression to the method for which we really need it instead of the whole class
+This could be `ConfigException` instead. With the `ConnectException` hierarchy we get a little bit stuck because we can't have `ConnectException` be the base of all our exceptions and not redefine some. There are some from core Kafka that are fine if triggered from within the framework, and `ConfigException` falls under that category -- the biggest value aside from standardization that asking for `ConnectException`/`RetriableException` from connectors/tasks is that it is a signal for how to handle the exception, but the runtime code doesn't require that everything inherits from those (and in fact we handle other exceptions from connectors as well, we just would prefer that the connector think about how it wants the framework to handle possible errors).
+We only applied for `ElementType.METHOD`, so `ElementType.ANNOTATION_TYPE` can be removed.
+Actually I was really just asking for people's opinions :) the cons are that these classes will be in different packages which may looks a bit weird.
+That would be ```suggestion version_added: '2.8' authors: ```
+Actually I was really just asking for people's opinions :) the cons are that these classes will be in different packages which may looks a bit weird.
+nit: put `@Override` on its own line
+ditto here and others below
+To get `retryBackOffMs` config, we will need to add it explicitly with prefix `admin.` in `StreamsConfig#getMainConsumerConfig()` similar to retries: ``` consumerProps.put(adminClientPrefix(AdminClientConfig.RETRIES_CONFIG), adminClientDefaultConfig.getInt(AdminClientConfig.RETRIES_CONFIG)); ``` Nit: fix indention (similar below) -- there should not be any tabs, but spaces only.
+I know this is only a test class, but returning `Collections.emptyMap()` would be the nicer thing to do here
+Nit: let's avoid moving all of these imports around. Our convention is to place the `java` and static imports at the end, and moving them unnecessarily just complicates maintenance.
+I think we could leave this called `simpleString`. The convention seems to be not to call out the existence of the Validator explicitly in other calls. I see that this might cause some issues with overloading but I think they're surmountable.
+the reason why I suggested to make it configurable is that we could pass in our own values in tests that's all... not a big deal
+Just to avoid allocating an empty list in the common case where we don't throw any exceptions.
+Just to avoid allocating an empty list in the common case where we don't throw any exceptions.
+looks like this is not passed to Metrics object. we can use reporter instance at below line.
+I think this is the same as `Strings.toString(this)`? Otherwise I think this looks fine.
+Looks good, my mistake.
+Import them from compat module: https://github.com/ansible/ansible/blob/devel/lib/ansible/module_utils/common/_collections_compat.py#L37 ```python from ansible.module_utils.common import MutableMapping, MutableSequence ```
+Not for `Streamable`. If you switch it to `Writeable` then yes. But that might make sense to wait for another PR? I don't know, I haven't been following this one very closely.
+Perhaps something like "Represents a pattern that is used by ACLs to match zero or more Resources"
+I think this is the same as `Strings.toString(this)`? Otherwise I think this looks fine.
+I think this is the same as `Strings.toString(this)`? Otherwise I think this looks fine.
+same here, s/subscriptions/newSubscriptions and `toOldSubscription`
+same here, s/subscriptions/newSubscriptions and `toOldSubscription`
+same here, s/subscriptions/newSubscriptions and `toOldSubscription`
+same here, s/subscriptions/newSubscriptions and `toOldSubscription`
+whenever referring to Connect as the framework (as opposed to the verb) I'd use `Connect`. Same as `Kafka cluster` and `Connect framework` a few words after. It's easy to miss that you are referring to the framework if it's not capitalized.
+Could we expose this like the following instead? ``` public KafkaFuture<ListOffsetResultInfo> partitionResult(TopicPartition partition); ``` Then we can keep the map internal.
+ditto here and others below
+I have a similar concern here for when entry.getValue is not a Map
+we should probably consolidate the error messages from the results so that we don't only present the first (from a seemingly arbitrary check order) error that was encountered to the user
+This feels wrong that we have a "helper" that schedulers extend from. That implies that the `Scheduler` interface is wrong. /cc @headinthebox
+This feels wrong that we have a "helper" that schedulers extend from. That implies that the `Scheduler` interface is wrong. /cc @headinthebox
+This feels wrong that we have a "helper" that schedulers extend from. That implies that the `Scheduler` interface is wrong. /cc @headinthebox
+This feels wrong that we have a "helper" that schedulers extend from. That implies that the `Scheduler` interface is wrong. /cc @headinthebox
+It's not necessary to have `PENDING_VALUE`, `RUNNING_VALUE`, etc. since you can just call `PENDING.name()` to get the string `"PENDING"`
+This feels wrong that we have a "helper" that schedulers extend from. That implies that the `Scheduler` interface is wrong. /cc @headinthebox
+Perhaps something like "Represents a pattern that is used by ACLs to match zero or more Resources"
+It's not necessary to have `PENDING_VALUE`, `RUNNING_VALUE`, etc. since you can just call `PENDING.name()` to get the string `"PENDING"`
+nit: maybe call this `fixedLengthDeserializers` -- it's not about primitive types.
+Yes, this should on an internal package (eg `common.internals`).
+We only applied for `ElementType.METHOD`, so `ElementType.ANNOTATION_TYPE` can be removed.
+This is a breaking change, right? Same for the other `create` method in this class.
+This feels wrong that we have a "helper" that schedulers extend from. That implies that the `Scheduler` interface is wrong. /cc @headinthebox
+Indentation doesn't look right here.
+nit: We use singular verbs in other functions (e.g. line 54 above), would be better to be consistent.
+nit: one too many line break? :)
+nit: one too many line break? :)
+We only applied for `ElementType.METHOD`, so `ElementType.ANNOTATION_TYPE` can be removed.
+Hm, kind of annoying that we have to return Properties here, but (as far as I know) there is no way to make an immutable Properties
+Hm, kind of annoying that we have to return Properties here, but (as far as I know) there is no way to make an immutable Properties
+I would expect this to be `UTF-8` with a dash. That's the format in https://docs.oracle.com/javase/7/docs/api/java/nio/charset/Charset.html
+Nit: ```suggestion * executed exactly once. If {@code maxRetries} is set to {@code n}, the callable will be executed at ```
+Nit: ```suggestion * executed exactly once. If {@code maxRetries} is set to {@code n}, the callable will be executed at ```
+otherwise, if you want it for testing, it can be done once in the ctor
+catching a low hanging fruit ~~~python if not module.check_mode: array.set(banner="") changed = True ~~~
+nit: we could split this lone line by different key, value by new line to make it clear. ex: ``` String[] args = new String[] { "--topic", "Hello-Kafka", "--num-records", "5", .... }; ``` Same as below.
+We only applied for `ElementType.METHOD`, so `ElementType.ANNOTATION_TYPE` can be removed.
+nit: add `final` (same below)
+That is a good point. I think adding a boolean flag in addition to the `future` result indicating if it may be incomplete is better than exposing the node map. I.e. we could have two fields inside `ListConsumerGroupsResult`, a `boolean` and a `KafkaFuture<Collection<ConsumerGroupListing>>` (I think we do not need to have nested KafkaFutures so I did not have that inside `Collection`, but correct me if I overlook anything).
+This is `ListDeserializer` hence, shouldn't we use `ConsumerConfig.LIST_KEY_DESERIALIZER_INNER_CLASS_CONFIG` ? The "SERDE" config should be used in Kafka Streams codebase only? (Same for value, and for both inner types in the next line).
+ok I understand better your intention now. I think it is still weird from a user perspective to have to pass in `null`, not loving the nullable arguments. That said it is not a huge deal, can leave as-is.
+ditto here and others below
+ditto here and others below
+Please could you assert that the content of the message is correct? (`expectThrows` returns the exception thrown, so you just need to assign it to a variable and check its message.)
+Can this be made polymorphic instead of actually checking the `PASSWORD` type here? e.g., could we simply always do `newConfig.put(key, entry.getValue().toString())` since `Password.toString()` always hides the value (in contrast to the `value()` method? I don't see a use atm, but keeping this generalizable seems potentially valuable. wouldn't block on this, but it doesn't seem great to have to bake details of the config type into code in the `AbstractHerder` that otherwise doesn't care about it.
+Depending on other changes/suggestions, we should probably conditionally apply the FipsChecks if FIPS_MODE_ENABLED already in `Security.java` so that we don't have to check the settings value each time.
+Can this be made polymorphic instead of actually checking the `PASSWORD` type here? e.g., could we simply always do `newConfig.put(key, entry.getValue().toString())` since `Password.toString()` always hides the value (in contrast to the `value()` method? I don't see a use atm, but keeping this generalizable seems potentially valuable. wouldn't block on this, but it doesn't seem great to have to bake details of the config type into code in the `AbstractHerder` that otherwise doesn't care about it.
+nit: one too many line break? :)
+same for tests below as well
+same for tests below as well
+I think we can just call `createKeyValueStore` and inline `createStore` inside `createKeyValueStore`. Also since all the calls in this class are the same, we can extract the `store` as a class variable.
+I meant that we can have the if clause once in `Security.java` and call `check()` on all the checks (or the one `check()` if we decide to implement `FipsChecks` in a simpler manner ) IF `fips_mode` is set
+I think you can initialize the capacity.
+This sucks.. I want to see how big of a deal it is to keep things as they were. Indeed snapshotting a commit will keep it's translog around but I'm not sure anymore it's worth this kind of wrapping layers. Maybe we should invest in faster clean up on those snapshotted commits. I'll reach out to discuss.
+As what we're actually storing is the list, I would make this constructor the leaf one. Then the varargs one can just call `this(Arrays.asList(jobIds))`.
+To get `retryBackOffMs` config, we will need to add it explicitly with prefix `admin.` in `StreamsConfig#getMainConsumerConfig()` similar to retries: ``` consumerProps.put(adminClientPrefix(AdminClientConfig.RETRIES_CONFIG), adminClientDefaultConfig.getInt(AdminClientConfig.RETRIES_CONFIG)); ``` Nit: fix indention (similar below) -- there should not be any tabs, but spaces only.
+To get `retryBackOffMs` config, we will need to add it explicitly with prefix `admin.` in `StreamsConfig#getMainConsumerConfig()` similar to retries: ``` consumerProps.put(adminClientPrefix(AdminClientConfig.RETRIES_CONFIG), adminClientDefaultConfig.getInt(AdminClientConfig.RETRIES_CONFIG)); ``` Nit: fix indention (similar below) -- there should not be any tabs, but spaces only.
+ditto here and others below
+ditto here and others below
+ditto here and others below
+Can be final
+nit: add a size? There are a few cases in here where we could do this.
+I think this is the same as `Strings.toString(this)`? Otherwise I think this looks fine.
+We only applied for `ElementType.METHOD`, so `ElementType.ANNOTATION_TYPE` can be removed.
+I think this is the same as `Strings.toString(this)`? Otherwise I think this looks fine.
+Could you add a fullstop at the end of this (and other)
+Could you add a fullstop at the end of this (and other)
+Sure, no problem. It's a slim and harmless chance, that's why I mentioned.
+Sure, no problem. It's a slim and harmless chance, that's why I mentioned.
+The first two of these fields are unused. I think that's right, and we should remove them and also `ec2Bucket`, by generating the key and token and then passing them into the bucket's constructor.
+This seems to defeat the purpose... If we really want to skip this test in this environment, we should rather put it in the beginning and do ``` if (isUnix) { return; } ```
+I meant that we can have the if clause once in `Security.java` and call `check()` on all the checks (or the one `check()` if we decide to implement `FipsChecks` in a simpler manner ) IF `fips_mode` is set
+This for loop is pretty similar to one in the `resolveConfigVariables(...)` method. Can we extract to a static helper method? I think it would also help make things a bit more clear, too.
+This for loop is pretty similar to one in the `resolveConfigVariables(...)` method. Can we extract to a static helper method? I think it would also help make things a bit more clear, too.
+Let's use try with resources here and the other test so that the file is closed after it's used.
+I see that you are actually printing the sink nodes. I'm wondering if this if condition is necessary since in line 85 this function will be skipped anyway.
+I think this is the same as `Strings.toString(this)`? Otherwise I think this looks fine.
+I think this is the same as `Strings.toString(this)`? Otherwise I think this looks fine.
+Nit: I think you can leave out ESTestCase here.
+It *looks* to me like this will hit a `NullPointerException`.
+```suggestion elif databases[DEFAULT_DB_ALIAS] == {}: ```
+Is there a `Locale` that would work for lowercasing these that would work and not vary by the JVM config? I think based on the restricted characters, just using something like english should be ok.
+Do we really need a before and after? These are run completely sequentially, so the "before" of one test is the "after" of the previous. I'm just thinking of what the old output used to look like (a single line per test in most cases with "OK") compared to what we are moving to here (many lines per test, if I understand correctly).
+I meant that we can have the if clause once in `Security.java` and call `check()` on all the checks (or the one `check()` if we decide to implement `FipsChecks` in a simpler manner ) IF `fips_mode` is set
+It's not super-important, but it probably makes sense to set -1 as the default for `ProducerId` in `InitProducerIdResponse`. Same for `ProducerEpoch` But maybe keep the explicit assignment as well since that makes it very clear...
+The second one, implement toString with the utility. On May 8, 2016 9:28 PM, "Johnny Lim" notifications@github.com wrote: > In core/src/main/java/org/elasticsearch/action/get/GetResponse.java > https://github.com/elastic/elasticsearch/pull/18102#discussion_r62442944 > : > > > @@ -168,4 +169,17 @@ public void writeTo(StreamOutput out) throws IOException { > > super.writeTo(out); > > getResult.writeTo(out); > > } > > + > > - @Override > > - public String toString() { > > - try { > > @nik9000 https://github.com/nik9000 Are you suggesting not implementing > SearchResponse.toString() but using Strings.toString() in application > code, or implementing SearchResponse.toString() via using > Strings.toString()? > > â > You are receiving this because you were mentioned. > Reply to this email directly or view it on GitHub > https://github.com/elastic/elasticsearch/pull/18102/files/c5f0c73b8b0f9c57500656081005aa64e28f509b#r62442944
+we should probably consolidate the error messages from the results so that we don't only present the first (from a seemingly arbitrary check order) error that was encountered to the user
+I meant that we can have the if clause once in `Security.java` and call `check()` on all the checks (or the one `check()` if we decide to implement `FipsChecks` in a simpler manner ) IF `fips_mode` is set
+This seems to defeat the purpose... If we really want to skip this test in this environment, we should rather put it in the beginning and do ``` if (isUnix) { return; } ```
+I think it would make sense to style this test (and `shouldInstantiateFromListOfClassTypes` below) more like `shouldInstantiateAssignors` now, ie where we actually validate the assignors that are returned (eg `assertTrue(assignors.get(0) instanceof StickyAssignor)`). Previously this test was just making sure that we adaptor would work and we wouldn't throw an exception when constructing the consumer, that's why it's like this
+That is a good point. I think adding a boolean flag in addition to the `future` result indicating if it may be incomplete is better than exposing the node map. I.e. we could have two fields inside `ListConsumerGroupsResult`, a `boolean` and a `KafkaFuture<Collection<ConsumerGroupListing>>` (I think we do not need to have nested KafkaFutures so I did not have that inside `Collection`, but correct me if I overlook anything).
+That is a good point. I think adding a boolean flag in addition to the `future` result indicating if it may be incomplete is better than exposing the node map. I.e. we could have two fields inside `ListConsumerGroupsResult`, a `boolean` and a `KafkaFuture<Collection<ConsumerGroupListing>>` (I think we do not need to have nested KafkaFutures so I did not have that inside `Collection`, but correct me if I overlook anything).
+I think we should provide some context on the exception here.
+I think we should provide some context on the exception here.
+I think it will be cleaner? not a biggy though
+I think it will be cleaner? not a biggy though
+seems dangerous to use the thread name to check ownership. might be safer to check reference equality on `Thread`
+Depending on other changes/suggestions, we should probably conditionally apply the FipsChecks if FIPS_MODE_ENABLED already in `Security.java` so that we don't have to check the settings value each time.
+inventory plugin, not module ... also we can use 'short form' for licenses now
+I think we can check the beforePart == null out of the if(!..equals) and it will make it cleaner.
+I'm fine as well, will make a reference to 10055 of this PR
+nit: one too many line break? :)
+A ``` python if count == retries: ``` is needed here, otherwise on the last retry the program will say **Retrying...** and then exit.
+This should be ``` python if count == retries: ``` since you changed the while condition to `count < retries` and since this will never be reached if the retries are infinite.
+This should be ``` python if count == retries: ``` since you changed the while condition to `count < retries` and since this will never be reached if the retries are infinite.
+The identity function could pass this test, but wouldn't have the behavior we need in the BasicAuthSecurityRestExtension. I wonder if there's a way to confirm that the mockConfiguration has been evaluated prior to calling `get()` on the returned supplier.
+ditto here and others below
+The identity function could pass this test, but wouldn't have the behavior we need in the BasicAuthSecurityRestExtension. I wonder if there's a way to confirm that the mockConfiguration has been evaluated prior to calling `get()` on the returned supplier.
+`STATICFILES_IGNORE_PATTERS` -> `STATICFILES_IGNORE_PATTERNS`
+`STATICFILES_IGNORE_PATTERS` -> `STATICFILES_IGNORE_PATTERNS`
+The second one, implement toString with the utility. On May 8, 2016 9:28 PM, "Johnny Lim" notifications@github.com wrote: > In core/src/main/java/org/elasticsearch/action/get/GetResponse.java > https://github.com/elastic/elasticsearch/pull/18102#discussion_r62442944 > : > > > @@ -168,4 +169,17 @@ public void writeTo(StreamOutput out) throws IOException { > > super.writeTo(out); > > getResult.writeTo(out); > > } > > + > > - @Override > > - public String toString() { > > - try { > > @nik9000 https://github.com/nik9000 Are you suggesting not implementing > SearchResponse.toString() but using Strings.toString() in application > code, or implementing SearchResponse.toString() via using > Strings.toString()? > > â > You are receiving this because you were mentioned. > Reply to this email directly or view it on GitHub > https://github.com/elastic/elasticsearch/pull/18102/files/c5f0c73b8b0f9c57500656081005aa64e28f509b#r62442944
+ditto on removing before/after.
+The identity function could pass this test, but wouldn't have the behavior we need in the BasicAuthSecurityRestExtension. I wonder if there's a way to confirm that the mockConfiguration has been evaluated prior to calling `get()` on the returned supplier.
+I was thinking something similar to how we use [addValidationError](https://github.com/elastic/elasticsearch/blob/master/server/src/main/java/org/elasticsearch/common/ValidationException.java)
+This logic is not exactly the most straightforward. What about something like this? ``` if (pluginKlass.isAssignableFrom(Versioned.class)) { Versioned versioned; if (pluginImpl != null) { versioned = (Versioned) pluginImpl; } else { versioned = (Versioned) pluginKlass.newInstance(); } return versioned.version(); } return "undefined"; ``` or ``` if (pluginKlass.isAssignableFrom(Versioned.class)) { if (pluginImpl == null) { pluginImpl = pluginKlass.newInstance(); } return ((Versioned) pluginImpl).version(); } return "undefined"; ```
+This seems to defeat the purpose... If we really want to skip this test in this environment, we should rather put it in the beginning and do ``` if (isUnix) { return; } ```
+This seems to defeat the purpose... If we really want to skip this test in this environment, we should rather put it in the beginning and do ``` if (isUnix) { return; } ```
+While we should have the call to `super` above, do we really need this given that the default `available` implementation in GZIP is not very helpful? i.e., ``` super.available(); return inf.finished() ? 0 : 1; ```
+This is not introduced in this PR: we can try to get the record collector in the constructor and cache it instead of trying to access it every time. I checked all the access patterns of this field and they should not be modified dynamically.
+This seems to defeat the purpose... If we really want to skip this test in this environment, we should rather put it in the beginning and do ``` if (isUnix) { return; } ```
+To get `retryBackOffMs` config, we will need to add it explicitly with prefix `admin.` in `StreamsConfig#getMainConsumerConfig()` similar to retries: ``` consumerProps.put(adminClientPrefix(AdminClientConfig.RETRIES_CONFIG), adminClientDefaultConfig.getInt(AdminClientConfig.RETRIES_CONFIG)); ``` Nit: fix indention (similar below) -- there should not be any tabs, but spaces only.
+ditto here and others below
+Can we remove `throws IOException` and write: ``` java try { if (!Files.exists(initialSettings.v2().pluginsFile())) { Files.createDirectories(initialSettings.v2().pluginsFile()); } } catch (IOException e) { displayHelp("Unable to create plugins dir: " + initialSettings.v2().pluginsFile()); System.exit(EXIT_CODE_ERROR); } ```
+Can we remove `throws IOException` and write: ``` java try { if (!Files.exists(initialSettings.v2().pluginsFile())) { Files.createDirectories(initialSettings.v2().pluginsFile()); } } catch (IOException e) { displayHelp("Unable to create plugins dir: " + initialSettings.v2().pluginsFile()); System.exit(EXIT_CODE_ERROR); } ```
+Can we remove `throws IOException` and write: ``` java try { if (!Files.exists(initialSettings.v2().pluginsFile())) { Files.createDirectories(initialSettings.v2().pluginsFile()); } } catch (IOException e) { displayHelp("Unable to create plugins dir: " + initialSettings.v2().pluginsFile()); System.exit(EXIT_CODE_ERROR); } ```
+extract to variable
+We only applied for `ElementType.METHOD`, so `ElementType.ANNOTATION_TYPE` can be removed.
+maybe call this pendingTasks or resolvedTasks? I got a bit confused by the valid notion - some of the tasks are marked as successful but are not valid :)
+maybe call this pendingTasks or resolvedTasks? I got a bit confused by the valid notion - some of the tasks are marked as successful but are not valid :)
+maybe call this pendingTasks or resolvedTasks? I got a bit confused by the valid notion - some of the tasks are marked as successful but are not valid :)
+maybe call this pendingTasks or resolvedTasks? I got a bit confused by the valid notion - some of the tasks are marked as successful but are not valid :)
+maybe call this pendingTasks or resolvedTasks? I got a bit confused by the valid notion - some of the tasks are marked as successful but are not valid :)
+nit: one too many line break? :)
+`STATICFILES_IGNORE_PATTERS` -> `STATICFILES_IGNORE_PATTERNS`
+makes sense - treat whatever I wrote as a draft that can be adjusted as more metrics are added
+The second one, implement toString with the utility. On May 8, 2016 9:28 PM, "Johnny Lim" notifications@github.com wrote: > In core/src/main/java/org/elasticsearch/action/get/GetResponse.java > https://github.com/elastic/elasticsearch/pull/18102#discussion_r62442944 > : > > > @@ -168,4 +169,17 @@ public void writeTo(StreamOutput out) throws IOException { > > super.writeTo(out); > > getResult.writeTo(out); > > } > > + > > - @Override > > - public String toString() { > > - try { > > @nik9000 https://github.com/nik9000 Are you suggesting not implementing > SearchResponse.toString() but using Strings.toString() in application > code, or implementing SearchResponse.toString() via using > Strings.toString()? > > â > You are receiving this because you were mentioned. > Reply to this email directly or view it on GitHub > https://github.com/elastic/elasticsearch/pull/18102/files/c5f0c73b8b0f9c57500656081005aa64e28f509b#r62442944
+nit: can we call it getParseFieldMatcher? now that we have an interface it should be easy to rename all the existing impls at the same time. If you feel like it should be a follow-up, I am fine with that.
+Existing issue, space should be after the colon.
+This could be final.
+This could be final.
+This could be final.
+`STATICFILES_IGNORE_PATTERS` -> `STATICFILES_IGNORE_PATTERNS`
+Wildcard imports should be caught by checkstyle, and should fail the build. In any case, please replace with non-wildcard imports.
+I think we can just have one function between `values` and `groups` here. I'd suggest we use ``` public Map<TopicPartition, KafkaFuture<Void>> deletedGroups() ```
+extension name must not be empty
+I think we can just have one function between `values` and `groups` here. I'd suggest we use ``` public Map<TopicPartition, KafkaFuture<Void>> deletedGroups() ```
+Could we expose this like the following instead? ``` public KafkaFuture<ListOffsetResultInfo> partitionResult(TopicPartition partition); ``` Then we can keep the map internal.
+The user is trying to access a partition that was not requested. I think we could raise `IllegalArgumentException` directly to the user.
+```suggestion /** * Metadata of a task. */ ```
+Yes, we could add `ignoredExtensions` and include that in the log in the server.
+Should this be abstract? It feels weird to use it without actually configuring any scripts. I think maybe in `StoredScriptsIT` just extend it and return `emptyMap` there. That seems like a special case of using this.
+Yes, we could add `ignoredExtensions` and include that in the log in the server.
+Consider `value.isEmpty()` instead of `value.equals("")`. Also, would it be safer to do to avoid potential incosistencies (same for above): ``` return !(value.isEmpty() || isExplicitFalse(value)); ```
+The variable name `phand` is non-descriptive
+Consider `value.isEmpty()` instead of `value.equals("")`. Also, would it be safer to do to avoid potential incosistencies (same for above): ``` return !(value.isEmpty() || isExplicitFalse(value)); ```
+It's different because the join and split actually do something and have a clear reason for being included. It also correctly handles versions like 3.4.1, which chopping off the end of the string doesn't. ``` >>> srv_version = '3.4.16' >>> srv_version[:-3] '3.4' >>> srv_version = '3.4.1' >>> srv_version[:-3] '3.' ```
+I was thinking something similar to how we use [addValidationError](https://github.com/elastic/elasticsearch/blob/master/server/src/main/java/org/elasticsearch/common/ValidationException.java)
+I think this is the same as `Strings.toString(this)`? Otherwise I think this looks fine.
+I think this is the same as `Strings.toString(this)`? Otherwise I think this looks fine.
+Can you use `== false` here...the `!` is almost hidden in all the other text around it...
+does it need to be protected? Also maybe rename to something like collectValue ? I find it weird to call add against the script itself
+Indentation doesn't look right here.
+you could rewrite this as ``` ElasticsearchParseException e = expectThrows(ElasticsearchParseException.class, () -> factory.create(config)); assertThat(e.getMessage, ... ); ```
+To get `retryBackOffMs` config, we will need to add it explicitly with prefix `admin.` in `StreamsConfig#getMainConsumerConfig()` similar to retries: ``` consumerProps.put(adminClientPrefix(AdminClientConfig.RETRIES_CONFIG), adminClientDefaultConfig.getInt(AdminClientConfig.RETRIES_CONFIG)); ``` Nit: fix indention (similar below) -- there should not be any tabs, but spaces only.
+can we factor the lentient handling part out in a single mehtod? ``` private Query rethrowUlessLentient(RuntimeException e) { if (settings.lenient()) { return null; } throw e; } ``` man I with we had support for annonymous functions here or macros even :)
+These look like leftovers.
+nit: one too many line break? :)
+I think this is the same as `Strings.toString(this)`? Otherwise I think this looks fine.
+Why are we generating the connect internal topic names here? if there's a rule for the topic naming convention it should be defined in one place which is `ReplicationPolicy`.
+This idiom is used across a bunch of the tests, which is fine, but it's also a pretty generic bit of logic. I wonder if it would be better to move it to TestUtils. In fact, there are already a couple of utilities there for comparing iterators, and I bet there are also Hamcrest matchers that compare iterators. I'm fine with this as-is, if you prefer it; I just wondered if you knew about those other options.
+If the intention is for this to be immutable then you should wrap the `new TreeMap` with `Collections.unmodifiableSortedMap()`, because otherwise a caller can modify it via the getter.
+Log the **node** versions? Can also be done directly in the loop where you are adding the nodes :-)
+same for tests below as well
+Ah! I misread this as turning `logAll` *on* instead of *off*. Now I get it :)
+Nit: add `final` to both parameters -- please follow a "one parameter per line" formatting.
+Nit: add `final` to both parameters -- please follow a "one parameter per line" formatting.
+I think it's always a single node cluster, but I'm good to keep it like this.
+nit: one too many line break? :)
+`STATICFILES_IGNORE_PATTERS` -> `STATICFILES_IGNORE_PATTERNS`
+We should read the metadata inside the while loop since it could change.
+We should read the metadata inside the while loop since it could change.
+We should read the metadata inside the while loop since it could change.
+We should read the metadata inside the while loop since it could change.
+We should read the metadata inside the while loop since it could change.
+We should read the metadata inside the while loop since it could change.
+I think we should call `deserializer.configure(...)` here
+ditto here and others below
+ditto here and others below
+nit: one too many line break? :)
+I think this is the same as `Strings.toString(this)`? Otherwise I think this looks fine.
+nit: one too many line break? :)
+nit: one too many line break? :)
+Adding the exception is fine, but you can just throw it directly: ``` throw new OffsetOutOfRangeException(...)` ``` Not need to assign it to variable first :)
+not sure this suppress warnings is needed
+Adding the exception is fine, but you can just throw it directly: ``` throw new OffsetOutOfRangeException(...)` ``` Not need to assign it to variable first :)
+Because `Named#name` is not `final`, it is not guaranteed that `EMPTY` will have an `null` name (one might call `#empty()` and modify it) -- seems to be a potential source of bugs. Can we instead remove `EMPTY` and return `new NamedInternal()` in `empty()` each time? It's not on the critical code path, so should be fine.
+I was thinking something similar to how we use [addValidationError](https://github.com/elastic/elasticsearch/blob/master/server/src/main/java/org/elasticsearch/common/ValidationException.java)
+Do we want to consider using a configuration for this and other spots where we have hard-coded values? With KIP-276 merged users can specify different timeouts per consumer type.
+This should be the same unit as the unit in `Rate`, right? If so, I think someone could create Rate as: ```new Rate(TimeUnit.MILLISECONDS, new TokenBucket())``` Or ```new Rate(new TokenBucket(TimeUnit.MILLISECONDS))```
+I was thinking something similar to how we use [addValidationError](https://github.com/elastic/elasticsearch/blob/master/server/src/main/java/org/elasticsearch/common/ValidationException.java)
+This should be the same unit as the unit in `Rate`, right? If so, I think someone could create Rate as: ```new Rate(TimeUnit.MILLISECONDS, new TokenBucket())``` Or ```new Rate(new TokenBucket(TimeUnit.MILLISECONDS))```
+@rajinisivaram I think @guozhangwang has observed unnecessary empty stub files cluttering the code base in the past, and is suggesting that as a pattern to avoid. Correct me if I'm wrong, but the way this logic is structured, it looks like like very little extra effort to add a default properties file as soon as non-empty defaults are needed (add the file, and switch to `self.prop_file = self.render(...)` Since this is such a minor edit, having an empty stub file in place doesn't really buy much. As for rendering missing templates as empty strings in ducktape - I don't think this is the right approach, since it would hide error conditions and potentially cause confusing behavior. For example, if the user's intention is to use a nonempty template file, but the location is wrong, he or she should receive an error (easy to diagnose) than potentially start up the service with different settings than intended (harder to diagnose).
+I mean to say that I think you can just call `Strings#toString`.
+if it's not important, maybe a safer default is nicer :) I'm fine leaving as is for now. We can revisit after the bootstrapping.
+if it's not important, maybe a safer default is nicer :) I'm fine leaving as is for now. We can revisit after the bootstrapping.
+Unnecessary `new String[] {}`, can just use the string as varargs for `Arrays.asList`. Same pattern is used in multiple places in this class.
+same for tests below as well
+if it's not important, maybe a safer default is nicer :) I'm fine leaving as is for now. We can revisit after the bootstrapping.
+Nice, thanks for the update. Looks good
+we should do this `assertTrue` thing for the CooperativeStickyAssignor as well
+perfect thanks. sorry for the confusion.
+To get `retryBackOffMs` config, we will need to add it explicitly with prefix `admin.` in `StreamsConfig#getMainConsumerConfig()` similar to retries: ``` consumerProps.put(adminClientPrefix(AdminClientConfig.RETRIES_CONFIG), adminClientDefaultConfig.getInt(AdminClientConfig.RETRIES_CONFIG)); ``` Nit: fix indention (similar below) -- there should not be any tabs, but spaces only.
+Just a thought: maybe instead of referring to the Delimiter in Aggregations we can have an own constant in Suggest and either declare the same symbol there or delegate to InternalAggregation.TYPED_KEYS_DELIMITER? The delimiter doesn't need to be the same in aggs and suggestions, only the parsing part needs to refer to it (although its good to have the same like we do now I think)
+I dont' think this is possible? `getFields()` never returns null
+Sure, no problem. It's a slim and harmless chance, that's why I mentioned.
+Each unit test should test one thing, so break this into separate tests for the different test conditions.
+To simplify this, you could also just do `return assignmentSnapshot != null ? assignmentSnapshot.connectors().size() : 0.0;`
+Nit, and I know it was there, but there's an extra space between `URLClassLoader` and `)`.
+Nit, and I know it was there, but there's an extra space between `URLClassLoader` and `)`.
+Could surround this call with new lines as you did for the others? Makes the calls under test more visible.
+Closing does not need `keyfile`. (Tested it with the module, works fine without `keyfile` option.)
+Closing does not need `keyfile`. (Tested it with the module, works fine without `keyfile` option.)
+I'd also consider removing this one too if we are not using it.
+`Integer.toString` is a slightly more concise way of doing this.
+Unnecessary `new String[] {}`, can just use the string as varargs for `Arrays.asList`. Same pattern is used in multiple places in this class.
+`assertThrows` is what we use for some time now, and it's available to the branches that this PR will be backported. (same below)
+We really need a docstring here. `ConsumerRecordTimestampExtractor` enables event-time processing, which is a crucial functionality for stream processing. Also, the name `ConsumerRecordTimestampExtractor` (which IMHO we should keep) does not hint at "hey, if you use me, then you'll get event-time processing in return". Idea: > Retrieves built-in timestamps from Kafka messages (introduced in [KIP-32: Add timestamps to Kafka message](https://cwiki.apache.org/confluence/display/KAFKA/KIP-32+-+Add+timestamps+to+Kafka+message)), thus providing event-time processing semantics. > > Here, "built-in" refers to the fact that compatible Kafka producer clients automatically and transparently embed such timestamps into messages they sent to Kafka, which can then be retrieved via this timestamp extractor; i.e. these built-in timestamps are different from other timestamps that the user may have included in the _payload_ of the Kafka message. However, I remember that KIP-32 actually defines: > (From KIP-32) > Add the following two configurations to the broker > - message.timestamp.type - This topic level configuration defines the type of timestamp in the messages of a topic. The valid values are _CreateTime_ or _LogAppendTime_. The docstring idea above only covers CreateTime semantics (= producer-time), not LogAppendTime (= broker-time). So we may need to correct the docstring idea.
+Perhaps something like "Represents a pattern that is used by ACLs to match zero or more Resources"
+Perhaps something like "Represents a pattern that is used by ACLs to match zero or more Resources"
+Unnecessary `new String[] {}`, can just use the string as varargs for `Arrays.asList`. Same pattern is used in multiple places in this class.
+Unnecessary `new String[] {}`, can just use the string as varargs for `Arrays.asList`. Same pattern is used in multiple places in this class.
+This could be final.
+This could be final.
+Ditto on removing before/after
+Ditto on removing before/after
+Ditto on removing before/after
+There's no need for reflection here - writing out all the fields, in a sensible order, is much preferred.
+There's no need for reflection here - writing out all the fields, in a sensible order, is much preferred.
+There's no need for reflection here - writing out all the fields, in a sensible order, is much preferred.
+nit : missing new line
+Perhaps something like "Represents a pattern that is used by ACLs to match zero or more Resources"
+This class looks pretty complicated, can you please cover it with tests? https://codecov.io/gh/ReactiveX/RxJava/src/4f2eecee404238b49c4ac0f2f074ed6d63938231/src/main/java/io/reactivex/internal/subscriptions/DeferredScalarSubscription.java
+Maybe an `assert` for unit tests (are `asserts` common in Kafka code base?). As `WrapperSerde` is private, nobody else can use it -- so no need to check for `null` IMHO.
+deprecated names match too. match should always return true, or rather throw an exception in strict mode if you use a deprecated name. I think it should be an assert. We had the same discussion with Colin in IndicesQueriesRegistry I think :)
+The second one, implement toString with the utility. On May 8, 2016 9:28 PM, "Johnny Lim" notifications@github.com wrote: > In core/src/main/java/org/elasticsearch/action/get/GetResponse.java > https://github.com/elastic/elasticsearch/pull/18102#discussion_r62442944 > : > > > @@ -168,4 +169,17 @@ public void writeTo(StreamOutput out) throws IOException { > > super.writeTo(out); > > getResult.writeTo(out); > > } > > + > > - @Override > > - public String toString() { > > - try { > > @nik9000 https://github.com/nik9000 Are you suggesting not implementing > SearchResponse.toString() but using Strings.toString() in application > code, or implementing SearchResponse.toString() via using > Strings.toString()? > > â > You are receiving this because you were mentioned. > Reply to this email directly or view it on GitHub > https://github.com/elastic/elasticsearch/pull/18102/files/c5f0c73b8b0f9c57500656081005aa64e28f509b#r62442944
+we can randomly use a different cluster? or maybe downsize the global cluster to 1 node for this test? I also wonder if we should consider to run tests with one node as well? the minNode=2 was only convenience...
+nit: one too many line break? :)
+This can be `Files.notExist(...)`
+typo: an -> a, concat -> concatenated
+The second one, implement toString with the utility. On May 8, 2016 9:28 PM, "Johnny Lim" notifications@github.com wrote: > In core/src/main/java/org/elasticsearch/action/get/GetResponse.java > https://github.com/elastic/elasticsearch/pull/18102#discussion_r62442944 > : > > > @@ -168,4 +169,17 @@ public void writeTo(StreamOutput out) throws IOException { > > super.writeTo(out); > > getResult.writeTo(out); > > } > > + > > - @Override > > - public String toString() { > > - try { > > @nik9000 https://github.com/nik9000 Are you suggesting not implementing > SearchResponse.toString() but using Strings.toString() in application > code, or implementing SearchResponse.toString() via using > Strings.toString()? > > â > You are receiving this because you were mentioned. > Reply to this email directly or view it on GitHub > https://github.com/elastic/elasticsearch/pull/18102/files/c5f0c73b8b0f9c57500656081005aa64e28f509b#r62442944
+nit: can we make this debug level? Otherwise it will make this test a little spammy.
+Should this else clause be returned to what it was before the original refactoring PR? https://github.com/elastic/elasticsearch/pull/32068/files#diff-c94184ea4ef180f10817aa2bbd41a8edL119
+Same as before, parameters of `assertEquals` should be the other way round.
+should we move the `configureSocketChannel` call into the try block as well here? seems cleaner
+Nit: somehow I don't like `blah`. Otherwise LGTM
+This is not longer correct - more like "Creates a new QueryBuilder from the query represented by the xcontent in the parser." or something.
+This is not longer correct - more like "Creates a new QueryBuilder from the query represented by the xcontent in the parser." or something.
+Checkstyle is unhappy with this.
+Great catch! Do we have a test for this bug? We should include this fix in 0.11.0.1.
+Great catch! Do we have a test for this bug? We should include this fix in 0.11.0.1.
+Great catch! Do we have a test for this bug? We should include this fix in 0.11.0.1.
+I did not check this in detail but if `UCharacter.getPropertyValueEnum()` returns values > `UScript.CODE_LIMIT`, then it would break your code that populates the `breakers` array below. In that case I would add an explicit check and throw an exception.
+should this be `BAD_REQUEST` instead? If we cannot handle the request, it's not that there's an internal server error, but that the request is unexpected.
+I did not check this in detail but if `UCharacter.getPropertyValueEnum()` returns values > `UScript.CODE_LIMIT`, then it would break your code that populates the `breakers` array below. In that case I would add an explicit check and throw an exception.
+what is this provider doing here? We can't do this in our production code this will take hours for decouple again We either pass a client or not but not yet another indirection.
+Indentation doesn't look right here.
+I just noticed this isn't even being used by OperationDelay.
+That is a good point. I think adding a boolean flag in addition to the `future` result indicating if it may be incomplete is better than exposing the node map. I.e. we could have two fields inside `ListConsumerGroupsResult`, a `boolean` and a `KafkaFuture<Collection<ConsumerGroupListing>>` (I think we do not need to have nested KafkaFutures so I did not have that inside `Collection`, but correct me if I overlook anything).
+I mean to say that I think you can just call `Strings#toString`.
+I just noticed this isn't even being used by OperationDelay.
+I've seen alternative solutions floating around that use a configurable source here. Basically, the configuration passed to configure() is consulted to find the "source cluster", rather than looking at the topic name. That approach lets you return an actual source here, which obviates the new canTrackSource() method etc.
+I just noticed this isn't even being used by OperationDelay.
+Indentation doesn't look right here.
+Indentation doesn't look right here.
+Indentation doesn't look right here.
+Depending on other changes/suggestions, we should probably conditionally apply the FipsChecks if FIPS_MODE_ENABLED already in `Security.java` so that we don't have to check the settings value each time.
+I think we can just call `createKeyValueStore` and inline `createStore` inside `createKeyValueStore`. Also since all the calls in this class are the same, we can extract the `store` as a class variable.
+```suggestion import org.apache.kafka.common.MetricName; import org.apache.kafka.common.metrics.Metrics; import org.apache.kafka.common.metrics.Sensor; import org.apache.kafka.common.metrics.stats.CumulativeSum; import java.util.Map; ```
+```suggestion import org.apache.kafka.common.MetricName; import org.apache.kafka.common.metrics.Metrics; import org.apache.kafka.common.metrics.Sensor; import org.apache.kafka.common.metrics.stats.CumulativeSum; import java.util.Map; ```
+```suggestion import org.apache.kafka.common.MetricName; import org.apache.kafka.common.metrics.Metrics; import org.apache.kafka.common.metrics.Sensor; import org.apache.kafka.common.metrics.stats.CumulativeSum; import java.util.Map; ```
+```suggestion import org.apache.kafka.common.MetricName; import org.apache.kafka.common.metrics.Metrics; import org.apache.kafka.common.metrics.Sensor; import org.apache.kafka.common.metrics.stats.CumulativeSum; import java.util.Map; ```
+To get `retryBackOffMs` config, we will need to add it explicitly with prefix `admin.` in `StreamsConfig#getMainConsumerConfig()` similar to retries: ``` consumerProps.put(adminClientPrefix(AdminClientConfig.RETRIES_CONFIG), adminClientDefaultConfig.getInt(AdminClientConfig.RETRIES_CONFIG)); ``` Nit: fix indention (similar below) -- there should not be any tabs, but spaces only.
+To get `retryBackOffMs` config, we will need to add it explicitly with prefix `admin.` in `StreamsConfig#getMainConsumerConfig()` similar to retries: ``` consumerProps.put(adminClientPrefix(AdminClientConfig.RETRIES_CONFIG), adminClientDefaultConfig.getInt(AdminClientConfig.RETRIES_CONFIG)); ``` Nit: fix indention (similar below) -- there should not be any tabs, but spaces only.
+nit: than -> that
+Yes, we could add `ignoredExtensions` and include that in the log in the server.
+Yes, we could add `ignoredExtensions` and include that in the log in the server.
+Yes, we could add `ignoredExtensions` and include that in the log in the server.
+Yes, we could add `ignoredExtensions` and include that in the log in the server.
+@rajinisivaram @stanislavkozlovski LGTM with the possible exception of maybe adding support for retrieving/logging any ignored extensions? I'll defer to your preference on this.
+Is this an oversight? `DEFAULT_KEEPALIVE_SETTING.get(settings)`
+Is this an oversight? `DEFAULT_KEEPALIVE_SETTING.get(settings)`
+`}` and `else if` should be on the same line
+I have a small preference for `Future<Map<Integer, Future>>` because it seems more aligned to how we do it for other APIs but I don't feel strong about it.
+not listing updateddate as the last kwarg is technically backwards incompatible if someone is calling this item using args instead of kwargs but it seems unlikely to me.
+not listing updateddate as the last kwarg is technically backwards incompatible if someone is calling this item using args instead of kwargs but it seems unlikely to me.
+not listing updateddate as the last kwarg is technically backwards incompatible if someone is calling this item using args instead of kwargs but it seems unlikely to me.
+nit: one too many line break? :)
+ok, potentially reduces allocations for the user, thanks
+Code convention nitpick: there should be a space before the colon.
+It's better to use variable names with context so for example `check1` could be `keystoreCheck`, etc.
+same for tests below as well
+It's better to use variable names with context so for example `check1` could be `keystoreCheck`, etc.
+It's better to use variable names with context so for example `check1` could be `keystoreCheck`, etc.
+You don't need to specify any symbolic name for a group since you have only one.
+nit: remove `this` (not required)
+Code convention nitpick: there should be a space before the colon.
+Code convention nitpick: there should be a space before the colon.
+It's better to use variable names with context so for example `check1` could be `keystoreCheck`, etc.
+Code convention nitpick: there should be a space before the colon.
+nit: What do you think about sprinkling a bit of docstrings in this interface while we're rewriting it? I like the original description of `An MBean that allows the user to dynamically alter log4j levels at runtime.`
+I think we can just have one function between `values` and `groups` here. I'd suggest we use ``` public Map<TopicPartition, KafkaFuture<Void>> deletedGroups() ```
+same here as what i said below. You can use a `assertThat`
+The map is not used.
+Nit: spacing between `while` and `(`.
+Nit: spacing between `while` and `(`.
+what is this provider doing here? We can't do this in our production code this will take hours for decouple again We either pass a client or not but not yet another indirection.
+But I wouldn't be afraid to just use a full if/else block, either. ```suggestion final WindowBytesStoreSupplier storeSupplier; if (inOrderIterator) { storeSupplier = new InOrderMemoryWindowStoreSupplier("InOrder", 50000L, 10L, false); } else { storeSupplier = Stores.inMemoryWindowStore("Reverse", ofMillis(50000), ofMillis(10), false); } ```
+same for tests below as well
+This seems to defeat the purpose... If we really want to skip this test in this environment, we should rather put it in the beginning and do ``` if (isUnix) { return; } ```
+ditto here and others below
+Yes. The user can use the config two ways: ``` // as string props.put(DEFAULT_LIST_KEY_SERDE_TYPE_CLASS, "my.fully.qualified.package.MyInnerSerde"); // or as class props.put(DEFAULT_LIST_KEY_SERDE_TYPE_CLASS, my.fully.qualified.package.MyInnerSerde.class); // or short (it the class is imported) props.put(DEFAULT_LIST_KEY_SERDE_TYPE_CLASS, MyInnerSerde.class); ``` Both should be supported and the code need to be able to handle both cases. Hence, we should get is as `Object` and use `instanceof` to check the type.
+nit: maybe call this `fixedLengthDeserializers` -- it's not about primitive types.
+Yes. The user can use the config two ways: ``` // as string props.put(DEFAULT_LIST_KEY_SERDE_TYPE_CLASS, "my.fully.qualified.package.MyInnerSerde"); // or as class props.put(DEFAULT_LIST_KEY_SERDE_TYPE_CLASS, my.fully.qualified.package.MyInnerSerde.class); // or short (it the class is imported) props.put(DEFAULT_LIST_KEY_SERDE_TYPE_CLASS, MyInnerSerde.class); ``` Both should be supported and the code need to be able to handle both cases. Hence, we should get is as `Object` and use `instanceof` to check the type.
+nit: maybe call this `fixedLengthDeserializers` -- it's not about primitive types.
+Even though this one should work, exact double comparisons tend to scare me a bit: should we use `null` instead of `-1` for non-existing x-axis units? (and store it in a Double)
+To get `retryBackOffMs` config, we will need to add it explicitly with prefix `admin.` in `StreamsConfig#getMainConsumerConfig()` similar to retries: ``` consumerProps.put(adminClientPrefix(AdminClientConfig.RETRIES_CONFIG), adminClientDefaultConfig.getInt(AdminClientConfig.RETRIES_CONFIG)); ``` Nit: fix indention (similar below) -- there should not be any tabs, but spaces only.
+nit: one too many line break? :)
+The logging brackets are off here: `[{} to [{}]]`.
+Actually the constructor of all such description classes can just be default package-private since they are only used by KafkaAdminClient, and hence can just be private APIs, and we do not need to deprecate-overload any more.
+can we make `"security.manager.enabled"` a constant please
+nit: one too many line break? :)
+`STATICFILES_IGNORE_PATTERS` -> `STATICFILES_IGNORE_PATTERNS`
+I did notice that you renamed the method in a subsequent commit which covers the "name should also ideally indicate the difference" part. :)
+I did notice that you renamed the method in a subsequent commit which covers the "name should also ideally indicate the difference" part. :)
+I know. It's just that we already use a mocking framework and we could use something like: `EasyMock.expect(factory.apply(EasyMock.anyObject())).andReturn(mockTopicAdmin).anyTimes();` if we also defined `factory` to be a mock as well. That could allow us to evaluate expectations on the mock more accurately (e.g. with a capture if we had to). But sure, if we need something quick and easy we can go with that. It's just that I noticed a mixed use of mocks with this variable that simulates what the mocking framework offers already.
+Sure, no problem. It's a slim and harmless chance, that's why I mentioned.
+I think this behavior should be shown in the examples since it is tricky to explain.
+We are using options in an inconsistent way here compared to other APIs. A good example to follow would be: ``` public ListOffsetsResult listOffsets(Map<TopicPartition, OffsetSpec> topicPartitionOffsets, ListOffsetsOptions options) ``` Options here are additional options that apply to the request. Data for the request comes from the first argument. We could do something similar for listConsumerGroupOffsets.
+We are using options in an inconsistent way here compared to other APIs. A good example to follow would be: ``` public ListOffsetsResult listOffsets(Map<TopicPartition, OffsetSpec> topicPartitionOffsets, ListOffsetsOptions options) ``` Options here are additional options that apply to the request. Data for the request comes from the first argument. We could do something similar for listConsumerGroupOffsets.
+I mean to say that I think you can just call `Strings#toString`.
+I was thinking something similar to how we use [addValidationError](https://github.com/elastic/elasticsearch/blob/master/server/src/main/java/org/elasticsearch/common/ValidationException.java)
+The second one, implement toString with the utility. On May 8, 2016 9:28 PM, "Johnny Lim" notifications@github.com wrote: > In core/src/main/java/org/elasticsearch/action/get/GetResponse.java > https://github.com/elastic/elasticsearch/pull/18102#discussion_r62442944 > : > > > @@ -168,4 +169,17 @@ public void writeTo(StreamOutput out) throws IOException { > > super.writeTo(out); > > getResult.writeTo(out); > > } > > + > > - @Override > > - public String toString() { > > - try { > > @nik9000 https://github.com/nik9000 Are you suggesting not implementing > SearchResponse.toString() but using Strings.toString() in application > code, or implementing SearchResponse.toString() via using > Strings.toString()? > > â > You are receiving this because you were mentioned. > Reply to this email directly or view it on GitHub > https://github.com/elastic/elasticsearch/pull/18102/files/c5f0c73b8b0f9c57500656081005aa64e28f509b#r62442944
+I've move all of this into the EXAMPLES block
+nit: one too many line break? :)
+I like this cleanup, but I think we still need the `null` check. Since it's possible for the value to be `null`, we should probably be defensive about it. Or were you thinking that we should just let the `NullPointerException` occur and kill the connector? Something in the middle of these two cases might be to log a warning so hopefully the connector developer can fix their code. (The only reason we even need to validate this is due to the `SinkTaskContext.offset(Map<TopicPartition, Long> offsets)` variant, the single partition variant with `long` obviously doesn't have the same issue.)
+Nit: you can call `Thread.enumerate` directly. Also, it would be good to assert that `threadCount` is < than `threads.length`.
+This can be single-lined.
+I'm not certain this requirement is enough because if a source doesn't deliver the requested amount, it will keep the client hanging which may not request a new batch. There is also the problem if the first observable delivers less than requested, the missing amount is not replenished/considered by the second Observable and thus the client may starve. This is why `concat` uses the `SubscriptionArbiter` so that if an Observable didn't deliver enough, the next is requested for the missed amount. Similar measures might be required with this `AsyncOnSubscribe`.
+we should probably consolidate the error messages from the results so that we don't only present the first (from a seemingly arbitrary check order) error that was encountered to the user
+we should probably consolidate the error messages from the results so that we don't only present the first (from a seemingly arbitrary check order) error that was encountered to the user
+Because `Named#name` is not `final`, it is not guaranteed that `EMPTY` will have an `null` name (one might call `#empty()` and modify it) -- seems to be a potential source of bugs. Can we instead remove `EMPTY` and return `new NamedInternal()` in `empty()` each time? It's not on the critical code path, so should be fine.
+In the previous version, we didn't delay the onCompleted event.
+`assertThrows` is what we use for some time now, and it's available to the branches that this PR will be backported. (same below)
+I fell like a functional interface here doesn't really buy us anything comparing to a simple if statement with two calls.
+we should probably consolidate the error messages from the results so that we don't only present the first (from a seemingly arbitrary check order) error that was encountered to the user
+ditto here and others below
+nit: one too many line break? :)
+I realize that the "streams-file-input" topic is used for multiple purposes in the upcoming quickstart/demo instructions. In this case, feel free to keep the input topic name as is.
+ditto here and others below
+ditto here and others below
+ditto here and others below
+As soon as external JSON names are stable we should use the same names inside for variable names I think. Can be done in a separate PR though.
+rewrite test as above using `assertThrows()`.
+nit: one too many line break? :)
+nit: one too many line break? :)
+nit: one too many line break? :)
+this is great
+this is great
+There is a built-in for this `Function.identity()`
+Nit: unnecessary new line.
+This seems to defeat the purpose... If we really want to skip this test in this environment, we should rather put it in the beginning and do ``` if (isUnix) { return; } ```
+`retry < this.numberOfRetries` is implied here due to the outer check.
+This seems to defeat the purpose... If we really want to skip this test in this environment, we should rather put it in the beginning and do ``` if (isUnix) { return; } ```
+I think this is the same as `Strings.toString(this)`? Otherwise I think this looks fine.
+nit: one too many line break? :)
+ditto here and others below
+I think it might be nice to move this in `TcpHeader`
+I think it might be nice to move this in `TcpHeader`
+I think it might be nice to move this in `TcpHeader`
+we should probably consolidate the error messages from the results so that we don't only present the first (from a seemingly arbitrary check order) error that was encountered to the user
+ditto here and others below
+we should probably consolidate the error messages from the results so that we don't only present the first (from a seemingly arbitrary check order) error that was encountered to the user
+To get `retryBackOffMs` config, we will need to add it explicitly with prefix `admin.` in `StreamsConfig#getMainConsumerConfig()` similar to retries: ``` consumerProps.put(adminClientPrefix(AdminClientConfig.RETRIES_CONFIG), adminClientDefaultConfig.getInt(AdminClientConfig.RETRIES_CONFIG)); ``` Nit: fix indention (similar below) -- there should not be any tabs, but spaces only.
+`To query state stores, it's required to first start Kafka Streams via {@link KafkaStreams#start()}. You can retry to query the state after the state transitioned to ...`
+inventory plugin, not module ... also we can use 'short form' for licenses now
+I was thinking something similar to how we use [addValidationError](https://github.com/elastic/elasticsearch/blob/master/server/src/main/java/org/elasticsearch/common/ValidationException.java)
+I was thinking something similar to how we use [addValidationError](https://github.com/elastic/elasticsearch/blob/master/server/src/main/java/org/elasticsearch/common/ValidationException.java)
+A ``` python if count == retries: ``` is needed here, otherwise on the last retry the program will say **Retrying...** and then exit.
+I was thinking something similar to how we use [addValidationError](https://github.com/elastic/elasticsearch/blob/master/server/src/main/java/org/elasticsearch/common/ValidationException.java)
+maybe rename this to `setUp` and put the loop populating the array in this method
+The second one, implement toString with the utility. On May 8, 2016 9:28 PM, "Johnny Lim" notifications@github.com wrote: > In core/src/main/java/org/elasticsearch/action/get/GetResponse.java > https://github.com/elastic/elasticsearch/pull/18102#discussion_r62442944 > : > > > @@ -168,4 +169,17 @@ public void writeTo(StreamOutput out) throws IOException { > > super.writeTo(out); > > getResult.writeTo(out); > > } > > + > > - @Override > > - public String toString() { > > - try { > > @nik9000 https://github.com/nik9000 Are you suggesting not implementing > SearchResponse.toString() but using Strings.toString() in application > code, or implementing SearchResponse.toString() via using > Strings.toString()? > > â > You are receiving this because you were mentioned. > Reply to this email directly or view it on GitHub > https://github.com/elastic/elasticsearch/pull/18102/files/c5f0c73b8b0f9c57500656081005aa64e28f509b#r62442944
+Don't do this. The old way is much more pythonic. And it's much harder to see *your* changes as a result
+This is used for both producer and consumer, so we'd better name it `props` not `consumerProps`.
+The second one, implement toString with the utility. On May 8, 2016 9:28 PM, "Johnny Lim" notifications@github.com wrote: > In core/src/main/java/org/elasticsearch/action/get/GetResponse.java > https://github.com/elastic/elasticsearch/pull/18102#discussion_r62442944 > : > > > @@ -168,4 +169,17 @@ public void writeTo(StreamOutput out) throws IOException { > > super.writeTo(out); > > getResult.writeTo(out); > > } > > + > > - @Override > > - public String toString() { > > - try { > > @nik9000 https://github.com/nik9000 Are you suggesting not implementing > SearchResponse.toString() but using Strings.toString() in application > code, or implementing SearchResponse.toString() via using > Strings.toString()? > > â > You are receiving this because you were mentioned. > Reply to this email directly or view it on GitHub > https://github.com/elastic/elasticsearch/pull/18102/files/c5f0c73b8b0f9c57500656081005aa64e28f509b#r62442944
+I mean to say that I think you can just call `Strings#toString`.
+good point.... we should be able to get rid of it.
+The second one, implement toString with the utility. On May 8, 2016 9:28 PM, "Johnny Lim" notifications@github.com wrote: > In core/src/main/java/org/elasticsearch/action/get/GetResponse.java > https://github.com/elastic/elasticsearch/pull/18102#discussion_r62442944 > : > > > @@ -168,4 +169,17 @@ public void writeTo(StreamOutput out) throws IOException { > > super.writeTo(out); > > getResult.writeTo(out); > > } > > + > > - @Override > > - public String toString() { > > - try { > > @nik9000 https://github.com/nik9000 Are you suggesting not implementing > SearchResponse.toString() but using Strings.toString() in application > code, or implementing SearchResponse.toString() via using > Strings.toString()? > > â > You are receiving this because you were mentioned. > Reply to this email directly or view it on GitHub > https://github.com/elastic/elasticsearch/pull/18102/files/c5f0c73b8b0f9c57500656081005aa64e28f509b#r62442944
+The producer in the `WorkerSourceTask` automatically resends records, but if the producer fails to resend the [WorkerSourceTask enqueues the unsent records in `toSend`](https://github.com/apache/kafka/blob/08e8facdc9fce3a9195f5f646b49f55ffa043c73/connect/runtime/src/main/java/org/apache/kafka/connect/runtime/WorkerSourceTask.java#L343-L348) and send them again. It is true that this happens after each call to `poll()`, but if the send fails then `toSend` is non-null and upon the next iteration of the loop it will not call `poll()` and will then try resending whatever is in `toSend`. This will continue to happen as long as `toSend` is not null. However, in the current PR, even though this might happen, the loop may still ask for the source partitions and offsets and will synchronously commit them using the `offsetWriter`. So it is possible that a record with a particular offset `o1`, for a source partition `p1` fails to send and is retried, but then a connector then sets a later offset `o2` for the same partition and the connector commits offset `o2`. If the connector were to fail at exactly that point (which is possible), the `o2` offset may have been committed without the `o1` record being written. I understand that in your particular use case, you probably would only set the offsets for a particular partition if records were not written recently, but that doesn't change the fact that the `WorkerSourceTask` might be attempting to resend the previous records for quite some time. What if your new block of code were only performed if `sendRecords()` succeeded? I think there are a couple of issues with that as well. First, the offset writer is called synchronously, whereas other calls to commit offsets are sent a separate commit thread that calls multiple tasks. Now there are multiple threads committing offsets with potential race conditions and concurrency issues. Second, it still is a complicated API, and will developers truly understand when and how they use `getSourcePartitionAndOffset()`? Can I call it to read the last offset committed for a particular source partition? The worker doesn't ever set the offsets there. The WorkerSourceTask has a single, ordered pipeline for all records that each have their offsets. I still believe the best and most reliable and deterministic way to solve this is to use that same pipeline.
+I think this is the same as `Strings.toString(this)`? Otherwise I think this looks fine.
+Nit: rename to `shouldThrowOnInvalidTopicNames`
+Nit: rename to `shouldThrowOnInvalidTopicNames`
+Since this doesn't change functionality, we probably don't want to change this just to update to modern syntax. The more changes we make like this, the harder it is to backport other fixes that might overlap with this diff, and ideally we backport fixes aggressively (and in fact, this could be an example where we might want to backport to a version that supports jdk7).
+Well, that not how unit testing works :)
+I actually meant an error (http 400)? Messages can be ignored. This is just an invalid configuration.
+ditto here and others below
+nit: one too many line break? :)
+ditto here and others below
+The second one, implement toString with the utility. On May 8, 2016 9:28 PM, "Johnny Lim" notifications@github.com wrote: > In core/src/main/java/org/elasticsearch/action/get/GetResponse.java > https://github.com/elastic/elasticsearch/pull/18102#discussion_r62442944 > : > > > @@ -168,4 +169,17 @@ public void writeTo(StreamOutput out) throws IOException { > > super.writeTo(out); > > getResult.writeTo(out); > > } > > + > > - @Override > > - public String toString() { > > - try { > > @nik9000 https://github.com/nik9000 Are you suggesting not implementing > SearchResponse.toString() but using Strings.toString() in application > code, or implementing SearchResponse.toString() via using > Strings.toString()? > > â > You are receiving this because you were mentioned. > Reply to this email directly or view it on GitHub > https://github.com/elastic/elasticsearch/pull/18102/files/c5f0c73b8b0f9c57500656081005aa64e28f509b#r62442944
+The second one, implement toString with the utility. On May 8, 2016 9:28 PM, "Johnny Lim" notifications@github.com wrote: > In core/src/main/java/org/elasticsearch/action/get/GetResponse.java > https://github.com/elastic/elasticsearch/pull/18102#discussion_r62442944 > : > > > @@ -168,4 +169,17 @@ public void writeTo(StreamOutput out) throws IOException { > > super.writeTo(out); > > getResult.writeTo(out); > > } > > + > > - @Override > > - public String toString() { > > - try { > > @nik9000 https://github.com/nik9000 Are you suggesting not implementing > SearchResponse.toString() but using Strings.toString() in application > code, or implementing SearchResponse.toString() via using > Strings.toString()? > > â > You are receiving this because you were mentioned. > Reply to this email directly or view it on GitHub > https://github.com/elastic/elasticsearch/pull/18102/files/c5f0c73b8b0f9c57500656081005aa64e28f509b#r62442944
+The second one, implement toString with the utility. On May 8, 2016 9:28 PM, "Johnny Lim" notifications@github.com wrote: > In core/src/main/java/org/elasticsearch/action/get/GetResponse.java > https://github.com/elastic/elasticsearch/pull/18102#discussion_r62442944 > : > > > @@ -168,4 +169,17 @@ public void writeTo(StreamOutput out) throws IOException { > > super.writeTo(out); > > getResult.writeTo(out); > > } > > + > > - @Override > > - public String toString() { > > - try { > > @nik9000 https://github.com/nik9000 Are you suggesting not implementing > SearchResponse.toString() but using Strings.toString() in application > code, or implementing SearchResponse.toString() via using > Strings.toString()? > > â > You are receiving this because you were mentioned. > Reply to this email directly or view it on GitHub > https://github.com/elastic/elasticsearch/pull/18102/files/c5f0c73b8b0f9c57500656081005aa64e28f509b#r62442944
+The second one, implement toString with the utility. On May 8, 2016 9:28 PM, "Johnny Lim" notifications@github.com wrote: > In core/src/main/java/org/elasticsearch/action/get/GetResponse.java > https://github.com/elastic/elasticsearch/pull/18102#discussion_r62442944 > : > > > @@ -168,4 +169,17 @@ public void writeTo(StreamOutput out) throws IOException { > > super.writeTo(out); > > getResult.writeTo(out); > > } > > + > > - @Override > > - public String toString() { > > - try { > > @nik9000 https://github.com/nik9000 Are you suggesting not implementing > SearchResponse.toString() but using Strings.toString() in application > code, or implementing SearchResponse.toString() via using > Strings.toString()? > > â > You are receiving this because you were mentioned. > Reply to this email directly or view it on GitHub > https://github.com/elastic/elasticsearch/pull/18102/files/c5f0c73b8b0f9c57500656081005aa64e28f509b#r62442944
+The second one, implement toString with the utility. On May 8, 2016 9:28 PM, "Johnny Lim" notifications@github.com wrote: > In core/src/main/java/org/elasticsearch/action/get/GetResponse.java > https://github.com/elastic/elasticsearch/pull/18102#discussion_r62442944 > : > > > @@ -168,4 +169,17 @@ public void writeTo(StreamOutput out) throws IOException { > > super.writeTo(out); > > getResult.writeTo(out); > > } > > + > > - @Override > > - public String toString() { > > - try { > > @nik9000 https://github.com/nik9000 Are you suggesting not implementing > SearchResponse.toString() but using Strings.toString() in application > code, or implementing SearchResponse.toString() via using > Strings.toString()? > > â > You are receiving this because you were mentioned. > Reply to this email directly or view it on GitHub > https://github.com/elastic/elasticsearch/pull/18102/files/c5f0c73b8b0f9c57500656081005aa64e28f509b#r62442944
+It's better to use variable names with context so for example `check1` could be `keystoreCheck`, etc.
+ditto here and others below
+ditto here and others below
+You don't need to specify any symbolic name for a group since you have only one.
+nit: one too many line break? :)
+ditto here and others below
+ditto here and others below
+ditto here and others below
+nit: one too many line break? :)
+You don't need to specify any symbolic name for a group since you have only one.
+nit: one too many line break? :)
+nit: one too many line break? :)
+ditto here and others below
+To be consistent with KAFKA-2388, this should probably be: ``` java void subscribe(Pattern pattern, ConsumerRebalanceListener listener); ```
+This is the default.
+this could be: `assertThat(serializer.serialize(topic, null), nullValue())`
+The indentation is messed up here, it should be 4 instead of 2 spaces. You may want to get a better editor - a modern editor should take care of indentation automatically.
+This is the default.
+we can maybe use similar technique as we do in `QueryParsingException` and also report the location
+nit: one too many line break? :)
+`STATICFILES_IGNORE_PATTERS` -> `STATICFILES_IGNORE_PATTERNS`
+`STATICFILES_IGNORE_PATTERS` -> `STATICFILES_IGNORE_PATTERNS`
+I was thinking something similar to how we use [addValidationError](https://github.com/elastic/elasticsearch/blob/master/server/src/main/java/org/elasticsearch/common/ValidationException.java)
+You don't need to specify any symbolic name for a group since you have only one.
+as above: avoid `/` Update to ``` log.warn("Unable to read '{}{}{}'. Using default inputValues list", "resources", File.seperator, fileName); ```
+Not related to this PR but I think that we should check if what we are trying to remove is not part of the BLACKLIST. Someone could potentially provide a plugin which contains his own `bin/elasticsearch` script, which looks scary to me.
+I'm doubting if we should introduce generics for the BatchingTask and batchingKey. I'm fine with keeping as is if you don't like the generic version.
+Okay, I see later that we catch the overflow exception and that we skip adjusting; I need to think about this.
+The variable name `phand` is non-descriptive
+This seems to defeat the purpose... If we really want to skip this test in this environment, we should rather put it in the beginning and do ``` if (isUnix) { return; } ```
+I think we can just call `createKeyValueStore` and inline `createStore` inside `createKeyValueStore`. Also since all the calls in this class are the same, we can extract the `store` as a class variable.
+`app_configs` is initialized as an empty dict, so this line should be unnecessary :thinking:
+I think the norm is to use `apps` instead of `app_registry` to designate `Apps()` instances around the codebase.
+A ``` python if count == retries: ``` is needed here, otherwise on the last retry the program will say **Retrying...** and then exit.
+This should be ``` python if count == retries: ``` since you changed the while condition to `count < retries` and since this will never be reached if the retries are infinite.
+It should be robust in case of some missing fields.
+A ``` python if count == retries: ``` is needed here, otherwise on the last retry the program will say **Retrying...** and then exit.
+A ``` python if count == retries: ``` is needed here, otherwise on the last retry the program will say **Retrying...** and then exit.
+nit: one too many line break? :)
+`STATICFILES_IGNORE_PATTERS` -> `STATICFILES_IGNORE_PATTERNS`
+This should be ``` python if count == retries: ``` since you changed the while condition to `count < retries` and since this will never be reached if the retries are infinite.
+sorry I didn't see that you created a copy (I missed the "new HashMap" part)
+nit: Since you imported statically also the other matchers, you could also statically import this one to be consistent.
+nit: Since you imported statically also the other matchers, you could also statically import this one to be consistent.
+nit: Since you imported statically also the other matchers, you could also statically import this one to be consistent.
+ditto here and others below
+This is probably just my style bias, but I wonder if it would be easier (and more readable) to use static factories for atomic vs non-atomic ControllerResult. Something like: ```java ControllerResult.newAtomicResult(records, response) // and ControllerResult.newResult(records, response) ``` Boolean flags as such a pain and easy to mess up. I actually think it might be nice if there are no public constructors for ControllerResult and we use factories for everything. However, this would be a bigger change, so I'm fine if we defer it (if we even decide we need it).
+nit: keep fields with the same access level together
+If the intention is for this to be immutable then you should wrap the `new TreeMap` with `Collections.unmodifiableSortedMap()`, because otherwise a caller can modify it via the getter.
+Suggestion: We already say "Kafka Streams API", "DSL", and "Processor API". That's already a lot of "APIs" even though it's all about the same thing. I wouldn't label interactive queries to be yet another API. I'd just say: > ... to access the content via interactive queries:
+Refer to the `processing.guarantee` config here.
+Refer to the `processing.guarantee` config here.
+`Note when the windowed serde class is used, one needs...`
+The second one, implement toString with the utility. On May 8, 2016 9:28 PM, "Johnny Lim" notifications@github.com wrote: > In core/src/main/java/org/elasticsearch/action/get/GetResponse.java > https://github.com/elastic/elasticsearch/pull/18102#discussion_r62442944 > : > > > @@ -168,4 +169,17 @@ public void writeTo(StreamOutput out) throws IOException { > > super.writeTo(out); > > getResult.writeTo(out); > > } > > + > > - @Override > > - public String toString() { > > - try { > > @nik9000 https://github.com/nik9000 Are you suggesting not implementing > SearchResponse.toString() but using Strings.toString() in application > code, or implementing SearchResponse.toString() via using > Strings.toString()? > > â > You are receiving this because you were mentioned. > Reply to this email directly or view it on GitHub > https://github.com/elastic/elasticsearch/pull/18102/files/c5f0c73b8b0f9c57500656081005aa64e28f509b#r62442944
+we should probably consolidate the error messages from the results so that we don't only present the first (from a seemingly arbitrary check order) error that was encountered to the user
+I mean to say that I think you can just call `Strings#toString`.
+IMO, this string should give details when the condition is not met, like `stream thread has not been added`. Same applies to the other wait conditions.
+IMO, this string should give details when the condition is not met, like `stream thread has not been added`. Same applies to the other wait conditions.
+IMO, this string should give details when the condition is not met, like `stream thread has not been added`. Same applies to the other wait conditions.
+No, this does not give your any safety.
+nit: missing a space after the first comma
+nit. I think there is `.` missing `since 3.0[.] Use`
+nit: one too many line break? :)
+add a private constructor so it is not possible to instantiate it. Maybe even make it final, although it is redundant with the private constructor.
+add a private constructor so it is not possible to instantiate it. Maybe even make it final, although it is redundant with the private constructor.
+add a private constructor so it is not possible to instantiate it. Maybe even make it final, although it is redundant with the private constructor.
+No need for the newline here
+I think this is the same as `Strings.toString(this)`? Otherwise I think this looks fine.
+Indentation doesn't look right here.
+```suggestion public void shouldInstantiateAssignor() { ```
+Why do we have `Args` here? The `toString` is used in the JUnit test display and hence why it doesn't include anything besides the parameters before this change.
+nit: one too many line break? :)
+nit: one too many line break? :)
+nit: one too many line break? :)
+nit: one too many line break? :)
+nit: one too many line break? :)
+nit: one too many line break? :)
+nit: one too many line break? :)
+nit: one too many line break? :)
+Using generic types instead of raw types for collections is preferable (we can fix elsewhere in the file too) ```suggestion List<?> items = (List<?>) value; ```
+perfect thanks. sorry for the confusion.
+> and re-using the `KGroupedStream` results in an `InvalidToplogyException` when building the topology I thought, if there is no user topic-name, old code would create multiple repartition topics? And re-using `KGroupedStream` only throughs if there is a user topic-name (and this restriction is lifted with this PR)
+yeah, I was thinking we could validate the input with a regexp first, but maybe it's easier/safer to reimplement the parsing logic
+I just noticed this isn't even being used by OperationDelay.
+yeah, I was thinking we could validate the input with a regexp first, but maybe it's easier/safer to reimplement the parsing logic
+yeah, I was thinking we could validate the input with a regexp first, but maybe it's easier/safer to reimplement the parsing logic
+ditto here and others below
+ditto here and others below
+A ``` python if count == retries: ``` is needed here, otherwise on the last retry the program will say **Retrying...** and then exit.
+It's better to use variable names with context so for example `check1` could be `keystoreCheck`, etc.
+Indentation doesn't look right here.
+nit: one too many line break? :)
+Btw, we should take the chance and make `version` and `commitId` final. Something like: ```java private static final String version; private static final String commitId; static { Properties props = new Properties(); try (InputStream resourceStream = AppInfoParser.class.getResourceAsStream("/kafka/kafka-version.properties")) { props.load(resourceStream); } catch (Exception e) { log.warn("Error while loading kafka-version.properties :" + e.getMessage()); } version = props.getProperty("version", "unknown").trim(); commitId = props.getProperty("commitId", "unknown").trim(); } ```
+Btw, we should take the chance and make `version` and `commitId` final. Something like: ```java private static final String version; private static final String commitId; static { Properties props = new Properties(); try (InputStream resourceStream = AppInfoParser.class.getResourceAsStream("/kafka/kafka-version.properties")) { props.load(resourceStream); } catch (Exception e) { log.warn("Error while loading kafka-version.properties :" + e.getMessage()); } version = props.getProperty("version", "unknown").trim(); commitId = props.getProperty("commitId", "unknown").trim(); } ```
+Perhaps we should not change the return type here unless we decide to make the more extensive `LinkedHashSet` change across all APIs (and corresponding KIP).
+How about just throwing `NullPointerException` here? If that causes other issue, could you add some useful exception message, such as, `Should not add null Throwable to CompositeException`? So that people can quickly figure out it's an application bug instead of an RxJava bug.
+This exception is no longer possible since the constructor is taking `ObjectName`.
+Checkstyle is unhappy with this.
+Checkstyle is unhappy with this.
+Checkstyle is unhappy with this.
+Checkstyle is unhappy with this.
+nit: could use Utils.mkSet
+nit: could use Utils.mkSet
+I was thinking something similar to how we use [addValidationError](https://github.com/elastic/elasticsearch/blob/master/server/src/main/java/org/elasticsearch/common/ValidationException.java)
+> toArray() returns an Object[] depends on which toArray method you use. Just move to the one that accept an array as argument. Or iterator is fine too.
+I don't have a better suggestion, but targetTopicPartitionsUpstream is a kinda confusing name.
+you can just do the conversion to unmodifiable map one time in the constructor. it looks like at the moment this is only accessed in tests anyway.
+Ah I see, thanks!
+Ah I see, thanks!
+Ah I see, thanks!
+nit: one too many line break? :)
+The second one, implement toString with the utility. On May 8, 2016 9:28 PM, "Johnny Lim" notifications@github.com wrote: > In core/src/main/java/org/elasticsearch/action/get/GetResponse.java > https://github.com/elastic/elasticsearch/pull/18102#discussion_r62442944 > : > > > @@ -168,4 +169,17 @@ public void writeTo(StreamOutput out) throws IOException { > > super.writeTo(out); > > getResult.writeTo(out); > > } > > + > > - @Override > > - public String toString() { > > - try { > > @nik9000 https://github.com/nik9000 Are you suggesting not implementing > SearchResponse.toString() but using Strings.toString() in application > code, or implementing SearchResponse.toString() via using > Strings.toString()? > > â > You are receiving this because you were mentioned. > Reply to this email directly or view it on GitHub > https://github.com/elastic/elasticsearch/pull/18102/files/c5f0c73b8b0f9c57500656081005aa64e28f509b#r62442944
+Please put it into an assert if you keep it. Iâd remove it.
+unused import now, no? https://github.com/elastic/elasticsearch/pull/16432/files#diff-208398fdbe888b55ad36dd4f161fdf48L22
+nit: one too many line break? :)
+`requireNonNull` seems not to be necessary
+If we don't cache the fields, we should remove the fields.clear() at the end.
+nit: one too many line break? :)
+nit: one too many line break? :)
+We can use `assertThrows` for this kind of pattern: ```java RecordDeserializationException rde = assertThrows(RecordDeserializationException.class, () -> consumer.poll(Duration.ZERO)); assertEquals(invalidRecordOffset, rde.offset()); assertEquals(tp0, rde.partition()); ```
+nit: one too many line break? :)
+In current design (KIP-19), expiration of a batch in the accumulator is to avoid holding the batch forever in the accumulator when the partitions has no leader. If the batch can be drained, that means it can still make progress. In that case, we probably don't want to expire that batch.
+Perhaps open a separate pr for the change to this method? This adds additional validation outside concrete index to data stream lookup.
+I think your IDE is adding extra braces. (I know this is a bit annoying between Apache Kafka & Confluent projects since they use different styling. iirc default IntelliJ styling works for Kafka if you are using IntelliJ)
+It does not matter that it's not an actual id. The code where you extract the actual `video_id` remains the same.
+This could be: ```java try (BufferedReader br = Files.newBufferedReader(Paths.get(args[0]))) { ... } ```
+what's the difference between TermsLookup and TermsLookupBuilder? I am thinking if we can just make TermsLookup Writeable etc. and avoid adding a new class that holds the same info.
+It's super minor, but I think we usually don't include punctuation at the end of exception messages (the `.`)
+The parameters can be `final`.
+The parameters can be `final`.
+we're in Java8 now... I think you can do: `(key,value,context) -> { ... }`
+I also feel that we can collapse the layered interfaces a bit further after we've changed this, since the original motivation of having it is just to "stitch" the global stores and local stores together when exposing as `KafkaStreams#stores`. We can consider that in a separate, cleanup PR afterwards.
+Also minor, but I think I'd prefer `node == null ? null : node.toString()` because it requires less negative-resolving in my brain, up to you though.
+I was thinking something similar to how we use [addValidationError](https://github.com/elastic/elasticsearch/blob/master/server/src/main/java/org/elasticsearch/common/ValidationException.java)
+I was thinking something similar to how we use [addValidationError](https://github.com/elastic/elasticsearch/blob/master/server/src/main/java/org/elasticsearch/common/ValidationException.java)
+I was thinking something similar to how we use [addValidationError](https://github.com/elastic/elasticsearch/blob/master/server/src/main/java/org/elasticsearch/common/ValidationException.java)
+The second one, implement toString with the utility. On May 8, 2016 9:28 PM, "Johnny Lim" notifications@github.com wrote: > In core/src/main/java/org/elasticsearch/action/get/GetResponse.java > https://github.com/elastic/elasticsearch/pull/18102#discussion_r62442944 > : > > > @@ -168,4 +169,17 @@ public void writeTo(StreamOutput out) throws IOException { > > super.writeTo(out); > > getResult.writeTo(out); > > } > > + > > - @Override > > - public String toString() { > > - try { > > @nik9000 https://github.com/nik9000 Are you suggesting not implementing > SearchResponse.toString() but using Strings.toString() in application > code, or implementing SearchResponse.toString() via using > Strings.toString()? > > â > You are receiving this because you were mentioned. > Reply to this email directly or view it on GitHub > https://github.com/elastic/elasticsearch/pull/18102/files/c5f0c73b8b0f9c57500656081005aa64e28f509b#r62442944
+To get `retryBackOffMs` config, we will need to add it explicitly with prefix `admin.` in `StreamsConfig#getMainConsumerConfig()` similar to retries: ``` consumerProps.put(adminClientPrefix(AdminClientConfig.RETRIES_CONFIG), adminClientDefaultConfig.getInt(AdminClientConfig.RETRIES_CONFIG)); ``` Nit: fix indention (similar below) -- there should not be any tabs, but spaces only.
+I think this is the same as `Strings.toString(this)`? Otherwise I think this looks fine.
+This seems to defeat the purpose... If we really want to skip this test in this environment, we should rather put it in the beginning and do ``` if (isUnix) { return; } ```
+This seems to defeat the purpose... If we really want to skip this test in this environment, we should rather put it in the beginning and do ``` if (isUnix) { return; } ```
+I just noticed this isn't even being used by OperationDelay.
+I just noticed this isn't even being used by OperationDelay.
+nit: indent not aligned, as @mjsax mentioned above.
+nit: indent not aligned, as @mjsax mentioned above.
+nit: indent not aligned, as @mjsax mentioned above.
+nit: indent not aligned, as @mjsax mentioned above.
+Can we also clear the temp `charBytes` array, something on the lines of: ``` final byte[] charBytes = CharArrays.toUtf8Bytes(password); try { return builder.startObject() .field("password").utf8Value(charBytes, 0, charBytes.length) .endObject(); } finally { Arrays.fill(charBytes, '\u0000'); } ```
+ditto here and others below
+Can we also clear the temp `charBytes` array, something on the lines of: ``` final byte[] charBytes = CharArrays.toUtf8Bytes(password); try { return builder.startObject() .field("password").utf8Value(charBytes, 0, charBytes.length) .endObject(); } finally { Arrays.fill(charBytes, '\u0000'); } ```
+nit: one too many line break? :)
+nit: one too many line break? :)
+nit: one too many line break? :)
+nit: one too many line break? :)
+nit: one too many line break? :)
+@guozhangwang Yes, keeping the reference is fine. I was concerned by the check itself because we were calling `generation()` twice in the previous implementation thus we could get two different instances. ``` generation() != Generation.NO_GENERATION && !protocolName.equals(generation().protocolName) ``` I haven't thought about the error-log but it is also a good point.
+@guozhangwang Yes, keeping the reference is fine. I was concerned by the check itself because we were calling `generation()` twice in the previous implementation thus we could get two different instances. ``` generation() != Generation.NO_GENERATION && !protocolName.equals(generation().protocolName) ``` I haven't thought about the error-log but it is also a good point.
+I mean to say that I think you can just call `Strings#toString`.
+ditto here and others below
+I think this is the same as `Strings.toString(this)`? Otherwise I think this looks fine.
+I just noticed this isn't even being used by OperationDelay.
+It's better to use variable names with context so for example `check1` could be `keystoreCheck`, etc.
+Same with this, we are actually testing the deprecated method here, so we can justify the suppression.
+I think you also need the following test (here and in the other `*Windows`): ``` assertThat(DEPRECATED_OLD_24_HR_GRACE_PERIOD, is(Duration.ofDays(1).toMillis())); ``` Otherwise we will not notice if `DEPRECATED_OLD_24_HR_GRACE_PERIOD` is changed by mistake.
+Nit, and I know it was there, but there's an extra space between `URLClassLoader` and `)`.
+Nit, and I know it was there, but there's an extra space between `URLClassLoader` and `)`.
+I don't think that this is the right place for this. Since #13086, we already do duplicate settings validation in the `XContentSettingsLoader` and the `PropertiesSettingsLoader`, and this kind of check should sit right along side those checks (rather than having these checks spread out). If we do add this check to `XContentSettingsLoader`, this pushes the check as far down as it can go, and enables us to fail as early as possible. As a bonanza, we can give an error message that includes the line number that the failure occurred on. This is as user-friendly as we can get here. I didn't realize that you had opened this pull request, but I already opened #17310 that does exactly this.
+I don't think that this is the right place for this. Since #13086, we already do duplicate settings validation in the `XContentSettingsLoader` and the `PropertiesSettingsLoader`, and this kind of check should sit right along side those checks (rather than having these checks spread out). If we do add this check to `XContentSettingsLoader`, this pushes the check as far down as it can go, and enables us to fail as early as possible. As a bonanza, we can give an error message that includes the line number that the failure occurred on. This is as user-friendly as we can get here. I didn't realize that you had opened this pull request, but I already opened #17310 that does exactly this.
+nit: we could split this lone line by different key, value by new line to make it clear. ex: ``` String[] args = new String[] { "--topic", "Hello-Kafka", "--num-records", "5", .... }; ``` Same as below.
+typo: byteArrray -> byteArray
+nit: remove the redundant line. Same as below.
+Instead of adding these plugins as we go, we can get the `values()` from `loaded` at the end of this method.
+How does the volume of data relate to the slowness of the search api in the remote cluster? We are using scan search which is pretty fast and doesn't do deep pagination, and e.g. socket timeout set to 10 seconds doesn't mean that the whole response has to come back in 10 seconds, the request only times out if no data comes back for 10 seconds at any point of the request execution.
+I'm not sure we want `match` to be `contains` in some cases. If we want this we should make a new construct.
+I was thinking something similar to how we use [addValidationError](https://github.com/elastic/elasticsearch/blob/master/server/src/main/java/org/elasticsearch/common/ValidationException.java)
+I think it is more idiomatic to statically import the `instanceOf`.
+I think it is more idiomatic to statically import the `instanceOf`.
+similarly, equals uses the hash while hashCode doesn't
+This seems to defeat the purpose... If we really want to skip this test in this environment, we should rather put it in the beginning and do ``` if (isUnix) { return; } ```
+`assertThrows` is what we use for some time now, and it's available to the branches that this PR will be backported. (same below)
+We prefer adding the `set` prefix. ```suggestion public void setContents(Object contents) { ``` Also in this particular case I think we should also make a semantic change and type `contents` with `String`. This does mean that groovy will resolve GStrings sooner, but looking at the uses of this task that is ok and I would prefer the stronger typing, it's one of the reasons we convert in the first place. We can always _lather_ add a version that takes `Supplier<String>` if we need it to be more dynamic.
+This _nearly_ feels worthy of abstraction over the various sets of credentials, and I think that'll definitely be worth doing when the ECS-style credentials are added. Optional now, but worth thinking about.
+I think putting a `@JsonValue` annotation here should fix the capitalization issue, seems like it uses `name()` by default for `enums`.
+The identity function could pass this test, but wouldn't have the behavior we need in the BasicAuthSecurityRestExtension. I wonder if there's a way to confirm that the mockConfiguration has been evaluated prior to calling `get()` on the returned supplier.
+Can we also rename `StreamsGraphNode` to `GraphNode`? The `Streams` prefix is a bit confusing, IMO, because `StreamSourceNode` and `StreamsGraphNode` seem really similar although they are quite different.
+Can we also rename `StreamsGraphNode` to `GraphNode`? The `Streams` prefix is a bit confusing, IMO, because `StreamSourceNode` and `StreamsGraphNode` seem really similar although they are quite different.
+Can we also rename `StreamsGraphNode` to `GraphNode`? The `Streams` prefix is a bit confusing, IMO, because `StreamSourceNode` and `StreamsGraphNode` seem really similar although they are quite different.
+we should probably consolidate the error messages from the results so that we don't only present the first (from a seemingly arbitrary check order) error that was encountered to the user
+We only applied for `ElementType.METHOD`, so `ElementType.ANNOTATION_TYPE` can be removed.
+Perhaps an exception would be better than an empty set since this would be unintentional? Otherwise the check itself is unnecessary since the following code would do the same thing.
+Perhaps an exception would be better than an empty set since this would be unintentional? Otherwise the check itself is unnecessary since the following code would do the same thing.
+Nit: go with single parameter per line.
+oh right sorry I keep missing that.
+oh right sorry I keep missing that.
+oh right sorry I keep missing that.
+oh right sorry I keep missing that.
+nit: one too many line break? :)
+nit: could use Utils.mkSet
+empty line needed
+empty line needed
+Do we need the if/else? Since this is a unit test, it seems OK to just assert that the first element is the rate and the second is the total.
+empty line needed
+To be realistic, the second parameter should be `Collections.singleton(topic)` rather than `emptySet`.
+We only applied for `ElementType.METHOD`, so `ElementType.ANNOTATION_TYPE` can be removed.
+ditto here and others below
+ditto here and others below
+Thanks for the clarification, makes sense.
+You could just do `selector.poll(100)` instead of `poll(0) + sleep(100)`. `poll()` returns when an operation is ready, so we are not waiting unnecessarily.
+How about putting the `server.stop()` and `server = null` in a finally block? Also, `CloseableHttpResponse` is `AutoCloseable`, so we could actually use a try-with-resources here: ```suggestion server = new RestServer(workerConfig); try { server.initializeServer(); server.initializeResources(herder); HttpRequest request = new HttpGet("/connectors"); try (CloseableHttpClient httpClient = HttpClients.createMinimal()) { HttpHost httpHost = new HttpHost(server.advertisedUrl().getHost(), server.advertisedUrl().getPort()); try (CloseableHttpResponse response = httpClient.execute(httpHost, request)) { Assert.assertEquals(200, response.getStatusLine().getStatusCode()); if (!headerConfig.isEmpty()) { expectedHeaders.forEach((k, v) -> Assert.assertEquals(response.getFirstHeader(k).getValue(), v)); } else { Assert.assertNull(response.getFirstHeader("X-Frame-Options")); } } } } finally { server.stop(); server = null; } ```
+I see but I wonder if we should remove this method and simply accept Object and add a Fuzziness constructor that accepts Object instead
+check `source != null` not necessary. In doubt add an assertion.
+good point.... we should be able to get rid of it.
+ditto here and others below
+It looks ok to me
+I think it's always a single node cluster, but I'm good to keep it like this.
+I was thinking something similar to how we use [addValidationError](https://github.com/elastic/elasticsearch/blob/master/server/src/main/java/org/elasticsearch/common/ValidationException.java)
+Sure, good plan.
+a misspell? SQLFuncMixn -> SQLFuncMixin
+ditto here and others below
+Hmm, that's annoying.
+typo: byteArrray -> byteArray
+We only applied for `ElementType.METHOD`, so `ElementType.ANNOTATION_TYPE` can be removed.
+It's better to use variable names with context so for example `check1` could be `keystoreCheck`, etc.
+It's better to use variable names with context so for example `check1` could be `keystoreCheck`, etc.
+nit: probably checkstyle won't catch this, but if you format the block, there's an extra tab that you can remove here too.
+It's better to use variable names with context so for example `check1` could be `keystoreCheck`, etc.
+Thanks for the explanation. Make sense.
+nit: one too many line break? :)
+nit: one too many line break? :)
+These tests will now, right? Because of the empty on_failure processors? I think we should expect an exception here instead.
+nit: one too many line break? :)
+nit: one too many line break? :)
+nit: one too many line break? :)
+```dict_get``` makes codes even shorter
+```dict_get``` makes codes even shorter
+nit: add `final`
+To get `retryBackOffMs` config, we will need to add it explicitly with prefix `admin.` in `StreamsConfig#getMainConsumerConfig()` similar to retries: ``` consumerProps.put(adminClientPrefix(AdminClientConfig.RETRIES_CONFIG), adminClientDefaultConfig.getInt(AdminClientConfig.RETRIES_CONFIG)); ``` Nit: fix indention (similar below) -- there should not be any tabs, but spaces only.
+To get `retryBackOffMs` config, we will need to add it explicitly with prefix `admin.` in `StreamsConfig#getMainConsumerConfig()` similar to retries: ``` consumerProps.put(adminClientPrefix(AdminClientConfig.RETRIES_CONFIG), adminClientDefaultConfig.getInt(AdminClientConfig.RETRIES_CONFIG)); ``` Nit: fix indention (similar below) -- there should not be any tabs, but spaces only.
+To get `retryBackOffMs` config, we will need to add it explicitly with prefix `admin.` in `StreamsConfig#getMainConsumerConfig()` similar to retries: ``` consumerProps.put(adminClientPrefix(AdminClientConfig.RETRIES_CONFIG), adminClientDefaultConfig.getInt(AdminClientConfig.RETRIES_CONFIG)); ``` Nit: fix indention (similar below) -- there should not be any tabs, but spaces only.
+could we make this test somehow operations based rather than time based. The Problem with time-based tests is that you have a very very hard time to get anywhere near reproducability. I know this is multithreaded anyways so it won't really reproduces but we can nicely randomize the num ops per thread which make it a bit nicer :)
+could we make this test somehow operations based rather than time based. The Problem with time-based tests is that you have a very very hard time to get anywhere near reproducability. I know this is multithreaded anyways so it won't really reproduces but we can nicely randomize the num ops per thread which make it a bit nicer :)
+It looks ok to me
+I think this is the same as `Strings.toString(this)`? Otherwise I think this looks fine.
+nit: could use Utils.mkSet
+nit: remove the redundant line. Same as below.
+nit: remove the redundant line. Same as below.
+nit: remove the redundant line. Same as below.
+nit: remove the redundant line. Same as below.
+Why do we have `Args` here? The `toString` is used in the JUnit test display and hence why it doesn't include anything besides the parameters before this change.
+Yeah, it's relatively new but it's the clear path forward especially with JUnit 5 coming with built-in support for the same.
+nit: one too many line break? :)
+```suggestion (Support from Virtual machine hardware version 14, Guest OS Windows 10 64 bit, Windows Server 2016). version_added: 2.8' ```
+There's now a `Utils.mkProperties` method you can use (in conjunction with `mkMap`) to set these at the declaration site instead of setting them (redundantly) before every test. Then you won't need the `@Before` at all.
+```suggestion (Support from Virtual machine hardware version 14, Guest OS Windows 10 64 bit, Windows Server 2016). version_added: 2.8' ```
+I think this is the same as `Strings.toString(this)`? Otherwise I think this looks fine.
+This seems to defeat the purpose... If we really want to skip this test in this environment, we should rather put it in the beginning and do ``` if (isUnix) { return; } ```
+ditto here and others below
+ditto here and others below
+Yes, that may work. It just that it would be good to avoid duplicating the same code in two places.
+Yes, that may work. It just that it would be good to avoid duplicating the same code in two places.
+we do this kind of parsing in several places maybe a util can help at some point? not sure just an idea
+Indentation doesn't look right here.
+Looks like this should be Nullable
+Looks like this should be Nullable
+`use {@link #toStream()} followed by {@link KStream#to(String)} and {@link StreamsBuilder#table(String)} to read back as a {@code KTable}` ?? same below
+If you (also) specify your GitHub nick, you will be informed in case bugs/issues/PRs are filed against this plugin. The syntax is ```suggestion - Stefan HeitmÃ¼ller (@morph027) <stefan.heitmueller@gmx.com> ```
+If you (also) specify your GitHub nick, you will be informed in case bugs/issues/PRs are filed against this plugin. The syntax is ```suggestion - Stefan HeitmÃ¼ller (@morph027) <stefan.heitmueller@gmx.com> ```
+nit: could use Utils.mkSet
+nit: one too many line break? :)
+nit: one too many line break? :)
+nit: one too many line break? :)
+Use a similar logging to what we do for robust signals? See `django.dispatch.dispatcher.Signal.send_robust` and ``` try: response = receiver(signal=self, sender=sender, **named) except Exception as err: logger.error( "Error calling %s in Signal.send_robust() (%s)", receiver.__qualname__, err, exc_info=err, ) ``` Something like ```suggestion logger.error("Error calling {func.__qualname__} on_commit() ({e}).", exc_info=True) ```
+can you add spaces? `new KeyManager[] { km }, new TrustManager[] { tm }`
+nit: one too many line break? :)
+nit: one too many line break? :)
+nit: one too many line break? :)
+nit: one too many line break? :)
+nit: one too many line break? :)
+Nit: missing `.`
+Nit: missing `.`
+Nit: missing `.`
+If you (also) specify your GitHub nick, you will be informed in case bugs/issues/PRs are filed against this plugin. The syntax is ```suggestion - Stefan HeitmÃ¼ller (@morph027) <stefan.heitmueller@gmx.com> ```
+Update return type to `L` (if we introduce `L`)
+Update return type to `L` (if we introduce `L`)
+Update return type to `L` (if we introduce `L`)
+Update return type to `L` (if we introduce `L`)
+Update return type to `L` (if we introduce `L`)
+nit: one too many line break? :)
+It's better to use variable names with context so for example `check1` could be `keystoreCheck`, etc.
+I think this is the same as `Strings.toString(this)`? Otherwise I think this looks fine.
+To get `retryBackOffMs` config, we will need to add it explicitly with prefix `admin.` in `StreamsConfig#getMainConsumerConfig()` similar to retries: ``` consumerProps.put(adminClientPrefix(AdminClientConfig.RETRIES_CONFIG), adminClientDefaultConfig.getInt(AdminClientConfig.RETRIES_CONFIG)); ``` Nit: fix indention (similar below) -- there should not be any tabs, but spaces only.
+To get `retryBackOffMs` config, we will need to add it explicitly with prefix `admin.` in `StreamsConfig#getMainConsumerConfig()` similar to retries: ``` consumerProps.put(adminClientPrefix(AdminClientConfig.RETRIES_CONFIG), adminClientDefaultConfig.getInt(AdminClientConfig.RETRIES_CONFIG)); ``` Nit: fix indention (similar below) -- there should not be any tabs, but spaces only.
+nit: one too many line break? :)
+we should probably consolidate the error messages from the results so that we don't only present the first (from a seemingly arbitrary check order) error that was encountered to the user
+you don't have to assert on anything if an exception is expected
+nit: one too many line break? :)
+nit: one too many line break? :)
+Wildcard imports should be caught by checkstyle, and should fail the build. In any case, please replace with non-wildcard imports.
+I feel like the summary here should be a bit more descriptive. Perhaps "There are enough master-eligible instances to form a quorum."
+I feel like the summary here should be a bit more descriptive. Perhaps "There are enough master-eligible instances to form a quorum."
+That's a good point too. But what I wanted to highlight is to be explicit and return the exact collection, that being `Collections.emptyList()` or `new ArrayList()` (the former should be fine as you noted), instead of returning what's stored in `result` (whose declaration is good to be close to the use as much as possible). That's to guard against `result` being used earlier by code in the future. Improbable, but also doesn't hurt and it's a good practice IMO.
+BTW, instead of the above to wait for the nodes to come up, could something like this be done? ``` client().admin().cluster().health(Requests.clusterHealthRequest().waitForNodes(Integer.toString(3))).actionGet(); ```
+we should probably consolidate the error messages from the results so that we don't only present the first (from a seemingly arbitrary check order) error that was encountered to the user
+@jasontedor Thanks. I think `:` is a reserved char on Windows and if used in logging.yml but no node name is configured then it might fail the creation of the log file. But I don't think there's something we can do.
+we should probably consolidate the error messages from the results so that we don't only present the first (from a seemingly arbitrary check order) error that was encountered to the user
+It seems that the checkstyle failed but all unit tests have passed. I can modify the code slightly to fix the checkstyle failure before merging it.
+nit: one too many line break? :)
+nit: one too many line break? :)
+Indentation doesn't look right here.
+To get `retryBackOffMs` config, we will need to add it explicitly with prefix `admin.` in `StreamsConfig#getMainConsumerConfig()` similar to retries: ``` consumerProps.put(adminClientPrefix(AdminClientConfig.RETRIES_CONFIG), adminClientDefaultConfig.getInt(AdminClientConfig.RETRIES_CONFIG)); ``` Nit: fix indention (similar below) -- there should not be any tabs, but spaces only.
+Same suggestion here for `assertNotEquals`.
+When you use it with an instance of `PreBuiltAnalyzers`.
+ditto here and others below
+I was thinking something similar to how we use [addValidationError](https://github.com/elastic/elasticsearch/blob/master/server/src/main/java/org/elasticsearch/common/ValidationException.java)
+Same suggestion here for `assertNotEquals`.
+Not related to this change but we could write this: ``` java log("Installed plugins in " + environment.pluginsFile().toAbsolutePath() + ":"); if (plugins == null || plugins.length == 0) { log(" - No plugin detected"); } else { ``` It could help people to have a better understanding on plugins location. (IIRC I saw this request on the mailing list).
+indicesDeleted doesn't check for indexUUIDs. We have a separate method for it in this class `cleanMismatchedIndexUUIDs` - in this spirit of bringing all deletion code together - I think it's good to make indicesDelete aware of UUID switches (mark old as deleted), move the `applyDeletedIndices` to be executed where `cleanMismatchedIndexUUIDs` is called now and then we can remove `cleanMismatchedIndexUUIDs` make all go through here.
+indicesDeleted doesn't check for indexUUIDs. We have a separate method for it in this class `cleanMismatchedIndexUUIDs` - in this spirit of bringing all deletion code together - I think it's good to make indicesDelete aware of UUID switches (mark old as deleted), move the `applyDeletedIndices` to be executed where `cleanMismatchedIndexUUIDs` is called now and then we can remove `cleanMismatchedIndexUUIDs` make all go through here.
+I think we can just call `createKeyValueStore` and inline `createStore` inside `createKeyValueStore`. Also since all the calls in this class are the same, we can extract the `store` as a class variable.
+I think we can just call `createKeyValueStore` and inline `createStore` inside `createKeyValueStore`. Also since all the calls in this class are the same, we can extract the `store` as a class variable.
+nit: add `final`
+I think this is the same as `Strings.toString(this)`? Otherwise I think this looks fine.
+maybe also here `"foo"` -> `{@code foo}`
+I think it's worth looking into, but in the meantime this will already be an improvement.
+I have a similar concern here for when entry.getValue is not a Map
+ditto here and others below
+ditto here and others below
+ditto here and others below
+ditto here and others below
+nit: one too many line break? :)
+nit: one too many line break? :)
+nit: one too many line break? :)
+To get `retryBackOffMs` config, we will need to add it explicitly with prefix `admin.` in `StreamsConfig#getMainConsumerConfig()` similar to retries: ``` consumerProps.put(adminClientPrefix(AdminClientConfig.RETRIES_CONFIG), adminClientDefaultConfig.getInt(AdminClientConfig.RETRIES_CONFIG)); ``` Nit: fix indention (similar below) -- there should not be any tabs, but spaces only.
+The variable name `shand` is non-descriptive
+nit: one too many line break? :)
+I'm wondering if we should make this `info` or `warn` level. It doesn't seem like it would be very verbose, and it might be nice to see by default because it will have secondary effects later on when we try to start a new transaction, but get blocked. But I also don't feel strongly about it, so I leave it to your discretion.
+I'm wondering if we should make this `info` or `warn` level. It doesn't seem like it would be very verbose, and it might be nice to see by default because it will have secondary effects later on when we try to start a new transaction, but get blocked. But I also don't feel strongly about it, so I leave it to your discretion.
+Indentation doesn't look right here.
+To get `retryBackOffMs` config, we will need to add it explicitly with prefix `admin.` in `StreamsConfig#getMainConsumerConfig()` similar to retries: ``` consumerProps.put(adminClientPrefix(AdminClientConfig.RETRIES_CONFIG), adminClientDefaultConfig.getInt(AdminClientConfig.RETRIES_CONFIG)); ``` Nit: fix indention (similar below) -- there should not be any tabs, but spaces only.
+Indentation doesn't look right here.
+To get `retryBackOffMs` config, we will need to add it explicitly with prefix `admin.` in `StreamsConfig#getMainConsumerConfig()` similar to retries: ``` consumerProps.put(adminClientPrefix(AdminClientConfig.RETRIES_CONFIG), adminClientDefaultConfig.getInt(AdminClientConfig.RETRIES_CONFIG)); ``` Nit: fix indention (similar below) -- there should not be any tabs, but spaces only.
+nit: the more I see of this, the more I think that it's worth extending the `onDPKG` type of API to be able to produce values so reading trough the code is more consistent.
+can you just leave the constant in this class? There isn't a need to put it in realm imo
+Like it or not, our style is to use ` == false` instead of `!`.
+It's better to use variable names with context so for example `check1` could be `keystoreCheck`, etc.
+Does this really need to be generic? We certainly don't care about any of that on the consumption side.
+ditto here and others below
+nit: one too many line break? :)
+We only applied for `ElementType.METHOD`, so `ElementType.ANNOTATION_TYPE` can be removed.
+I think we can just have one function between `values` and `groups` here. I'd suggest we use ``` public Map<TopicPartition, KafkaFuture<Void>> deletedGroups() ```
+getters should not use get. i.e. use `networkDevice` here, etc.
+Hm, kind of annoying that we have to return Properties here, but (as far as I know) there is no way to make an immutable Properties
+Hm, kind of annoying that we have to return Properties here, but (as far as I know) there is no way to make an immutable Properties
+Do we need to wrap with the LinkedHashMap? Could we just do `Collections.unmodifiableMap(metrics.metrics());`
+Do we need to wrap with the LinkedHashMap? Could we just do `Collections.unmodifiableMap(metrics.metrics());`
+I meant that we can have the if clause once in `Security.java` and call `check()` on all the checks (or the one `check()` if we decide to implement `FipsChecks` in a simpler manner ) IF `fips_mode` is set
+I think we should do this in a `AccessController.doPrivileged` block since we need a special permission to modify threadgroup. It's good to respect that since we use this in reindex etc. as well
+nit: one too many line break? :)
+I'd suggest moving this static method after the non-static methods.
+nit: one too many line break? :)
+You don't need to specify any symbolic name for a group since you have only one.
+I was thinking something similar to how we use [addValidationError](https://github.com/elastic/elasticsearch/blob/master/server/src/main/java/org/elasticsearch/common/ValidationException.java)
+It might be worth mentioning in the upgrade notes the fact that we now invoke revocation logic in `unsubscribe` and `close`.
+nit: one too many line break? :)
+nit: one too many line break? :)
+nit: one too many line break? :)
+nit: typo in description
+nit: typo in description
+nit: typo in description
+nit: typo in description
+nit: typo in description
+nit: missing . at end
+I'm sorry for flip-flopping on this, but thinking about this again (with the new model we introduced), I think it's simpler to call this just shardId , which must be set either at construction time (for things like refresh/bulk/flush actions) or when the request is resolved. Feels unnatural to call this resolvedShardId when it can be part of the constructor.
+The variable name `phand` is non-descriptive
+Depending on other changes/suggestions, we should probably conditionally apply the FipsChecks if FIPS_MODE_ENABLED already in `Security.java` so that we don't have to check the settings value each time.
+Thank you for pointing this out! I will have a look at this in the next days.
+We could also use `FileSystemUtils.isAccessibleDirectory(Path, ESLogger)` to make sure this dir is readable.
+But grace and retention are two different things. In fact, I just had another conversation about this issue, and it seem we need to fix this by allowing people to specify a retention time IMHO. Not sure if we need to add a `Materialized` parameter or add `Joined#withRetention()` that we use to specify serdes etc.
+But grace and retention are two different things. In fact, I just had another conversation about this issue, and it seem we need to fix this by allowing people to specify a retention time IMHO. Not sure if we need to add a `Materialized` parameter or add `Joined#withRetention()` that we use to specify serdes etc.
+But grace and retention are two different things. In fact, I just had another conversation about this issue, and it seem we need to fix this by allowing people to specify a retention time IMHO. Not sure if we need to add a `Materialized` parameter or add `Joined#withRetention()` that we use to specify serdes etc.
+But grace and retention are two different things. In fact, I just had another conversation about this issue, and it seem we need to fix this by allowing people to specify a retention time IMHO. Not sure if we need to add a `Materialized` parameter or add `Joined#withRetention()` that we use to specify serdes etc.
+Can you split this out into 2 tests please?. One for each method that is being tested. Thanks
+Depending on other changes/suggestions, we should probably conditionally apply the FipsChecks if FIPS_MODE_ENABLED already in `Security.java` so that we don't have to check the settings value each time.
+I was thinking something similar to how we use [addValidationError](https://github.com/elastic/elasticsearch/blob/master/server/src/main/java/org/elasticsearch/common/ValidationException.java)
+It should be robust in case of some missing fields.
+Perhaps something like "Represents a pattern that is used by ACLs to match zero or more Resources"
+I think we can just have one function between `values` and `groups` here. I'd suggest we use ``` public Map<TopicPartition, KafkaFuture<Void>> deletedGroups() ```
+I think we can just have one function between `values` and `groups` here. I'd suggest we use ``` public Map<TopicPartition, KafkaFuture<Void>> deletedGroups() ```
+ditto here and others below
+s/`Strings.isNullOrEmpty(publicKey)||`/`Strings.isNullOrEmpty(publicKey) ||` (space missing)
+The second one, implement toString with the utility. On May 8, 2016 9:28 PM, "Johnny Lim" notifications@github.com wrote: > In core/src/main/java/org/elasticsearch/action/get/GetResponse.java > https://github.com/elastic/elasticsearch/pull/18102#discussion_r62442944 > : > > > @@ -168,4 +169,17 @@ public void writeTo(StreamOutput out) throws IOException { > > super.writeTo(out); > > getResult.writeTo(out); > > } > > + > > - @Override > > - public String toString() { > > - try { > > @nik9000 https://github.com/nik9000 Are you suggesting not implementing > SearchResponse.toString() but using Strings.toString() in application > code, or implementing SearchResponse.toString() via using > Strings.toString()? > > â > You are receiving this because you were mentioned. > Reply to this email directly or view it on GitHub > https://github.com/elastic/elasticsearch/pull/18102/files/c5f0c73b8b0f9c57500656081005aa64e28f509b#r62442944
+Looks good. I like the additional checking that you're doing here.
+you can use the util method printBoostAndQueryName here now (once you rebased)
+Not introduced in this patch: "is non" => "as non"
+we should probably consolidate the error messages from the results so that we don't only present the first (from a seemingly arbitrary check order) error that was encountered to the user
+I think it'd be clearer to simply inline these overloads and spell out all the parameters at the call sites. We only make three of these objects, so four overloads of the constructor seems excessive :) Also if `Bucket` were not `static` then you wouldn't need to pass `buckets` in.
+we should probably consolidate the error messages from the results so that we don't only present the first (from a seemingly arbitrary check order) error that was encountered to the user
+ditto here and others below
+This seems to defeat the purpose... If we really want to skip this test in this environment, we should rather put it in the beginning and do ``` if (isUnix) { return; } ```
+nit: one too many line break? :)
+nit: one too many line break? :)
+1: I'm definitely happy with this. I'm not sure why I didn't go for it myself. 2: Fine by me, I don't feel strongly.
+you mean providing the size of the array I guess? cause I don't see a constructor that accepts an array in ArrayList.
+Minor nitpick 3: You could put the two if-statements into a long one making this diff really small
+nit: one too many line break? :)
+something like `inferredInternalTopics.containsAll(specifiedInternalTopics)` might be easier to understand here
+This function returns true if there is a non-empty intersection between topicNames and partitionForHost. You could reverse the iteration: iterate topicNames (since it is a List) and lookup into partitionForHost (since it is a Set and likely has O(1) lookup time). The overall complexity would be reduced: O(m*n) -> O(m)
+nit: one too many line break? :)
+nit: one too many line break? :)
+with vint we save a cast to byte I guess, that's it :)
+Note to remember: while this is kept as a QueryBuilder internally, I think we need to make sure to call `toFiler()` on it once on the shard (e.g. in the new build() method, doesn't seem to be there yet)
+Nit: rename to `shouldThrowOnInvalidTopicNames`
+Note to remember: while this is kept as a QueryBuilder internally, I think we need to make sure to call `toFiler()` on it once on the shard (e.g. in the new build() method, doesn't seem to be there yet)
+Note to remember: while this is kept as a QueryBuilder internally, I think we need to make sure to call `toFiler()` on it once on the shard (e.g. in the new build() method, doesn't seem to be there yet)
+This test seems to be overlapping with `shouldCreateTopicWhenTopicLeaderNotAvailableAndThenTopicNotFound`. I don't think we need both to return `LeaderNotAvailable` unless they are evaluating different scenarios.
+Note to remember: while this is kept as a QueryBuilder internally, I think we need to make sure to call `toFiler()` on it once on the shard (e.g. in the new build() method, doesn't seem to be there yet)
+This test seems to be overlapping with `shouldCreateTopicWhenTopicLeaderNotAvailableAndThenTopicNotFound`. I don't think we need both to return `LeaderNotAvailable` unless they are evaluating different scenarios.
+A ``` python if count == retries: ``` is needed here, otherwise on the last retry the program will say **Retrying...** and then exit.
+To get `retryBackOffMs` config, we will need to add it explicitly with prefix `admin.` in `StreamsConfig#getMainConsumerConfig()` similar to retries: ``` consumerProps.put(adminClientPrefix(AdminClientConfig.RETRIES_CONFIG), adminClientDefaultConfig.getInt(AdminClientConfig.RETRIES_CONFIG)); ``` Nit: fix indention (similar below) -- there should not be any tabs, but spaces only.
+nit: add `final`
+ditto here and others below
+If it's possible to directly forward to `LoggingDeprecationHandler.INSTANCE` I'd rather do that because it would avoid duplicating the knowledge that the logger for `ParseField.class` goes to the deprecation log.
+same for tests below as well
+I think this should be: ``` ^(?:[-\\w]+[.])*[-\\w]+$ ``` - non-capturing groups (`(?:..)`) are more efficient - `\w` already includes `\d` and `_` - a `-` inside `[ ]` should appear first, otherwise it indicates a range (at least in pcre)
+I think this should be: ``` ^(?:[-\\w]+[.])*[-\\w]+$ ``` - non-capturing groups (`(?:..)`) are more efficient - `\w` already includes `\d` and `_` - a `-` inside `[ ]` should appear first, otherwise it indicates a range (at least in pcre)
+Nit: you can remove `value =`
+We typically don't use java serialization. Is Serializable needed? Ditto in a few other classes.
+Remove the last sentence, since the `reset` method is private, and looks like it's handle automatically.
+You don't need to specify any symbolic name for a group since you have only one.
+we should probably consolidate the error messages from the results so that we don't only present the first (from a seemingly arbitrary check order) error that was encountered to the user
+Should it be `Class<L> listClass` ? (or `Class<List<T>` if we don't introduce `L`)
+Perhaps something like "Represents a pattern that is used by ACLs to match zero or more Resources"
+I think we can just call `createKeyValueStore` and inline `createStore` inside `createKeyValueStore`. Also since all the calls in this class are the same, we can extract the `store` as a class variable.
+I think we can just call `createKeyValueStore` and inline `createStore` inside `createKeyValueStore`. Also since all the calls in this class are the same, we can extract the `store` as a class variable.
+maybe like this: ``` Java try { IOUtils.close(() -> processes.stream().map(s -> (Closeable)s::destroy).iterator()); } finally { processes.clear(); } ```
+You don't need to specify any symbolic name for a group since you have only one.
+You don't need to specify any symbolic name for a group since you have only one.
+That is a good point. I think adding a boolean flag in addition to the `future` result indicating if it may be incomplete is better than exposing the node map. I.e. we could have two fields inside `ListConsumerGroupsResult`, a `boolean` and a `KafkaFuture<Collection<ConsumerGroupListing>>` (I think we do not need to have nested KafkaFutures so I did not have that inside `Collection`, but correct me if I overlook anything).
+Does this need to be in `o.a.k.streams.state` or this package? I'm just wondering..
+Does this need to be in `o.a.k.streams.state` or this package? I'm just wondering..
+This should be done in reset()
+Does this need to be in `o.a.k.streams.state` or this package? I'm just wondering..
+If we start from scratch then maybe these would be better be in `state`, but they have been added to `processor` and moving them would be incompatible changes. So I'm more concerning about the newly added classes.
+This looks good. Basically a JavaFx version of 'unsubscribeOn'. This is better because it allows executing immediately if already in the right thread.
+Seems that this class is a bit redundant, i.e, we could just construct an `AssignedTasks` with the `logContext` and `"standby task"`
+add `final` twice
+This should only be done in close()
+Strings.EMPTY_ARRAY could be used too (if you want)
+Strings.EMPTY_ARRAY could be used too (if you want)
+nit: `final` + next line and might as well do the previous while you are at it ;-)
+It should be robust in case of some missing fields.
+There is a `StreamsConfig.METRIC_REPORTER_CLASSES_CONFIG`, we can just use that.
+There is a `StreamsConfig.METRIC_REPORTER_CLASSES_CONFIG`, we can just use that.
+nit: could use Utils.mkSet
+use `try-catch` plus `fail()` for this line and remove annotation `@expected` -- right now, for example, a bug in `builder.stream` raising `NullPointerException` would not get detected. ``` try { stream.peek(null); fail("Should not allow null Action"); } catch (final NullPointerException e) { // expected } `@expected` should only be used in "single line test" for which it is clear that no exception can happen before the actual tested code.
+braces please. for the rest of the method too. (I realize you just tweaked this to be a lambda but it would be good to fix this as two line single statement `if`s are dangerous and evil).
+Wow, test inheritance made this a truly mysterious change... Managed to track it down, though.
+Couple notes: You probably shouldn't pop from module.params.... I usually consider that to be a "constant" value. It's the record of what the user specified in the playbook for the module to look at but not to change. If you do want to pop it, you don't need to do it as two steps. This should be equivalent to what the present code does: ``` python module.params['binding:vnic_type'] = module.params.pop('vnic_type', None) ```
+same for tests below as well
+Couple notes: You probably shouldn't pop from module.params.... I usually consider that to be a "constant" value. It's the record of what the user specified in the playbook for the module to look at but not to change. If you do want to pop it, you don't need to do it as two steps. This should be equivalent to what the present code does: ``` python module.params['binding:vnic_type'] = module.params.pop('vnic_type', None) ```
+This seems to defeat the purpose... If we really want to skip this test in this environment, we should rather put it in the beginning and do ``` if (isUnix) { return; } ```
+I think we can just call `createKeyValueStore` and inline `createStore` inside `createKeyValueStore`. Also since all the calls in this class are the same, we can extract the `store` as a class variable.

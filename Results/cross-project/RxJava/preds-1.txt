@@ -1,0 +1,475 @@
+I think @talevy is talking about the `value` and not `path`. I think it is ok to add a null key.
+This logging statement has a `[{}]` but no argument to fill it
+I think we can use `Class.isAssignableFrom` to see what type it is rather than catching the exception. See `ChannelBuilders.createPrincipalBuilder` for a similar use case.
+I believe it should be `success, rx, tx, rtt = parse_ping(ping_results_list[-1])`
+@junrao Regarding "With this change, if we record a large value, the observed effect of the value could last much longer than the number of samples. " -- This will not happen with this approach. If we record a very large value, we never move to the bucket with timestamp > current timestamp (of the recording time). This approach can only add the value to older buckets, which did not expire, but never to the buckets "in the future". For example, if we only have 2 samples, and perSampleQuota = 5, and say we already filled in both buckets up to quota: [5, 5]. If new requests arrive but the timestamp did not move past the last bucket, we are going to be adding this value to the last bucket, for example getting to [5, 20] if we recorded 15. If the next recording happens after the time moved passed the last bucket, say we record 3, then buckets will look like [20, 3].
+Add the `@Overrride` annotation to this method.
+Add the `@Overrride` annotation to this method.
+It seems this still needs to be executed for `minReceivedMetadataVersion >= 2`
+Add the `@Overrride` annotation to this method.
+This doc seems wrong for `retry.timeout`. Or is this really a retry limit? Either way, might want to mention the constraints (e.g., "Must be a positive number.") that are enforced by the config.
+Is there a way we can check this property on startup as well/instead? Maybe we could check it in SearchModule or MapperService? The concern I see here is that restarts can be a pain for users and here they will only get feedback on the setting when they try to use a span query and then they can't use the query until they get the admin to restart the cluster
+Is there a way we can check this property on startup as well/instead? Maybe we could check it in SearchModule or MapperService? The concern I see here is that restarts can be a pain for users and here they will only get feedback on the setting when they try to use a span query and then they can't use the query until they get the admin to restart the cluster
+Is there a way we can check this property on startup as well/instead? Maybe we could check it in SearchModule or MapperService? The concern I see here is that restarts can be a pain for users and here they will only get feedback on the setting when they try to use a span query and then they can't use the query until they get the admin to restart the cluster
+Is there a way we can check this property on startup as well/instead? Maybe we could check it in SearchModule or MapperService? The concern I see here is that restarts can be a pain for users and here they will only get feedback on the setting when they try to use a span query and then they can't use the query until they get the admin to restart the cluster
+Is there a way we can check this property on startup as well/instead? Maybe we could check it in SearchModule or MapperService? The concern I see here is that restarts can be a pain for users and here they will only get feedback on the setting when they try to use a span query and then they can't use the query until they get the admin to restart the cluster
+typo: The title of the last column should be `DELETE_SEGMENT_FINISHED`.
+we usually do check the lucene version in a static block ``` Java static { assert Version.CURRENT.luceneVersion == org.apache.lucene.utli.Version.LUCENE_48 : "Remove this class in Lucene 4.9"; } ```
+`containsAlias` will throw an exception if you call it on a `KeyStore` that hasn't been initialised. I think you could test the exception handling with the following: ``` KeyStore keyStore = KeyStore.getInstance("JKS"); assertThatThrownBy(() -> SslUtils.assertStoreContainsAlias(keyStore, "alias")) .isInstanceOf(IllegalStateException.class) .hasMessage("Could not determine if keystore contains alias 'alias'").hasCause(keyStoreEx); ```
+Should we start with 0 credit or the full burst credits? The benefit of the latter is that during initialization, the requests won't be throttled as much due to a cold start.
+We didn't specify this in the KIP but I think `toStream()` and `toStream(mapper)` should also have overrides with`Named`
+We didn't specify this in the KIP but I think `toStream()` and `toStream(mapper)` should also have overrides with`Named`
+Another reason for having these classes in common (i.e. KAFKA-5265) is that they can potentially be used by the Authorizer interface when we move it to Java.
+There is a built-in for this `Function.identity()`
+There is a built-in for this `Function.identity()`
+There is a built-in for this `Function.identity()`
+There is a built-in for this `Function.identity()`
+There is a built-in for this `Function.identity()`
+There is a built-in for this `Function.identity()`
+@guozhangwang **Forgive me if I misunderstood this method, really**. But if the list is composed of key-value pairs, wouldn't this for loop goes up to the the middle of the array? Plus, if `tags` is `"a","1","b","2"` the final map will be `"a" -> "1", "1" -> "b"`. Is this the right intend? Besides not reaching "b" -> "2", it will make the previous value a key in the next iteration. If not, I suppose we could rewrite it as ``` for (int i = 0; i < tags.length; ) { tagMap.put(tags[i], tags[i+1]); i += 2; } ``` Again, forgive me if I understood everything wrong.
+Maybe an `assert` for unit tests (are `asserts` common in Kafka code base?). As `WrapperSerde` is private, nobody else can use it -- so no need to check for `null` IMHO.
+Maybe an `assert` for unit tests (are `asserts` common in Kafka code base?). As `WrapperSerde` is private, nobody else can use it -- so no need to check for `null` IMHO.
+Maybe an `assert` for unit tests (are `asserts` common in Kafka code base?). As `WrapperSerde` is private, nobody else can use it -- so no need to check for `null` IMHO.
+I wonder if we should resolve things again here. I think we should make it as simple as possible here. Maybe have a Primary request (or use internal request) which has the shardid already built into it. All we need to do in the action is lookup the index shard, see that we have it and do our thing.
+nit: What do you think about sprinkling a bit of docstrings in this interface while we're rewriting it? I like the original description of `An MBean that allows the user to dynamically alter log4j levels at runtime.`
+nit: 'else' can be dropped
+base -> based progress -> progressed
+Fixed this in my latest update of #4033.
+Fixed this in my latest update of #4033.
+Can we fix callers to concatenate streams instead of iterators? (which is already supported in the JDK)
+Can we fix callers to concatenate streams instead of iterators? (which is already supported in the JDK)
+nit: We could omit `res` and return directly in the two places below.
+Is there a way we can check this property on startup as well/instead? Maybe we could check it in SearchModule or MapperService? The concern I see here is that restarts can be a pain for users and here they will only get feedback on the setting when they try to use a span query and then they can't use the query until they get the admin to restart the cluster
+Is there a way we can check this property on startup as well/instead? Maybe we could check it in SearchModule or MapperService? The concern I see here is that restarts can be a pain for users and here they will only get feedback on the setting when they try to use a span query and then they can't use the query until they get the admin to restart the cluster
+Is there a way we can check this property on startup as well/instead? Maybe we could check it in SearchModule or MapperService? The concern I see here is that restarts can be a pain for users and here they will only get feedback on the setting when they try to use a span query and then they can't use the query until they get the admin to restart the cluster
+this file can go back to 140 chars as well...
+This isn't thread-safe
+Why is `completed` count being tracked? It doesn't seem to be used anywhere.
+We should use try-with-resources here (for `DataInputStream`).
+This isn't thread-safe
+this file can go back to 140 chars as well...
+We should use try-with-resources here (for `DataInputStream`).
+We should use try-with-resources here (for `DataInputStream`).
+We should use try-with-resources here (for `DataInputStream`).
+nit: I would rather use the full name instead of using acronyms.
+nit: I would rather use the full name instead of using acronyms.
+nit: I would rather use the full name instead of using acronyms.
+We should use try-with-resources here (for `DataInputStream`).
+nit: I would rather use the full name instead of using acronyms.
+This signature should be consistent with the consumer and producer. For example: ```java public void close(long timeout, TimeUnit timeUnit) { ```
+Should we also check that ``` final long start = SessionKeySerde.extractStart(bytes.get()); final long end = SessionKeySerde.extractEnd(bytes.get()); return end >= from && start <= to; ``` Although the current impl of RocksDBWIndowStore naturally checked that for us, it does not guarantee all underlying store impls guarantee that.
+Should we also check that ``` final long start = SessionKeySerde.extractStart(bytes.get()); final long end = SessionKeySerde.extractEnd(bytes.get()); return end >= from && start <= to; ``` Although the current impl of RocksDBWIndowStore naturally checked that for us, it does not guarantee all underlying store impls guarantee that.
+no need to use `this.` outside the constructor. Here and below
+What about readList? I get that sometimes you have an array and not a list but this seems like overkill.
+We should use try-with-resources here (for `DataInputStream`).
+We should use try-with-resources here (for `DataInputStream`).
+We should use try-with-resources here (for `DataInputStream`).
+We should use try-with-resources here (for `DataInputStream`).
+In cases like this, it's probably a bit more idiomatic in Connect to use a tertiary operator so that there is a single `return`: ```suggestion return inner == null ? null : usedPluginDesc(inner); ```
+I think the unlock calls should always be in a finally block
+I think the unlock calls should always be in a finally block
+I think the unlock calls should always be in a finally block
+It's better to do `instanceof` than this. The JVM folds the `instanceof` into the trap it needs to ensure JVM semantics.
+Fixed this in my latest update of #4033.
+Fixed this in my latest update of #4033.
+`((NamedDiff<?>)value. getMinimalSupportedVersion()` should avoid the raw cast warning and be perfectly safe.
+`((NamedDiff<?>)value. getMinimalSupportedVersion()` should avoid the raw cast warning and be perfectly safe.
+```throws Exception ``` is useless.
+```throws Exception ``` is useless.
+```throws Exception ``` is useless.
+I've seen alternative solutions floating around that use a configurable source here. Basically, the configuration passed to configure() is consulted to find the "source cluster", rather than looking at the topic name. That approach lets you return an actual source here, which obviates the new canTrackSource() method etc.
+We should use try-with-resources here (for `DataInputStream`).
+Actually we could go crazy and add couchbase to the list.
+Actually we could go crazy and add couchbase to the list.
+Actually we could go crazy and add couchbase to the list.
+We don't use `@Nullable` in Spring Boot yet and I am not keen to introduce it at this point. This `print` method should go away in benefit of `toString`
+Maybe an `assert` for unit tests (are `asserts` common in Kafka code base?). As `WrapperSerde` is private, nobody else can use it -- so no need to check for `null` IMHO.
+Maybe an `assert` for unit tests (are `asserts` common in Kafka code base?). As `WrapperSerde` is private, nobody else can use it -- so no need to check for `null` IMHO.
+Might be simpler to just update the Jira and do all at once? > Any thought about how the prefix text should look like? The suggestion you made via wrapping one `IllegalArgumentException` with the other, was good. Just you proposed "outer" error message could be used to be passed in as prefix.
+Sorry, my example included this initializer but it isn't needed. This is just for information: we can tidy up my mistake when we merge your changes.
+Sorry, my example included this initializer but it isn't needed. This is just for information: we can tidy up my mistake when we merge your changes.
+Might be simpler to just update the Jira and do all at once? > Any thought about how the prefix text should look like? The suggestion you made via wrapping one `IllegalArgumentException` with the other, was good. Just you proposed "outer" error message could be used to be passed in as prefix.
+Even if the number of sub aggregation is expected to be small, I'm not too happy with the use of `ListIterator.add` which is linear on array lists.
+What do you think of: ``` private void handleReadResponse(long from, int maxOperationCount, long maxRequiredSeqNo, ShardChangesAction.Response response) { maybeUpdateMapping(response.getIndexMetadataVersion(), () -> { synchronized (ShardFollowNodeTask.this) { globalCheckpoint = Math.max(globalCheckpoint, response.getGlobalCheckpoint()); final long newMinRequiredSeqNo; if (response.getOperations().length == 0) { newMinRequiredSeqNo = from; } else { assert response.getOperations()[0].seqNo() == from : "first operation is not what we asked for. From is [" + from + "], got " + response.getOperations()[0]; buffer.addAll(Arrays.asList(response.getOperations())); final long maxSeqNo = response.getOperations()[response.getOperations().length - 1].seqNo(); assert maxSeqNo== Arrays.stream(response.getOperations()).mapToLong(Translog.Operation::seqNo).max().getAsLong(); newMinRequiredSeqNo = maxSeqNo + 1; // update last requested seq no as we may have gotten more than we asked for and we don't want to ask it again. lastRequestedSeqno = Math.max(lastRequestedSeqno, maxSeqNo); assert lastRequestedSeqno <= globalCheckpoint: "lastRequestedSeqno [" + lastRequestedSeqno + "] is larger than the global checkpoint [" + globalCheckpoint + "]"; coordinateWrites(); } if (newMinRequiredSeqNo < maxRequiredSeqNo) { int newSize = (int) (maxRequiredSeqNo - newMinRequiredSeqNo) + 1; LOGGER.trace("{} received [{}] ops, still missing [{}/{}], continuing to read...", params.getFollowShardId(), response.getOperations().length, newMinRequiredSeqNo, maxRequiredSeqNo); sendShardChangesRequest(newMinRequiredSeqNo, newSize, maxRequiredSeqNo); } else { // read is completed, decrement numConcurrentReads--; if (response.getOperations().length == 0 && globalCheckpoint == lastRequestedSeqno) { // we got nothing and we have no reason to believe asking again well get us more, treat shard as idle and delay // future requests LOGGER.trace("{} received no ops and no known ops to fetch, scheduling to coordinate reads", params.getFollowShardId()); scheduler.accept(idleShardChangesRequestDelay, this::coordinateReads); } else { coordinateReads(); } } } }); } ``` PS - note the difference in handling of `lastRequestedSeqno` - I think the way you had it had a bug.
+nit: remove the redundant line. Same as below.
+@wicknicks would be useful to have some unit test for this class.
+@wicknicks would be useful to have some unit test for this class.
+@wicknicks would be useful to have some unit test for this class.
+@wicknicks would be useful to have some unit test for this class.
+@wicknicks would be useful to have some unit test for this class.
+I wonder if we should do this with no timeout at all. Potentially log warning after 30s and retry.
+I wonder if we should do this with no timeout at all. Potentially log warning after 30s and retry.
+I wonder if we should do this with no timeout at all. Potentially log warning after 30s and retry.
+deprecated names match too. match should always return true, or rather throw an exception in strict mode if you use a deprecated name. I think it should be an assert. We had the same discussion with Colin in IndicesQueriesRegistry I think :)
+deprecated names match too. match should always return true, or rather throw an exception in strict mode if you use a deprecated name. I think it should be an assert. We had the same discussion with Colin in IndicesQueriesRegistry I think :)
+We should add a `null` check to allow closing a deserializer that was not properly setup
+I had the same thought, but I guess the point is to properly validate things when they get set to the builder, so that non supported values will never be serialized. I assume that we do that already, otherwise we should.
+OMG `== false`! ð±
+nit: We could omit `res` and return directly in the two places below.
+You can remove `: {}` as we are not passing any args anymore, that is, we are calling the second method instead of the first: `public void warn(String format, Object arg);` `public void warn(String msg, Throwable t);`
+Suggestion to improve the message: ```suggestion throw new ConnectException("Fail to retry the task after " + maxAttempts + " attempts. Reason: " + lastError.getMessage(), lastError); ``` And, if `maxRetries == 0` should we just call the function without any special handling, since we're not retrying? For example, should we add something like this very early in the method? Doing that would make it easier to phrase this message, since the `ConnectException` will only be used when at least 1 retry may be attempted. ``` if (maxRetries <= 0) { // no special error handling return callable.call(); }
+Add the stream task id prefix here as well for both exception message and the warning log entry.
+nit: extra line
+I don't think this is in the KIP. I also think it should be named `queryableStoreName()` I think we generally don't use getXXX on the public API
+no need to use `this.` outside the constructor. Here and below
+I think the method name is a bit confusing as it doesn't set the limit to a new value but rather returns a new BigArray instance. I think we need a better name or maybe have new constructor `BigArrays(BigArrays arrays, long limit)`
+Too bad we don't know if this task should be persisted in the first place. That would have simplified the whole thing to start with.
+`((NamedDiff<?>)value. getMinimalSupportedVersion()` should avoid the raw cast warning and be perfectly safe.
+`((NamedDiff<?>)value. getMinimalSupportedVersion()` should avoid the raw cast warning and be perfectly safe.
+`((NamedDiff<?>)value. getMinimalSupportedVersion()` should avoid the raw cast warning and be perfectly safe.
+For this to be useful to me in my work on KIP-183 I also need `addWaiter()` to be made `public` on `KafkaFuture`.
+For this to be useful to me in my work on KIP-183 I also need `addWaiter()` to be made `public` on `KafkaFuture`.
+It's a little confusing that this is named newValue, but is sometimes actually priorValue
+nit: break line
+This is where I was a bit uncomfortable with requiring the underlying stream to have an unbound support for mark. If I read things correctly we end up with a stream that just wraps a byte reference and we therefore don't care. If you're comfortable relying on that behavior, then I'm good but then I also think we don't need to allocate a growing size of `firstBytes` but rather read byte by byte until we find the first non-white space.
+Will this ever happen? I think `Utils.newInstance` is guaranteed to give you an instance of the passed in `class` type. Ditto below.
+Will this ever happen? I think `Utils.newInstance` is guaranteed to give you an instance of the passed in `class` type. Ditto below.
+For this to be useful to me in my work on KIP-183 I also need `addWaiter()` to be made `public` on `KafkaFuture`.
+How about this transport configuration that we se to `NettyConnectionFactory`? @wilkinsona mentioned that on the original issue and we'd like some feedback on that.
+How about this transport configuration that we se to `NettyConnectionFactory`? @wilkinsona mentioned that on the original issue and we'd like some feedback on that.
+`before or after`
+`before or after`
+How about defining two helper methods, one for each cases? * `private void maybeRewrapAndThrow(ExecutionException exception)`; and * `private void maybeRewrapAndThrow(CompletionException exception)`
+How about defining two helper methods, one for each cases? * `private void maybeRewrapAndThrow(ExecutionException exception)`; and * `private void maybeRewrapAndThrow(CompletionException exception)`
+I think `update the index` could be made clearer since the `DataInput` interface doesn't mention an index. Same for other similar cases.
+It looks like this could fit in 140 columns.
+It might be simpler to add a private constructor that allows to specify all 4 parameters: ``` return new StoreQueryParams<>(storeName, queryableStoreType, partition, staleStores); ``` Similar in other methods
+It might be simpler to add a private constructor that allows to specify all 4 parameters: ``` return new StoreQueryParams<>(storeName, queryableStoreType, partition, staleStores); ``` Similar in other methods
+We don't need this for files, right? Just for directories (because of `file.deleteOnExit`)
+Some of the internal awkwardness seems to be the result of not having a clear "list of classes" type. Not something we have to do here, but potential room for improvement.
+Some of the internal awkwardness seems to be the result of not having a clear "list of classes" type. Not something we have to do here, but potential room for improvement.
+Please fix identation.
+`newMean` & `newVariance` (we don't do underscores in var names)
+`newMean` & `newVariance` (we don't do underscores in var names)
+We should use try-with-resources here (for `DataInputStream`).
+We should use try-with-resources here (for `DataInputStream`).
+We should use try-with-resources here (for `DataInputStream`).
+I think we should call `deserializer.configure(...)` here
+Maybe worth a mention that only the legacy `ControlledShutdown` is missing the client id field.
+I realize the example already here used this form, but I think it is clearer to use `== false` for inverted conditions.
+`.toString()` unnecessary here are other similar logs.
+`before or after`
+I think your IDE is adding extra braces. (I know this is a bit annoying between Apache Kafka & Confluent projects since they use different styling. iirc default IntelliJ styling works for Kafka if you are using IntelliJ)
+`null` check is redundant as `null instanceof StringDeserializer` will return false anyway.
+It actually seems like using the non-deprecated `put` method would improve this test's readability, since the verification depends on specific timestamps having been used in the put.
+master is the future 7.0, so I would do the following: ```java if (INDEX_MAPPER_DYNAMIC_SETTING.exists(indexSettings.getSettings())) { if (indexSettings.getIndexVersionCreated().onOrAfter(Version.V_7_0_0)) { // 7.x index throw new IllegalArgumentException("Setting " + INDEX_MAPPER_DYNAMIC_SETTING.getKey() + " was removed after version 6.0.0"); } else { // 6.x index DEPRECATION_LOGGER.deprecated("Setting " + INDEX_MAPPER_DYNAMIC_SETTING.getKey() + " is deprecated since indices may not have more than one type anymore."); } } ``` Then when backporting I'll just remove the 7.x branch and make sure that we only emit a deprecation warning on 6.x indices (you don't need to worry about it).
+So in my updated PR I change this line to line up with CompletableFuture.
+I think the implicit assumption is that the parent "foo" doesn't exist (yet), right? If so, shouldn't we assert that it actually does not exist prior to continuing? Or do we feel `TestUtils.tempDirectory();` is sufficient? (I think it is, but still wanted to ask.)
+`.toString()` unnecessary here are other similar logs.
+nice fix! this has been bothering me.
+You might consider using any `public static` utilities in `ConfigDef`/`AbstractConfig` to help with this here. I know at least `ConfigDef.parseType` could help here since it also does things like trim the string. Reusing that code will keep this closer to the normal behavior of `ConfigDef`s (and if we eventually move this functionality to be part of `ConfigDef` itself, will probably make it a simpler transition).
+> This method is private and only ever called from a single thread so there is no need to recheck. I'm just weary of having the failure handling case so far from the success case. I figure its harder for someone to break it if its closer together.
+Just curious, could we possibly call this function for the same node more than once? It seems yes as you are checking `!keyChangingOperationsToOptimizableRepartitionNodes.containsKey(node)` here, but I cannot tell from the code...
+@bleskes I moved this to `next` but we also need to dudup for nested docs then I moved this to `readDocAsOp` again. I think we should optimize for nested docs. I am open to suggestions here.
+@bleskes I moved this to `next` but we also need to dudup for nested docs then I moved this to `readDocAsOp` again. I think we should optimize for nested docs. I am open to suggestions here.
+I think that it's worth logging the index metadata version here too (and the mapping metadata version in the future).
+It's better to do `instanceof` than this. The JVM folds the `instanceof` into the trap it needs to ensure JVM semantics.
+> It sounds like I'm going to shift to List from arrays anyway, and thereby drop these methods altogether. +1, that should shrink the added code in this PR by a lot.
+> It sounds like I'm going to shift to List from arrays anyway, and thereby drop these methods altogether. +1, that should shrink the added code in this PR by a lot.
+Also, maybe we should assert that `numExceptionReceivedInCallback.get() > 0` if we expect at least one to fail (in theory, if `numSentRecords == 100`, there would be no exceptionReceivedInCallback).
+> It sounds like I'm going to shift to List from arrays anyway, and thereby drop these methods altogether. +1, that should shrink the added code in this PR by a lot.
+Else right after a return makes me sad. I'm not sure I have a good reason to think that way, but I do.
+This has been fixed by: https://github.com/apache/kafka/pull/8291 Please omit and rebase to get the latest changes.
+This has been fixed by: https://github.com/apache/kafka/pull/8291 Please omit and rebase to get the latest changes.
+This has been fixed by: https://github.com/apache/kafka/pull/8291 Please omit and rebase to get the latest changes.
+good point.... we should be able to get rid of it.
+We should use try-with-resources here (for `DataInputStream`).
+We should use try-with-resources here (for `DataInputStream`).
+good point.... we should be able to get rid of it.
+always what? I can't even :)
+always what? I can't even :)
+@SinghAsDev @guozhangwang I wonder if we could support blacklist filtering through a second argument to subscribe. For example: ``` java void subscribe(Pattern whitelist, Pattern blacklist); ``` This might get around some of the complexity mentioned above.
+@SinghAsDev @guozhangwang I wonder if we could support blacklist filtering through a second argument to subscribe. For example: ``` java void subscribe(Pattern whitelist, Pattern blacklist); ``` This might get around some of the complexity mentioned above.
+Not sure what EE is here.
+Not sure what EE is here.
+> I think in that case the `ingest` thread pool should be the default, in case no thread pool has been configured on a pipeline. yes.. that was my intention with the "default TP"
+If we change the definition of the available memory here, we may have to change a few other places as well. e.g. `deallocate()`, `unallocatedMemory()`, etc.
+> I think in that case the `ingest` thread pool should be the default, in case no thread pool has been configured on a pipeline. yes.. that was my intention with the "default TP"
+Update return type to `L` (if we introduce `L`)
+Update return type to `L` (if we introduce `L`)
+We should use try-with-resources here (for `DataInputStream`).
+This condition will never evaluate to `true` as we'll get an NPE when dereferencing a `null` instance of type `ExecutorHolder` in the line above.
+I find it confusing with the `toXContent` coming from the `ToXContent` interface. Arguments help but I think naming is better now.
+I find it confusing with the `toXContent` coming from the `ToXContent` interface. Arguments help but I think naming is better now.
+Maybe an `assert` for unit tests (are `asserts` common in Kafka code base?). As `WrapperSerde` is private, nobody else can use it -- so no need to check for `null` IMHO.
+I think this `if/else` block here can be removed and just go with ``` java for (final ProcessorNode child : children) { forward(child, key, value); } ```
+If users specify the wrong processor node it will cause NPE, which is a bit hard to reason. Better check null on `child` and throw an informative error message before calling forward.
+This is redundant. getDelayAllocationExpirationIn also calls getAllocationDelayTimeoutSetting()==0 and returns 0 in that case.
+Let's call that `DataSize` and move that to `org.springframework.boot.unit`.
+Let's call that `DataSize` and move that to `org.springframework.boot.unit`.
+Let's call that `DataSize` and move that to `org.springframework.boot.unit`.
+Let's call that `DataSize` and move that to `org.springframework.boot.unit`.
+Let's call that `DataSize` and move that to `org.springframework.boot.unit`.
+Maybe an `assert` for unit tests (are `asserts` common in Kafka code base?). As `WrapperSerde` is private, nobody else can use it -- so no need to check for `null` IMHO.
+Ideally, we'd always use brackets on control flow operators.
+can we remove this one, so it won't be called by mistake? I think only the benchmark calls it, in which case, the benchmark can call the one with the concurrencyLevel parameter using the available processors
+Compiler still gives some warning here, as you are erasing here the java generic type. Adding the `<>` infects the rest of your code with the `? super T` you have to add at the correct places.
+We don't use `@Nullable` in Spring Boot yet and I am not keen to introduce it at this point. This `print` method should go away in benefit of `toString`
+hehe :) nice one
+We don't use `@Nullable` in Spring Boot yet and I am not keen to introduce it at this point. This `print` method should go away in benefit of `toString`
+We don't use `@Nullable` in Spring Boot yet and I am not keen to introduce it at this point. This `print` method should go away in benefit of `toString`
+We don't use `@Nullable` in Spring Boot yet and I am not keen to introduce it at this point. This `print` method should go away in benefit of `toString`
+We don't use `@Nullable` in Spring Boot yet and I am not keen to introduce it at this point. This `print` method should go away in benefit of `toString`
+We don't use `@Nullable` in Spring Boot yet and I am not keen to introduce it at this point. This `print` method should go away in benefit of `toString`
+We don't use `@Nullable` in Spring Boot yet and I am not keen to introduce it at this point. This `print` method should go away in benefit of `toString`
+We don't use `@Nullable` in Spring Boot yet and I am not keen to introduce it at this point. This `print` method should go away in benefit of `toString`
+We don't use `@Nullable` in Spring Boot yet and I am not keen to introduce it at this point. This `print` method should go away in benefit of `toString`
+how about `onReset` instead of `finalizer`? `finalizer` makes me think of garbage collection
+nit: We could omit `res` and return directly in the two places below.
+Asking because neither a `List<T>` nor a `Deserializer<T>` need a `Comparator`.
+Asking because neither a `List<T>` nor a `Deserializer<T>` need a `Comparator`.
+This is a security risk because the right bit pattern can cause an infinite loop. We need to stop after a certain size. Same for `sizeOfVarlong`.
+What is the value in separating the `set` and `done` methods? The one place where I can see that they are separated by some other code it looks like moving the `set` next to the `done` doesn't affect the tests at all.
+no need for the annotation if the test method name starts with "test" :)
+I wonder if you want a CyclicBarrier here.
+Should simply return true here, right? As written now it is adjusting internal state, and it is best to isolate state manipulation to as few places as possible.
+I think its worth it? most of the time the response handle is SAME, so its not a big problem, but it allows to not overflow the same thread pool if it happens
+I think its worth it? most of the time the response handle is SAME, so its not a big problem, but it allows to not overflow the same thread pool if it happens
+Missing a `@since`. I wonder if that wouldn't be something of interest for the library (ping @jkschneider)
+I think we can just call `createKeyValueStore` and inline `createStore` inside `createKeyValueStore`. Also since all the calls in this class are the same, we can extract the `store` as a class variable.
+For this to be useful to me in my work on KIP-183 I also need `addWaiter()` to be made `public` on `KafkaFuture`.
+I think we can just call `createKeyValueStore` and inline `createStore` inside `createKeyValueStore`. Also since all the calls in this class are the same, we can extract the `store` as a class variable.
+Why do we need to call `getCause()` ? Does another `StreamsException` wrap the actual expected `StreamsException` ? If yes, this should not happen IMHO.
+The typo is still there.
+Even better you can use `try (BulkProcessor processor = BulkProcessor.builder(client(), listener).setBulkActions(6).setConcurrentRequests(1).setName("foo").build()) {` since we are on Java 7 :)
+Even better you can use `try (BulkProcessor processor = BulkProcessor.builder(client(), listener).setBulkActions(6).setConcurrentRequests(1).setName("foo").build()) {` since we are on Java 7 :)
+Not sure I have great ideas for improvement, but this feels like a brittle test case. I wonder if we are just trying to handle too many cases in this test.
+The source KTable is materialized for this case. That's why `groupBy().aggregate()` is only executed after the flush on the last value per key. However, with `TopologyTestDriver` we cannot mimic this behavior any longer. Hence, it would make sense to delete this test, as it's the same as `testAggBasic`
+Asking because neither a `List<T>` nor a `Deserializer<T>` need a `Comparator`.
+I think we can drop the benchmark.
+the naming used above seems better here ```suggestion Throwable exception = null; ```
+the naming used above seems better here ```suggestion Throwable exception = null; ```
+the naming used above seems better here ```suggestion Throwable exception = null; ```
+does it make sense to put the "fail a shard" logic under a method? to make sure we don't forget to put it in failedShards etc.
+Can you split this out into 2 tests please?. One for each method that is being tested. Thanks
+@guozhangwang Yep, sounds good to me.
+I think you can drop this interface and move ``` void execute(String action, ActionRequest actionRequest, ActionListener actionListener, ActionFilterChain actionFilterChain); ``` to the Operation (as abstract method)
+Ditto here, we should retain some version of this test and any others that are specifically intending to test the behavior of the old API (until the deprecation period has elapsed and we can remove it)
+`((NamedDiff<?>)value. getMinimalSupportedVersion()` should avoid the raw cast warning and be perfectly safe.
+`((NamedDiff<?>)value. getMinimalSupportedVersion()` should avoid the raw cast warning and be perfectly safe.
+as above (similar below)
+s/assignments/oldAssignments, and name could be simplified as `toNewAssignment`
+we need to shutdown the executor service even if there is a test failure (either in a finally block or the teardown).
+rewrite test as above using `assertThrows()`.
+Can we fix callers to concatenate streams instead of iterators? (which is already supported in the JDK)
+Can we fix callers to concatenate streams instead of iterators? (which is already supported in the JDK)
+This is logic that I think should go into ReplicatedOperation.
+Can we fix callers to concatenate streams instead of iterators? (which is already supported in the JDK)
+Can we fix callers to concatenate streams instead of iterators? (which is already supported in the JDK)
+Can we fix callers to concatenate streams instead of iterators? (which is already supported in the JDK)
+Why do you remove this check? A `TimeWindow` should not allow this case.
+> It sounds like I'm going to shift to List from arrays anyway, and thereby drop these methods altogether. +1, that should shrink the added code in this PR by a lot.
+What's the purpose of this warning? It doesn't seem needed.
+What's the purpose of this warning? It doesn't seem needed.
+nit: add final to parameters
+> It sounds like I'm going to shift to List from arrays anyway, and thereby drop these methods altogether. +1, that should shrink the added code in this PR by a lot.
+Maybe it could just be `StoreType`. We don't to qualify everything.
+`NEO4J` is not needed. `neo4j` entry will be inferred from `Neo4jHealthIndicator`, can be replaced by `nodes`? Additionally, all entries in the result shouldn't be added to the detail.
+I don't think this method is needed. The existing `toInstance(Function<T, R> factory)` method should do what we need when given a method reference to one of `Mustache.Compiler`'s configuration methods that return a new `Compiler` instance.
+since `Period` doesn't support time I think we can change `10s` to `10m`
+Ah, scratch that. I just realized it was the spring data support.
+Do we still need `needsJoinPrepare` now? It seems to me that we need to call `onJoinPrepare` whenever `needRejoin` is true.
+Just keep in mind that it's important to be careful not to simplify to the point of being incorrect (e.g. a successful response is not the same as a response containing metadata for a given topic).
+Just keep in mind that it's important to be careful not to simplify to the point of being incorrect (e.g. a successful response is not the same as a response containing metadata for a given topic).
+Maybe we can say "Kafka admin client has been closed" for consistency with the consumer. When grepping, it's easier to if things are consistent across clients.
+Maybe we can say "Kafka admin client has been closed" for consistency with the consumer. When grepping, it's easier to if things are consistent across clients.
+remove empty line
+remove empty line
+remove empty line
+Asking because neither a `List<T>` nor a `Deserializer<T>` need a `Comparator`.
+Asking because neither a `List<T>` nor a `Deserializer<T>` need a `Comparator`.
+We don't really care about the stack trace here or below, just the message. We know the `StreamsException` is generated from this class and the message is enough to identify the problem. Further, these are done in a retry loop so can become quite verbose if failed multiple times
+Why use a static block to initialise this? `Sets.newHashSet` can turn this into a 1 liner, and then you can wrap it in `unmodifiableSet`
+`doWork` is just one iteration. `ShutdownableThread` has the loop. I'm ok with the change, but we probably will need to copy over some of the shutdown logic.
+As above for this and next ctor
+Oh I see the `write(Object)` method which handles Publisher values. Still isn't it all collected/aggregated before `response#writeAndFlushWith` is called? So it could be a `List<Object>` (either String or Publisher) which can then be handled through a combination of `Flux.fromIterable` and `concatWith`.
+Maybe an `assert` for unit tests (are `asserts` common in Kafka code base?). As `WrapperSerde` is private, nobody else can use it -- so no need to check for `null` IMHO.
+Maybe an `assert` for unit tests (are `asserts` common in Kafka code base?). As `WrapperSerde` is private, nobody else can use it -- so no need to check for `null` IMHO.
+nit extra newline
+as above (similar below)
+I would add a null check here for the type given that it's only used from the java api, we can fail fast rather than doing it in validate
+nit: I would rather use the full name instead of using acronyms.
+nit: I would rather use the full name instead of using acronyms.
+This TODO should be removed
+I think we should call `deserializer.close()` here
+We should use try-with-resources here (for `DataInputStream`).
+In other cases like this we went for reducing the number of classes, so here too, I'd go for adding these two simply as abstract methods.
+> The JVM chooses the heap size ergonomically when the heap size is not specified. Do we have the ability to see what it would choose? If running on a small machine, for instance, we'd still want to disable Netty's pooled allocator if the JVM is going to automatically choose a 400mb heap
+can we remove an "elasticsearch_" prefix if it exists, I think it will be cleaner? down the road, we can also remove the specific ElasticsearchIllegalArgumentException and such, it was added historically to get the correct status code, but now we also identify IlleglaArgumentException and return the correct status code, so the need for those became irrelevant.
+add the exception? :)
+We should use try-with-resources here (for `DataInputStream`).
+We should use try-with-resources here (for `DataInputStream`).
+We should use try-with-resources here (for `DataInputStream`).
+if we use double futures (one that you have already and another to pass back the results) we won't have to busy wait here.
+`WindowStore` is public API -- we need a KIP if we want to deprecate something. Thus, this is not a `MINOR` PR.
+no need to use `this.` outside the constructor. Here and below
+how about `onReset` instead of `finalizer`? `finalizer` makes me think of garbage collection
+minor: I think it would be a bit more obvious to explicitly call `DateTimeZone.getDefault()` instead of `null`. Since that is what Joda does with the `null` value. http://joda-time.sourceforge.net/apidocs/src-html/org/joda/time/DateTimeZone.html#line.301
+Nit: you can call `Thread.enumerate` directly. Also, it would be good to assert that `threadCount` is < than `threads.length`.
+> It sounds like I'm going to shift to List from arrays anyway, and thereby drop these methods altogether. +1, that should shrink the added code in this PR by a lot.
+Use: `StreamsException e = assertThrows(StreamsException.class, () -> stateManager.initialize);` and also add `assertThat(e.getMessage(), is("..."))`;
+Use: `StreamsException e = assertThrows(StreamsException.class, () -> stateManager.initialize);` and also add `assertThat(e.getMessage(), is("..."))`;
++1 lets get rid of it! If we don't use it there is no need for the complexity!
++1 lets get rid of it! If we don't use it there is no need for the complexity!
++1 lets get rid of it! If we don't use it there is no need for the complexity!
++1 lets get rid of it! If we don't use it there is no need for the complexity!
+Sorry, my example included this initializer but it isn't needed. This is just for information: we can tidy up my mistake when we merge your changes.
+I'm curious why we have getValues if all of these classes already extend list? Nothing to do with this PR, just something I noticed: since we are looking at breaking changes in the future, maybe this could be cleaned up too (either extend list, or have getValues())
+I'm curious why we have getValues if all of these classes already extend list? Nothing to do with this PR, just something I noticed: since we are looking at breaking changes in the future, maybe this could be cleaned up too (either extend list, or have getValues())
+Is there a way we can check this property on startup as well/instead? Maybe we could check it in SearchModule or MapperService? The concern I see here is that restarts can be a pain for users and here they will only get feedback on the setting when they try to use a span query and then they can't use the query until they get the admin to restart the cluster
+Is the `& 0x7f` needed here? The protobuf code doesn't seem to do that: ```java if ((value & ~0x7F) == 0) { buffer[position++] = (byte) value; totalBytesWritten++; return; } else { buffer[position++] = (byte) ((value & 0x7F) | 0x80); totalBytesWritten++; value >>>= 7; } ```
+and -> a
+and -> a
+nit: {@link KafkaClientSupplier}
+Is there a way we can check this property on startup as well/instead? Maybe we could check it in SearchModule or MapperService? The concern I see here is that restarts can be a pain for users and here they will only get feedback on the setting when they try to use a span query and then they can't use the query until they get the admin to restart the cluster
+Is there a way we can check this property on startup as well/instead? Maybe we could check it in SearchModule or MapperService? The concern I see here is that restarts can be a pain for users and here they will only get feedback on the setting when they try to use a span query and then they can't use the query until they get the admin to restart the cluster
+nit - an extra d? release**d**Delayed..
+nit - an extra d? release**d**Delayed..
+I am good
+nit: add `final`
+Yeah, Java's type system makes this stuff a pain. I think you can fix it with: ``` final ProcessorParameters<K, V> processorParameters = new ProcessorParameters<>(new KStreamBranch<>((Predicate<K, V>[]) predicates.clone(), childNames), branchName); ``` which should be safe If you want to also get rid of the cast, you can do it by coercing each of the predicates to a Predicate<K,V> when you loop over them at the beginning: ``` Predicate<K, V>[] kvPredicates = new Predicate[predicates.length]; for (int i = 0; i < predicates.length; i++) { final Predicate<? super K, ? super V> predicate = predicates[i]; Objects.requireNonNull(predicate, "predicates can't be null"); kvPredicates[i] = predicate::test; } ```
+I am good
+I am good
+it makes it too easy to call delete when its not necessary.
+Rather than using a boolean, I think @philwebb's suggestion of taking the event class that should be listened for would be a more flexible approach. Depending on the type of the event, the environment can then be used it it's available. If the environment's not available or it doesn't contain the property to configure the pid file location, the default location could be used.
+Rather than using a boolean, I think @philwebb's suggestion of taking the event class that should be listened for would be a more flexible approach. Depending on the type of the event, the environment can then be used it it's available. If the environment's not available or it doesn't contain the property to configure the pid file location, the default location could be used.
+Should simply return true here, right? As written now it is adjusting internal state, and it is best to isolate state manipulation to as few places as possible.
+Rather than using a boolean, I think @philwebb's suggestion of taking the event class that should be listened for would be a more flexible approach. Depending on the type of the event, the environment can then be used it it's available. If the environment's not available or it doesn't contain the property to configure the pid file location, the default location could be used.
+For this to be useful to me in my work on KIP-183 I also need `addWaiter()` to be made `public` on `KafkaFuture`.
+For this to be useful to me in my work on KIP-183 I also need `addWaiter()` to be made `public` on `KafkaFuture`.
+For this to be useful to me in my work on KIP-183 I also need `addWaiter()` to be made `public` on `KafkaFuture`.
+Maybe an `assert` for unit tests (are `asserts` common in Kafka code base?). As `WrapperSerde` is private, nobody else can use it -- so no need to check for `null` IMHO.
+Maybe an `assert` for unit tests (are `asserts` common in Kafka code base?). As `WrapperSerde` is private, nobody else can use it -- so no need to check for `null` IMHO.
+`((NamedDiff<?>)value. getMinimalSupportedVersion()` should avoid the raw cast warning and be perfectly safe.
+`((NamedDiff<?>)value. getMinimalSupportedVersion()` should avoid the raw cast warning and be perfectly safe.
+`((NamedDiff<?>)value. getMinimalSupportedVersion()` should avoid the raw cast warning and be perfectly safe.
+`((NamedDiff<?>)value. getMinimalSupportedVersion()` should avoid the raw cast warning and be perfectly safe.
+New public classes should have a `@since 2.7.0` (assuming we're going to accept this PR).
+New public classes should have a `@since 2.7.0` (assuming we're going to accept this PR).
+nit: Since you imported statically also the other matchers, you could also statically import this one to be consistent.
+nit: missing `<p>` for new paragraph
+nit: missing `<p>` for new paragraph
+no need to use `this.` outside the constructor. Here and below
+Can you please elaborate why we no longer read the header during construction? It seems to me that `checkHC` could be a constructor parameter and then we could keep it as a private and final variable and less changes would be required. But maybe I am missing something. Note that public and mutable variables are generally avoided in Java.
+no need to use `this.` outside the constructor. Here and below
+nit: can remove type arguments
+I think it is fine: we only build one search context per request per shard.
+Well, it shouldnt be. The suppressed exceptions are like 'children' of `cause`, they don't need to be shuffled around. The current code is basically attaching grandchildren as children, which will be confusing.
+Considering that we may have multiple `WebServiceMessageSender`, I don't think we should expose this method here. You can provide a configured `WebServiceMessageSender`, this feels weird to me that all of them are reconfigured behind the scenes.
+This is a nitpick, but perhaps we should not use `at the same time` in `close` or `configure` because it won't actually happen at the same time (it will most likely happen sequentially, but we don't have to specify that).
+This is a nitpick, but perhaps we should not use `at the same time` in `close` or `configure` because it won't actually happen at the same time (it will most likely happen sequentially, but we don't have to specify that).
+This is a nitpick, but perhaps we should not use `at the same time` in `close` or `configure` because it won't actually happen at the same time (it will most likely happen sequentially, but we don't have to specify that).
+Could make this assertion a little stronger: ``` assertEquals(new TestElement(i, i), coll.find(elements.get(i))); ```
+Could make this assertion a little stronger: ``` assertEquals(new TestElement(i, i), coll.find(elements.get(i))); ```
+Could make this assertion a little stronger: ``` assertEquals(new TestElement(i, i), coll.find(elements.get(i))); ```
+For theano, `ratio` needs to be `integer`. ```python ratio = height_factor // width_factor ```
+I think I would consider taking settings out. We try to extract node.name from it as far as I understand, which I don't think is ever going to be set on a transport client. Maybe we can just live without that part of the thread name and remove some complexity. This may very well come from the times where node client was widely used, hence node.name made sense in the past, but it doesn't anymore.
+nit: fix alignment.
+Is it correct to set parent node name as `this.name + "GROUP_BY"`? Seems the parent node name is not set in this way. Ditto below.
+Is it correct to set parent node name as `this.name + "GROUP_BY"`? Seems the parent node name is not set in this way. Ditto below.
+Is it correct to set parent node name as `this.name + "GROUP_BY"`? Seems the parent node name is not set in this way. Ditto below.
+Is it correct to set parent node name as `this.name + "GROUP_BY"`? Seems the parent node name is not set in this way. Ditto below.
+as above. `requireNotNull` not necessary any longer
+Ideally we'd not wrap the exception if there are no retries, so I guess it just depends on how hard it is to make that work.
+nit: IOException never thrown
+this doesn't mean the index is not active, but rather that it doesn't exist or is closed. I don't think we need to retry in that case. [Old cold would throw `IndexNotFoundException` in this case](https://github.com/elastic/elasticsearch/blob/master/core/src/main/java/org/elasticsearch/cluster/routing/OperationRouting.java#L203).
+Nit: line too long
+and also add it to thenApply while we're at it
+and also add it to thenApply while we're at it
+This line can be reverted now that the JUnit 4/5 split is gone.
+"This class is intended for a single thread use." - can we change this to a more aggressive "This class is NOT thread-safe"? I want to make sure there is no confusion in the future for any other devs using this class
+For this to be useful to me in my work on KIP-183 I also need `addWaiter()` to be made `public` on `KafkaFuture`.
+For this to be useful to me in my work on KIP-183 I also need `addWaiter()` to be made `public` on `KafkaFuture`.
+I still wonder if we should use a priority queue here (ordered by sequence number) so that operations are applied closer to in order than they otherwise would be? Something like: ```java private final Queue<Translog.Operation> buffer = new PriorityQueue<>(Comparator.comparing(Translog.Operation::seqNo).reversed()); ```
+alright let's maybe make it a TODO then, just so we know the plan is to make it go away
+> But this wasn't described in the KIP and wouldn't be a source compatible change (existing code with a catch (InterruptedException) As it can cause compatible change, we should deprecate it and then add a new method (for example: get(T value)) to replace it. This can be discussed in another issue :)
+Good question. AK 3.0 is a good opportunity to do such breaking changes so I would be in favour of doing it. Let's see what other think.
+Good question. AK 3.0 is a good opportunity to do such breaking changes so I would be in favour of doing it. Let's see what other think.
+> I think cleanest the way to do it backwards compatibly is to introduce a new store hierarchy and deprecate the old one. I am afraid that might be the only way to do it -- deprecation hell -- users won't be happy -- thus we should think hard if it's worth to do or not...
+"do nothing" is probably the right thing here.
+> I think cleanest the way to do it backwards compatibly is to introduce a new store hierarchy and deprecate the old one. I am afraid that might be the only way to do it -- deprecation hell -- users won't be happy -- thus we should think hard if it's worth to do or not...
+same typo - copy paste probably
+Why add this and the next ctor? They aren't used anywhere. We should add them when/if they are needed
+`KafkaAdminClient#prettyPrintException` includes the class of the throwable in the string, which this method does not. `KafkaAdminClient#prettyPrintException` is also intended to generate a short (one line) description, not dive into the stack traces and causes. I'm sure there's some unification we could do at some point, though, if we had more utility methods for dealing with exception text
+Else right after a return makes me sad. I'm not sure I have a good reason to think that way, but I do.
+I find it confusing with the `toXContent` coming from the `ToXContent` interface. Arguments help but I think naming is better now.
+Else right after a return makes me sad. I'm not sure I have a good reason to think that way, but I do.
+Else right after a return makes me sad. I'm not sure I have a good reason to think that way, but I do.
+as above. `requireNotNull` not necessary any longer
+Why add this and the next ctor? They aren't used anywhere. We should add them when/if they are needed
+Else right after a return makes me sad. I'm not sure I have a good reason to think that way, but I do.
+same typo - copy paste probably
+Do we really need a generic here? It looks to me that it's useful for innerBlobStore() / blobContainer() methods used in tests but otherwise it's not really required.
+can we use Pattern.qoute for the prefix? just being paranoid..
+I think the method name is a bit confusing as it doesn't set the limit to a new value but rather returns a new BigArray instance. I think we need a better name or maybe have new constructor `BigArrays(BigArrays arrays, long limit)`
+`long,long` is used for `WindowStore` while `Instance,Duration` (or `Instance,Instance` if we correct it) is use for `ReadOnlyWindowStore` that return the same iterator.
+@rjernst Ping on that cosmetic thing. Not sure it is worth changing though. Up to you :)
+I would add a null check here for the type given that it's only used from the java api, we can fail fast rather than doing it in validate
+What about readList? I get that sometimes you have an array and not a list but this seems like overkill.
+nit: may worth explain how `queryableStoreName` can be find from `materialized` below.
+Should add that the class is not thread-safe.
+this line is still a bit long... You could try a static import for `singletonList`.
+no need to use `this.` outside the constructor. Here and below
+no need to use `this.` outside the constructor. Here and below
+no need to use `this.` outside the constructor. Here and below
+This is logic that I think should go into ReplicatedOperation.
+Is there a way we can check this property on startup as well/instead? Maybe we could check it in SearchModule or MapperService? The concern I see here is that restarts can be a pain for users and here they will only get feedback on the setting when they try to use a span query and then they can't use the query until they get the admin to restart the cluster
+You need to insert a `fail("Should have thrown IllegalArgumentException")` to make sure that the test fails if no exception is thrown (same below for all the other tests with this pattern).
+You need to insert a `fail("Should have thrown IllegalArgumentException")` to make sure that the test fails if no exception is thrown (same below for all the other tests with this pattern).
+You need to insert a `fail("Should have thrown IllegalArgumentException")` to make sure that the test fails if no exception is thrown (same below for all the other tests with this pattern).
+You need to insert a `fail("Should have thrown IllegalArgumentException")` to make sure that the test fails if no exception is thrown (same below for all the other tests with this pattern).
+HttpClient is optional, might be better to use RestTemplate.
+We didn't specify this in the KIP but I think `toStream()` and `toStream(mapper)` should also have overrides with`Named`
+Maybe at this point the revival process should also make up a sorted list with all of the dead nodes and pass that one to the selector, although we will try to revive only the first one in the list? Not too sure though, just a wild idea.
+`KeyValueStore` -> `TimestampedKeyValueStore`
+Nit: include brackets on all blocks, even if they are a single line. This makes it easier to read, but also reduces the number of affected lines if we have to add another line in the block in the future.
+Nit: include brackets on all blocks, even if they are a single line. This makes it easier to read, but also reduces the number of affected lines if we have to add another line in the block in the future.
+Nit: we don't normally use exclamation marks in Kafka log messages.
+Nit: we don't normally use exclamation marks in Kafka log messages.
+params are not nullable any more - please make sure this doesn't revive it.
+I don't think this is in the KIP. I also think it should be named `queryableStoreName()` I think we generally don't use getXXX on the public API
+We didn't specify this in the KIP but I think `toStream()` and `toStream(mapper)` should also have overrides with`Named`
+`limitedTo(long bytes)`? Clone is kinda non-specific.
+I think we should call `deserializer.configure(...)` here
+We should use try-with-resources here (for `DataInputStream`).
+super minor, but indentation is off here
+super minor, but indentation is off here
+super minor, but indentation is off here
+last parameter can be set to from.
+You don't need this anymore, this method always run with a single registered type.
+Maybe consider JUnit Parameters here, but fine as is. EDIT: Thinking some more about this, I'd leave it as is.
+super minor, but indentation is off here
+This TODO should be removed
+It might be worth adding a default implementation of it to whatever interface declares it. The vast majority of the time its a noop.
+I think we can drop the benchmark.
+I think we can drop the benchmark.
+I think we can drop the benchmark.
+Nit: missing `@Override`
+I stand by what i said, but I'll leave it up to you. It isn't a deal breaker for me!
+cancel that :) I figured it out.
+probably `new ThreadPool(Settings.EMPTY)` :) I wonder if the helper could hide the creation of the thread pool even, maybe not, but we will see that later. As you pointed out it may be that the helper is not needed at all.
+probably `new ThreadPool(Settings.EMPTY)` :) I wonder if the helper could hide the creation of the thread pool even, maybe not, but we will see that later. As you pointed out it may be that the helper is not needed at all.
+cancel that :) I figured it out.
+probably `new ThreadPool(Settings.EMPTY)` :) I wonder if the helper could hide the creation of the thread pool even, maybe not, but we will see that later. As you pointed out it may be that the helper is not needed at all.
+could be a instance variable, as used in all tests
+by no means a blocker (especially given public interfaces relying on this same problem), but i would not be opposed to making internal APIs not rely on these booleans -- clear enums, with properly handled default cases (presumably throwing exceptions) would be better. we tend to let things like this leak into internal (and subsequently external) APIs, but I think it is probably always a mistake -- unclear from the caller standpoint and not extensible.
+Maybe an `assert` for unit tests (are `asserts` common in Kafka code base?). As `WrapperSerde` is private, nobody else can use it -- so no need to check for `null` IMHO.
+I think we can just call `createKeyValueStore` and inline `createStore` inside `createKeyValueStore`. Also since all the calls in this class are the same, we can extract the `store` as a class variable.
+can we use a switch statement here maybe to read and write? like ``` JAVA switch(id) { case 0: return TERM; case 1: return RECURSIVE; } ``` and on writing we can do: ``` JAVA switch(this) { case TERM: out.writeVint(0); break; case RECURSIVE: out.writeVint(1); break; } ```
+base -> based progress -> progressed
+base -> based progress -> progressed
+I think the intended method to call would be ``` Thread.currentThread().interrupt() ``` Same with line 258 below.
+this one is not used - can we remove it until we cat over to the paths API
+request "got" re-sent to the control
+request "got" re-sent to the control
+"If no selection operation is currently in progress then the next invocation of one of these methods will return immediately unless the selectNow() method is invoked in the meantime." I read that to mean that that `poll(Long.MAX_VALUE)` will not return immediately since a `selectNow` was invoked in the meantime . Might be worth a unit test to verify that it works as expected.
+I believe the goal is to use constant-time comparison to prevent timing attacks, hence the walk through the arrays.
+and -> a
+base -> based progress -> progressed
+nit: I don't think there's any reason to mention this. Unexpected errors fall under `KafkaException`, which is listed below.
+Capitalize 't' Also, died _due_ to
+Capitalize 't' Also, died _due_ to
+Capitalize 't' Also, died _due_ to
+Capitalize 't' Also, died _due_ to
+you can do some streaming java8 magic here.
+Can you split this out into 2 tests please?. One for each method that is being tested. Thanks
