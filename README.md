@@ -76,8 +76,8 @@ This will generate the prediction by using our technique for the Given data.
 * To generate prediction, Use our finetuned model and follow the instruction from original replication package of [CodeReviewer](https://github.com/microsoft/CodeBERT/tree/master/CodeReviewer)
 * Navigate to the `Script/utilities` directory and run `prepare-data.py` python file to format data for our CommentFinder
 * To generate the prediction for CommentFinder, you can use the script given in the following directory `Script/CommentFinder` or follow the instruction from the original replication package of [CommentFinder](https://github.com/CommentFinder/CommentFinder) 
-
---- 
+---
+# Licensing Information
 [![License](https://i.creativecommons.org/l/by-nc-sa/1.0/88x31.png)](https://creativecommons.org/publicdomain/zero/1.0/)
 <br/>
 This work is licensed under a [Creative Commons CC0 1.0 Universal (CC0 1.0)
