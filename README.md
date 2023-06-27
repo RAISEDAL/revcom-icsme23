@@ -1,7 +1,19 @@
 # Replication Package of RevCom
 
 ## Recommending Code Reviews Leveraging Code Changes with Structured Information Retrieval
+#### Accepted Paper at ICSME 2023
 
+## Abstract
+Review comments are one of the main building blocks of modern code reviews.  Manually writing code review comments 
+could be time-consuming and technically challenging. Recently, an information retrieval (IR) based approach has been 
+proposed to automatically recommend relevant code review comments for method-level code changes. However, this technique overlooks the structured items
+(e.g., class name, library information) from the source code and is applicable only for method-level changes.
+In this paper, we propose a novel technique for relevant review comments recommendation -- RevCom -- that leverages various code-level changes using structured information retrieval.
+RevCom uses different structured items from source code and can recommend relevant reviews for all types of changes (e.g., method-level and non-method-level). 
+Our evaluation using three performance metrics show that RevCom outperforms both IR-based and DL-based baselines by up to 49.45% and 23.57% margins in BLEU score in recommending review comments.
+We find that RevCom can recommend review comments with an average BLEU score of 26.63%.
+According to Google's AutoML Translation documentation, such a BLEU score indicates that the review comments can capture the original intent of the reviewers.
+All these findings suggest that RevCom can recommend relevant code reviews and has the potential to reduce the cognitive effort of human code reviewers.
 ## Download Dataset, Model Checkpoints and Generated Predictions
 
 To replicate our experiment, please download the necessary materials following the below steps.
